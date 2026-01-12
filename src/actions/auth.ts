@@ -10,39 +10,48 @@ export async function login(formData: FormData) {
     const username = formData.get('username') as string;
     const password = formData.get('password') as string;
     const selectedRole = formData.get('selectedRole') as string;
+    let user;
 
-    // Validate credentials using the real database
-    const user = await prisma.user.findUnique({
-        where: { username }
-    });
+    try {
+        // Validate credentials using the real database
+        user = await prisma.user.findUnique({
+            where: { username }
+        });
 
-    if (!user || user.password !== password) {
-        return { error: 'Username atau password salah.' };
+        if (!user || user.password !== password) {
+            return { error: 'Username atau password salah.' };
+        }
+
+        // Validate role matches
+        if (selectedRole && user.role !== selectedRole) {
+            return { error: `Role tidak sesuai! Akun ini adalah ${user.role}, bukan ${selectedRole}.` };
+        }
+
+        // Create the session
+        const expires = new Date(Date.now() + 60 * 60 * 2000); // 2 hours
+        const session = await encrypt({
+            userId: user.id,
+            role: user.role as UserRole,
+            username: user.username,
+            image: user.image
+        });
+
+        // Save the session in a cookie
+        (await cookies()).set('session', session, {
+            expires,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+        });
+
+    } catch (error) {
+        console.error('Login error:', error);
+        // Important: Do not catch "NEXT_REDIRECT" error, let it bubble up if we used redirect() inside try, but here we don't.
+        return { error: 'Terjadi kesalahan sistem (Database Connection). Hubungi admin.' };
     }
 
-    // Validate role matches
-    if (selectedRole && user.role !== selectedRole) {
-        return { error: `Role tidak sesuai! Akun ini adalah ${user.role}, bukan ${selectedRole}.` };
-    }
-
-    // Create the session
-    const expires = new Date(Date.now() + 60 * 60 * 2000); // 2 hours
-    const session = await encrypt({
-        userId: user.id,
-        role: user.role as UserRole,
-        username: user.username,
-        image: user.image
-    });
-
-    // Save the session in a cookie
-    (await cookies()).set('session', session, {
-        expires,
-        httpOnly: true,
-        secure: process.env.NODE_ENV === 'production',
-        sameSite: 'lax',
-        path: '/',
-    });
-
+    // Redirect outside try-catch to allow cleanup
     redirect('/');
 }
 
