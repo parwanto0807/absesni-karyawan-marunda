@@ -157,12 +157,7 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                             if (canEdit) setSelectedCell({ userId: user.id, day });
                                         }}
                                         className={cn(
-                                            "flex-shrink-0 flex flex-col items-center space-y-1.5 p-1.5 rounded-xl min-w-[40px] border transition-all",
-                                            // Hides items > 7 on Mobile (< md)
-                                            // Shows items 7-21 on Tablet (md to lg)
-                                            // Hides items > 21 always on this view
-                                            index >= 7 && "hidden md:flex",
-                                            index >= 21 && "hidden",
+                                            "flex-shrink-0 flex flex-col items-center space-y-1.5 p-1.5 rounded-xl min-w-[44px] border transition-all",
                                             canEdit && "active:scale-95",
                                             isWeekend ? "bg-rose-50/50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/20" : "bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-800"
                                         )}
