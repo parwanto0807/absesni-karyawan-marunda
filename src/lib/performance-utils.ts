@@ -9,15 +9,13 @@
  * - No Clock Out Penalty: 50 points (if shift is likely over, handled conceptually, typically creates early leave)
  */
 export function calculateDailyPerformance(attendance: any): number {
-    if (attendance.status === 'ALPH') return 0;
+    if (attendance.status === 'ALPH' || attendance.status === 'ABSENT') return 0;
 
-    // For now, only 'PRESENT' gets a score. Others like 'SICK', 'PERMIT' are neutral or handled elsewhere.
-    // If we want to visualize them, we could return 100 or null.
-    // Let's assume if status is 'PRESENT' we score it, otherwise 100 (authorized) or 0 (unauthorized).
-    if (attendance.status !== 'PRESENT') {
-        // If it's a permit/sick/leave, it shouldn't penalize performance typically.
+    // For now, only 'PRESENT' and 'LATE' get a calculated score.
+    // Others like 'SICK', 'PERMIT' are neutral.
+    if (attendance.status !== 'PRESENT' && attendance.status !== 'LATE') {
         if (['SICK', 'PERMIT', 'LEAVE', 'OFF'].includes(attendance.status)) return 100;
-        return 0; // Unknown or ABSENT
+        return 0; // Unknown
     }
 
     let score = 100;

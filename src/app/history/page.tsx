@@ -12,6 +12,8 @@ import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor 
 import { prisma } from '@/lib/db';
 import HistoryFilter from '@/components/HistoryFilter';
 import ExportButtons from '@/components/ExportButtons';
+import { getShiftForDate, getStaticSchedule, getShiftTimings, ShiftCode } from '@/lib/schedule-utils';
+import { getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
 
 export default async function HistoryPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
     const searchParams = await props.searchParams;
@@ -45,10 +47,111 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
         return isNaN(date.getTime()) ? undefined : date;
     };
 
-    const startDate = parseDate(searchParams.startDate);
-    const endDate = parseDate(searchParams.endDate);
+    const startDate = parseDate(searchParams.startDate) || getStartOfDayJakarta(new Date('2026-01-12'));
+    const endDate = parseDate(searchParams.endDate) || getEndOfDayJakarta(new Date());
 
-    const attendances = await getAttendances(targetUserId, startDate, endDate);
+    // 1. Fetch Actual Attendances
+    const actualAttendances = await getAttendances(targetUserId, startDate, endDate);
+
+    // 2. Fetch Users to check for absence
+    const usersForAbsence = await prisma.user.findMany({
+        where: {
+            role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
+            ...(targetUserId ? { id: targetUserId } : {})
+        },
+        include: {
+            schedules: {
+                where: {
+                    date: { gte: startDate, lte: endDate }
+                }
+            },
+            permits: {
+                where: {
+                    finalStatus: 'APPROVED',
+                    startDate: { lte: endDate },
+                    endDate: { gte: startDate }
+                }
+            }
+        }
+    });
+
+    // 3. Generate Virtual Records
+    const virtualRecords: any[] = [];
+    const dateRange: Date[] = [];
+    let current = new Date(startDate);
+    while (current <= endDate) {
+        dateRange.push(new Date(current));
+        current.setDate(current.getDate() + 1);
+    }
+
+    const now = new Date();
+
+    for (const user of usersForAbsence) {
+        for (const date of dateRange) {
+            const dayStart = getStartOfDayJakarta(date);
+
+            // Check if user has attendance for this day
+            const hasAttendance = actualAttendances.some(att =>
+                att.userId === user.id &&
+                getStartOfDayJakarta(new Date(att.clockIn)).getTime() === dayStart.getTime()
+            );
+
+            if (!hasAttendance) {
+                // Determine shift
+                let shiftCode = 'OFF';
+                const manual = user.schedules.find(s => getStartOfDayJakarta(s.date).getTime() === dayStart.getTime());
+
+                if (manual) {
+                    shiftCode = manual.shiftCode;
+                } else if (user.role === 'LINGKUNGAN' || user.role === 'KEBERSIHAN') {
+                    shiftCode = getStaticSchedule(user.role, date);
+                } else {
+                    shiftCode = getShiftForDate(user.rotationOffset, date);
+                }
+
+                if (shiftCode !== 'OFF') {
+                    const timings = getShiftTimings(shiftCode, date);
+                    if (timings) {
+                        // Check for approved permit
+                        const permit = user.permits.find(p =>
+                            getStartOfDayJakarta(p.startDate).getTime() <= dayStart.getTime() &&
+                            getEndOfDayJakarta(p.endDate).getTime() >= dayStart.getTime()
+                        );
+
+                        // Only show absence if shift start window has passed (allowing some buffer)
+                        // Or if it's a past date
+                        const isPastDate = dayStart.getTime() < getStartOfDayJakarta(now).getTime();
+                        const isToday = dayStart.getTime() === getStartOfDayJakarta(now).getTime();
+                        const waitTimePassed = isToday && now.getTime() > (timings.start.getTime() + 2 * 60 * 60 * 1000);
+
+                        if (isPastDate || waitTimePassed || permit) {
+                            virtualRecords.push({
+                                id: `absent-${user.id}-${dayStart.getTime()}`,
+                                userId: user.id,
+                                clockIn: timings.start,
+                                status: permit ? (permit.type === 'SAKIT' ? 'SICK' : 'PERMIT') : 'ABSENT',
+                                shiftType: shiftCode,
+                                scheduledClockIn: timings.start,
+                                scheduledClockOut: timings.end,
+                                notes: permit ? permit.reason : 'Tidak ada keterangan',
+                                user: {
+                                    name: user.name,
+                                    employeeId: user.employeeId,
+                                    role: user.role,
+                                    image: user.image
+                                }
+                            });
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    // 4. Merge and Sort
+    const attendances = [...actualAttendances, ...virtualRecords].sort((a, b) =>
+        new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime()
+    );
 
     // Get filter info for export
     const selectedUser = filterUsers?.find(u => u.id === targetUserId);
@@ -62,7 +165,9 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
         switch (status) {
             case 'PRESENT': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
             case 'LATE': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-            case 'ALPH': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
+            case 'ABSENT': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
+            case 'SICK': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
+            case 'PERMIT': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
             default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
         }
     };
@@ -127,7 +232,11 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                     </div>
                                 </div>
                                 <span className={cn("px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-widest shrink-0", getStatusColor(attendance.status))}>
-                                    {attendance.status === 'PRESENT' ? 'HADIR' : attendance.status}
+                                    {attendance.status === 'PRESENT' ? 'HADIR' :
+                                        attendance.status === 'ABSENT' ? 'TIDAK HADIR' :
+                                            attendance.status === 'SICK' ? 'SAKIT' :
+                                                attendance.status === 'PERMIT' ? 'IZIN' :
+                                                    attendance.status}
                                 </span>
                             </div>
 
@@ -238,7 +347,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                         <tbody>
                             {attendances.length === 0 ? (
                                 <tr>
-                                    <td colSpan={5} className="h-64 text-center">
+                                    <td colSpan={7} className="h-64 text-center">
                                         <div className="flex flex-col items-center justify-center space-y-2 opacity-30">
                                             <Clock size={48} />
                                             <span className="text-xs font-bold uppercase tracking-widest">Belum ada riwayat absensi</span>
@@ -341,7 +450,9 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                                             </>
                                                         ) : (
                                                             <div className="flex flex-col items-center justify-center h-full">
-                                                                <span className="text-[9px] italic text-slate-300">Belum Absen</span>
+                                                                <span className="text-[9px] italic text-slate-300">
+                                                                    {attendance.status === 'ABSENT' || attendance.status === 'SICK' || attendance.status === 'PERMIT' ? '---' : 'Belum Absen'}
+                                                                </span>
                                                             </div>
                                                         )}
                                                     </div>
@@ -353,9 +464,9 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                                 <MapPin size={14} className="text-rose-500 shrink-0" />
                                                 <div className="flex items-center space-x-1 min-w-0">
                                                     <span className="text-[10px] font-bold text-slate-500 truncate" title={attendance.address ?? undefined}>
-                                                        {attendance.address || `${attendance.latitude}, ${attendance.longitude}`}
+                                                        {attendance.address || (attendance.latitude ? `${attendance.latitude}, ${attendance.longitude}` : '---')}
                                                     </span>
-                                                    <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                                                    {attendance.latitude && <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />}
                                                 </div>
                                             </div>
                                         </td>
@@ -385,7 +496,11 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                         </td>
                                         <td className="px-6 py-4 text-center">
                                             <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", getStatusColor(attendance.status))}>
-                                                {attendance.status === 'PRESENT' ? 'HADIR' : attendance.status}
+                                                {attendance.status === 'PRESENT' ? 'HADIR' :
+                                                    attendance.status === 'ABSENT' ? 'TIDAK HADIR' :
+                                                        attendance.status === 'SICK' ? 'SAKIT' :
+                                                            attendance.status === 'PERMIT' ? 'IZIN' :
+                                                                attendance.status}
                                             </span>
                                         </td>
                                     </tr>
