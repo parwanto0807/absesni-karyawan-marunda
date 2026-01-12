@@ -111,13 +111,30 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
             },
         });
 
-        // 🎉 Create Notification
+        // 🎉 Create Notification for User
         await createNotification({
             userId,
             title: 'Absen Masuk Berhasil',
             message: `Anda telah melakukan absen masuk pada ${now.toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
             type: 'ATTENDANCE',
         });
+
+        // 🔔 Notify Admins & PICs
+        if (user) {
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['ADMIN', 'PIC'] } }
+            });
+            for (const admin of admins) {
+                if (admin.id === userId) continue; // Don't notify self if admin is clocking in
+                await createNotification({
+                    userId: admin.id,
+                    title: 'Notifikasi Absen (Masuk)',
+                    message: `${user.name} (${user.role}) telah absen masuk pada ${now.toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
+                    type: 'ATTENDANCE',
+                    link: '/history'
+                });
+            }
+        }
 
         revalidatePath('/');
         revalidatePath('/attendance');
@@ -175,14 +192,35 @@ export async function clockOut(attendanceId: string) {
             },
         });
 
-        const userId = (await prisma.attendance.findUnique({ where: { id: attendanceId } }))?.userId;
-        if (userId) {
+        const attendanceWithUser = await prisma.attendance.findUnique({
+            where: { id: attendanceId },
+            include: { user: { select: { id: true, name: true, role: true } } }
+        });
+
+        if (attendanceWithUser) {
+            const { user } = attendanceWithUser;
+            // 🎉 Create Notification for User
             await createNotification({
-                userId,
+                userId: user.id,
                 title: 'Absen Keluar Berhasil',
-                message: `Anda telah melakukan absen keluar pada ${new Date().toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
+                message: `Anda telah melakukan absen keluar pada ${now.toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
                 type: 'ATTENDANCE',
             });
+
+            // 🔔 Notify Admins & PICs
+            const admins = await prisma.user.findMany({
+                where: { role: { in: ['ADMIN', 'PIC'] } }
+            });
+            for (const admin of admins) {
+                if (admin.id === user.id) continue;
+                await createNotification({
+                    userId: admin.id,
+                    title: 'Notifikasi Absen (Keluar)',
+                    message: `${user.name} (${user.role}) telah absen keluar pada ${now.toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
+                    type: 'ATTENDANCE',
+                    link: '/history'
+                });
+            }
         }
 
         revalidatePath('/');
