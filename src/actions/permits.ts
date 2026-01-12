@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { createNotification } from './notifications';
+import { TIMEZONE } from '@/lib/date-utils';
 
 export async function createPermit(formData: FormData) {
     try {
@@ -38,7 +39,7 @@ export async function createPermit(formData: FormData) {
         if (existingPermit) {
             return {
                 success: false,
-                message: `Anda sudah memiliki pengajuan izin pada tanggal tersebut (${new Date(existingPermit.startDate).toLocaleDateString('id-ID')} s/d ${new Date(existingPermit.endDate).toLocaleDateString('id-ID')}).`
+                message: `Anda sudah memiliki pengajuan izin pada tanggal tersebut (${new Date(existingPermit.startDate).toLocaleDateString('id-ID', { timeZone: TIMEZONE })} s/d ${new Date(existingPermit.endDate).toLocaleDateString('id-ID', { timeZone: TIMEZONE })}).`
             };
         }
 

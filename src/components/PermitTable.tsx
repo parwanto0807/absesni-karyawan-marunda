@@ -5,6 +5,7 @@ import { Check, X, Shield, Users, UserCog, Camera, Loader2, RotateCcw } from 'lu
 import { approvePermit, resetPermit } from '@/actions/permits';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
+import { TIMEZONE } from '@/lib/date-utils';
 
 export default function PermitTable({ permits, currentUser }: { permits: any[], currentUser: any }) {
     const [loading, setLoading] = useState<string | null>(null);
@@ -111,11 +112,11 @@ export default function PermitTable({ permits, currentUser }: { permits: any[], 
                                         <span className="inline-block bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 rounded-md px-1.5 py-0.5 text-[8px] font-black">{permit.type.replace(/_/g, ' ')}</span>
                                         <div className="flex h-full items-center space-x-1 px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800">
                                             <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter">
-                                                {new Date(permit.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                {new Date(permit.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', timeZone: TIMEZONE })}
                                             </span>
                                             <span className="text-[8px] font-black text-slate-300">→</span>
                                             <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter">
-                                                {new Date(permit.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short' })}
+                                                {new Date(permit.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', timeZone: TIMEZONE })}
                                             </span>
                                         </div>
                                     </div>
@@ -222,11 +223,11 @@ export default function PermitTable({ permits, currentUser }: { permits: any[], 
                                             <div className="flex items-center pt-0.5">
                                                 <div className="px-1.5 py-0.5 rounded-md bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-100 dark:border-indigo-800 flex items-center space-x-1">
                                                     <span className="text-[8px] md:text-base font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter">
-                                                        {new Date(permit.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/\./g, '-')}
+                                                        {new Date(permit.startDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit', timeZone: TIMEZONE }).replace(/\./g, '-')}
                                                     </span>
                                                     <span className="text-[8px] font-black text-slate-300">→</span>
                                                     <span className="text-[8px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-tighter">
-                                                        {new Date(permit.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit' }).replace(/\./g, '-')}
+                                                        {new Date(permit.endDate).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', year: '2-digit', timeZone: TIMEZONE }).replace(/\./g, '-')}
                                                     </span>
                                                 </div>
                                             </div>

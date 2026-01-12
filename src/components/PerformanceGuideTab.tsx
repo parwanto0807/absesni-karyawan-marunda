@@ -1,5 +1,5 @@
 import React from 'react';
-import { Calculator, Users, TrendingUp, Info, BookOpen } from 'lucide-react';
+import { Calculator, Users, TrendingUp, Info, BookOpen, Clock, LogIn, LogOut, Repeat } from 'lucide-react';
 
 export default function PerformanceGuideTab() {
     return (
@@ -201,6 +201,124 @@ export default function PerformanceGuideTab() {
                             </div>
                         </div>
                     </div>
+                </div>
+            </div>
+
+            {/* Aturan & Jendela Waktu Absensi */}
+            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-6 space-y-6">
+                <div className="flex items-center gap-3">
+                    <div className="p-3 rounded-xl bg-blue-50 dark:bg-blue-900/20">
+                        <Clock className="w-6 h-6 text-blue-600 dark:text-blue-400" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold text-slate-900 dark:text-white">Aturan & Jendela Waktu Absensi</h2>
+                        <p className="text-xs text-slate-500">Batasan Waktu Masuk & Pulang</p>
+                    </div>
+                </div>
+
+                <div className="grid md:grid-cols-2 gap-6">
+                    {/* Aturan Masuk */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                            <LogIn className="w-4 h-4 text-emerald-500" />
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">Absen Masuk (IN)</h3>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Toleransi Terlambat</p>
+                                <p className="text-sm font-bold text-rose-600 dark:text-rose-400">0 Menit (Strict)</p>
+                                <p className="text-[12px] text-slate-500 mt-1 italic">Absen melewati menit jadwal (misal 08:01) langsung dicatat "TERLAMBAT".</p>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800">
+                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Jendela Waktu</p>
+                                <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">± 2 Jam dari Jadwal</p>
+                                <p className="text-[12px] text-indigo-600/70 dark:text-indigo-400/70 mt-1 leading-relaxed">
+                                    Tombol absen hanya aktif **2 jam sebelum** sampai **2 jam sesudah** waktu masuk.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Aturan Pulang */}
+                    <div className="space-y-4">
+                        <div className="flex items-center gap-2 pb-2 border-b border-slate-100 dark:border-slate-800">
+                            <LogOut className="w-4 h-4 text-rose-500" />
+                            <h3 className="text-sm font-bold text-slate-900 dark:text-white uppercase tracking-tight">Absen Pulang (OUT)</h3>
+                        </div>
+
+                        <div className="space-y-3">
+                            <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
+                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Toleransi Pulang Cepat</p>
+                                <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">5 Menit</p>
+                                <p className="text-[12px] text-slate-500 mt-1 italic leading-relaxed">
+                                    Diizinkan pulang 5 menit sebelum jadwal tanpa dianggap "PULANG CEPAT".
+                                    Hal ini untuk mengantisipasi transisi personil yang melakukan **Shift Terusan** (menggantikan rekan yang berhalangan), di mana karyawan bisa mendapatkan kelonggaran untuk melakukan **Absensi OUT** kemudian langsung **Absensi IN**.
+                                </p>
+                            </div>
+
+                            <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800">
+                                <p className="text-[10px] font-black text-indigo-400 uppercase tracking-widest mb-1.5">Jendela Waktu</p>
+                                <p className="text-sm font-bold text-indigo-700 dark:text-indigo-300">± 2 Jam dari Jadwal</p>
+                                <p className="text-[12px] text-indigo-600/70 dark:text-indigo-400/70 mt-1 leading-relaxed">
+                                    Tombol pulang hanya aktif **2 jam sebelum** sampai **2 jam sesudah** waktu pulang.
+                                </p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            {/* Prosedur Khusus: Shift Terusan */}
+            <div className="bg-gradient-to-br from-indigo-600 to-blue-700 rounded-2xl shadow-xl shadow-indigo-200 dark:shadow-none p-6 text-white mb-6">
+                <div className="flex items-center gap-3 mb-6">
+                    <div className="p-3 rounded-xl bg-white/20 backdrop-blur-md">
+                        <Repeat className="w-6 h-6 text-white" />
+                    </div>
+                    <div>
+                        <h2 className="text-lg font-bold tracking-tight">Prosedur Khusus: Shift Terusan</h2>
+                        <p className="text-xs text-indigo-100 uppercase tracking-widest font-bold">Panduan Operasional Admin</p>
+                    </div>
+                </div>
+
+                <div className="grid md:grid-cols-3 gap-6">
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white text-indigo-600 text-[10px] font-black">1</span>
+                            <h3 className="text-xs font-black uppercase tracking-wider">Update Jadwal</h3>
+                        </div>
+                        <p className="text-[12px] text-indigo-100 leading-relaxed">
+                            Admin merubah jadwal karyawan di menu **Schedules** (Manual Override) menjadi shift yang diteruskan (misal: dari **P** dirubah ke **M**). Ini bisa dilakukan ketika Karyawan sudah melakukan Absen **IN** schedule normal, setelah itu admin bisa kapan saja merubah schedule terusan sebelum tiba waktu **IN Terusan** tanpa merusak absen pagi.
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white text-indigo-600 text-[10px] font-black">2</span>
+                            <h3 className="text-xs font-black uppercase tracking-wider">Proses Absensi</h3>
+                        </div>
+                        <p className="text-[12px] text-indigo-100 leading-relaxed">
+                            Karyawan wajib melakukan **Absensi OUT** untuk menutup shift pertama (Pagi), kemudian langsung melakukan **Absensi IN** untuk membuka shift kedua (Malam).
+                        </p>
+                    </div>
+
+                    <div className="space-y-2">
+                        <div className="flex items-center gap-2">
+                            <span className="flex items-center justify-center w-5 h-5 rounded-full bg-white text-indigo-600 text-[10px] font-black">3</span>
+                            <h3 className="text-xs font-black uppercase tracking-wider">Snapshot Sistem</h3>
+                        </div>
+                        <p className="text-[12px] text-indigo-100 leading-relaxed">
+                            Sistem mengunci jadwal saat tombol ditekan. Perubahan jadwal di tengah hari tidak akan merubah data **Clock IN** yang sudah masuk sebelumnya.
+                        </p>
+                    </div>
+                </div>
+
+                <div className="mt-6 p-4 rounded-xl bg-white/10 backdrop-blur-sm border border-white/20 flex items-start gap-3">
+                    <Info size={16} className="shrink-0 mt-0.5 text-indigo-200" />
+                    <p className="text-[12px] text-indigo-50 leading-relaxed">
+                        <strong>Kesimpulan untuk Admin</strong>: Admin tidak perlu standby jam 20:00. Cukup perbarui jadwal segera setelah mendapat laporan. Karyawan tetap bisa absen ganda asalkan proses **OUT** shift pertama sudah dilakukan.
+                    </p>
                 </div>
             </div>
 

@@ -17,7 +17,7 @@ import { TIMEZONE } from '@/lib/date-utils';
 import { clockIn, clockOut, getTodayAttendance, getTodayUserShift } from '@/actions/attendance';
 import { getSettings } from '@/actions/settings';
 import { calculateDistance } from '@/lib/location-utils';
-import { SHIFT_DETAILS } from '@/lib/schedule-utils';
+import { SHIFT_DETAILS, getShiftTimings } from '@/lib/schedule-utils';
 import { toast } from 'sonner';
 
 export default function AttendanceClient({ user }: { user: any }) {
@@ -445,6 +445,27 @@ export default function AttendanceClient({ user }: { user: any }) {
                                     </p>
                                 </div>
                             </div>
+
+                            {/* Attendance Window Info */}
+                            {(() => {
+                                const timings = getShiftTimings(todayShift, new Date());
+                                if (!timings) return null;
+
+                                const targetTime = isClockedIn ? timings.end : timings.start;
+                                const windowStart = new Date(targetTime.getTime() - 2 * 60 * 60 * 1000);
+                                const windowEnd = new Date(targetTime.getTime() + 2 * 60 * 60 * 1000);
+
+                                return (
+                                    <div className="mt- 2 pt-2 border-t border-indigo-100/50 dark:border-indigo-900/30 flex items-center justify-between text-[8px] md:text-[10px] font-bold uppercase tracking-widest text-indigo-400">
+                                        <span>Jendela {isClockedIn ? 'Pulang' : 'Masuk'} :</span>
+                                        <span>
+                                            {windowStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })}
+                                            <span className="mx-1">-</span>
+                                            {windowEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB
+                                        </span>
+                                    </div>
+                                );
+                            })()}
                         </div>
                     )}
                 </div>

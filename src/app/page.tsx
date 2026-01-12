@@ -28,7 +28,7 @@ import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { ImageModal } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
-import { TIMEZONE } from '@/lib/date-utils';
+import { TIMEZONE, getStartOfDayJakarta } from '@/lib/date-utils';
 
 export default async function Home() {
   const session = await getSession();
@@ -39,10 +39,9 @@ export default async function Home() {
   const isPowerful = session.role === 'ADMIN' || session.role === 'PIC';
   const isFieldRole = session.role === 'SECURITY' || session.role === 'LINGKUNGAN';
 
-  // Date for 7 days ago
-  const sevenDaysAgo = new Date();
+  // Date for 7 days ago (Jakarta Time)
+  const sevenDaysAgo = getStartOfDayJakarta();
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
-  sevenDaysAgo.setHours(0, 0, 0, 0);
 
   const getStatusColor = (status: string) => {
     switch (status) {
@@ -77,8 +76,7 @@ export default async function Home() {
   });
 
   // 2. Daftar Personil (Security & Lingkungan) yang Hadir Hari Ini
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
+  const todayStart = getStartOfDayJakarta();
 
   const presentSecurity = await prisma.attendance.findMany({
     where: {
@@ -98,7 +96,7 @@ export default async function Home() {
   // 3. Aktifitas Pengajuan
   const allPermitActivity = await prisma.permit.findMany({
     where: {
-      endDate: { gte: new Date(new Date().setHours(0, 0, 0, 0)) }
+      endDate: { gte: getStartOfDayJakarta() }
     },
     take: 5,
     include: {
@@ -113,7 +111,7 @@ export default async function Home() {
     }),
     presentToday: await prisma.attendance.count({
       where: {
-        clockIn: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        clockIn: { gte: getStartOfDayJakarta() },
         clockOut: null,
         status: { in: ['PRESENT', 'LATE'] }
       }
@@ -121,7 +119,7 @@ export default async function Home() {
     pendingPermits: await prisma.permit.count({ where: { finalStatus: 'PENDING' } }),
     onDutyToday: await prisma.attendance.count({
       where: {
-        clockIn: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
+        clockIn: { gte: getStartOfDayJakarta() },
         clockOut: null,
         user: { role: 'SECURITY' },
         status: { in: ['PRESENT', 'LATE'] }
@@ -139,7 +137,7 @@ export default async function Home() {
           </h1>
           <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5 flex items-center">
             <Calendar size={10} className="mr-1" />
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' })}
+            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: TIMEZONE })}
           </p>
         </div>
         <div className="flex items-center space-x-3">
@@ -248,7 +246,7 @@ export default async function Home() {
                       <div className="text-[10px] text-slate-500 leading-snug">
                         Mengajukan :  <span className="font-semibold text-indigo-600">{permit.type}</span>
                       </div>
-                      <div className="text-[9px] text-slate-400 mt-1">{new Date(permit.createdAt).toLocaleDateString('id-ID')}</div>
+                      <div className="text-[9px] text-slate-400 mt-1">{new Date(permit.createdAt).toLocaleDateString('id-ID', { timeZone: TIMEZONE })}</div>
                     </div>
                   </div>
                 ))
@@ -322,10 +320,10 @@ export default async function Home() {
                     </div>
                     <div className="flex items-center justify-between text-[9px] text-slate-500 dark:text-slate-400">
                       <span className="font-medium">
-                        {new Date(item.clockIn).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
+                        {new Date(item.clockIn).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short', timeZone: TIMEZONE })}
                       </span>
                       <span className="font-mono font-bold text-slate-900 dark:text-white">
-                        {new Date(item.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                        {new Date(item.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB
                       </span>
                     </div>
                   </div>

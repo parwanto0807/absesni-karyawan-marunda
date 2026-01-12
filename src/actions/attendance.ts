@@ -38,23 +38,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
             };
         }
 
-        // Cek apakah ada clock out dalam 3 menit terakhir (toleransi shift)
-        const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
-        const recentClockOut = await prisma.attendance.findFirst({
-            where: {
-                userId,
-                clockOut: { gte: threeMinutesAgo }
-            },
-            orderBy: { clockOut: 'desc' }
-        });
-
-        if (recentClockOut) {
-            const waitTime = Math.ceil((3 * 60 * 1000 - (now.getTime() - new Date(recentClockOut.clockOut!).getTime())) / 1000 / 60);
-            return {
-                success: false,
-                message: `Tunggu ${waitTime} menit setelah clock out untuk clock in shift berikutnya.`
-            };
-        }
+        // No more waiting period for shift transitions
 
         // Calculate Shift and Lateness
         const user = await prisma.user.findUnique({
@@ -83,8 +67,24 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                 scheduledStart = timings.start;
                 scheduledEnd = timings.end;
 
-                // Tolerance 15 or 0? Strict for now.
-                // If now > scheduledStart
+                // 2-hour window check for Clock In
+                const windowStart = new Date(scheduledStart.getTime() - 2 * 60 * 60 * 1000);
+                const windowEnd = new Date(scheduledStart.getTime() + 2 * 60 * 60 * 1000);
+
+                if (now < windowStart) {
+                    return {
+                        success: false,
+                        message: `Belum waktunya absen. Hubungi Admin atau tunggu hingga ${windowStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB.`
+                    };
+                }
+                if (now > windowEnd) {
+                    return {
+                        success: false,
+                        message: `Batas waktu absen masuk sudah lewat (${windowEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB).`
+                    };
+                }
+
+                // Lateness check (0 tolerance)
                 if (now > scheduledStart) {
                     const diff = now.getTime() - scheduledStart.getTime();
                     lateMinutes = Math.floor(diff / 60000);
@@ -139,7 +139,27 @@ export async function clockOut(attendanceId: string) {
 
         if (existingAttendance && existingAttendance.scheduledClockOut) {
             const scheduledEnd = new Date(existingAttendance.scheduledClockOut);
-            if (now < scheduledEnd) {
+
+            // 2-hour window check for Clock Out
+            const windowStart = new Date(scheduledEnd.getTime() - 2 * 60 * 60 * 1000);
+            const windowEnd = new Date(scheduledEnd.getTime() + 2 * 60 * 60 * 1000);
+
+            if (now < windowStart) {
+                return {
+                    success: false,
+                    message: `Belum waktunya absen pulang. Hubungi Admin atau tunggu hingga ${windowStart.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB.`
+                };
+            }
+            if (now > windowEnd) {
+                return {
+                    success: false,
+                    message: `Batas waktu absen pulang sudah lewat (${windowEnd.toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB).`
+                };
+            }
+
+            // 5-minute early leave tolerance
+            const tolerancePoint = new Date(scheduledEnd.getTime() - 5 * 60 * 1000);
+            if (now < tolerancePoint) {
                 const diff = scheduledEnd.getTime() - now.getTime();
                 earlyLeaveMinutes = Math.floor(diff / 60000);
                 if (earlyLeaveMinutes > 0) isEarlyLeave = true;

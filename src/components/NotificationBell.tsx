@@ -5,6 +5,7 @@ import { Bell, Check, ExternalLink } from 'lucide-react';
 import { getUserNotifications, markAsRead, markAllAsRead, getUnreadCount } from '@/actions/notifications';
 import { cn } from '@/lib/utils';
 import Link from 'next/link';
+import { TIMEZONE } from '@/lib/date-utils';
 
 interface Notification {
     id: string;
@@ -136,7 +137,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
                                                     {notif.title}
                                                 </p>
                                                 <span className="text-[10px] text-slate-400 whitespace-nowrap ml-2">
-                                                    {new Date(notif.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short' })}
+                                                    {new Date(notif.createdAt).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', timeZone: TIMEZONE })}
                                                 </span>
                                             </div>
                                             <p className="text-[11px] text-slate-500 dark:text-slate-400 leading-normal">

@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { Clock, Download, Filter, Search, Calendar, MapPin, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIMEZONE } from '@/lib/date-utils';
+import { fromZonedTime } from 'date-fns-tz';
 import { ImageModal, ImageModalMobile } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
 
@@ -39,7 +40,8 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
     const parseDate = (d: string | string[] | undefined) => {
         if (!d) return undefined;
         const str = Array.isArray(d) ? d[0] : d;
-        const date = new Date(str);
+        // Interpret as 00:00:00 in Jakarta
+        const date = fromZonedTime(`${str} 00:00:00`, TIMEZONE);
         return isNaN(date.getTime()) ? undefined : date;
     };
 
