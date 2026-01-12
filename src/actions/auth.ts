@@ -47,8 +47,8 @@ export async function login(formData: FormData) {
 
     } catch (error) {
         console.error('Login error:', error);
-        // Important: Do not catch "NEXT_REDIRECT" error, let it bubble up if we used redirect() inside try, but here we don't.
-        return { error: 'Terjadi kesalahan sistem (Database Connection). Hubungi admin.' };
+        const errorMessage = error instanceof Error ? error.message : String(error);
+        return { error: `System Error: ${errorMessage}` };
     }
 
     // Redirect outside try-catch to allow cleanup

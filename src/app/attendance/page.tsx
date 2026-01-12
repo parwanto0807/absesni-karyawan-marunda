@@ -25,8 +25,8 @@ export default function AttendancePage({ user }: { user: any }) {
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
     const [officeSettings, setOfficeSettings] = useState({
-        lat: -6.123,
-        lng: 106.123,
+        lat: -6.251440,
+        lng: 107.113805,
         radius: 100,
         name: 'POS Cluster Taman Marunda'
     });
