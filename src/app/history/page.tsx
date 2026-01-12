@@ -129,7 +129,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                 id: `absent-${user.id}-${dayStart.getTime()}`,
                                 userId: user.id,
                                 clockIn: timings.start,
-                                status: permit ? (permit.type === 'SAKIT' ? 'SICK' : 'PERMIT') : 'ABSENT',
+                                status: permit ? (permit.type === 'SAKIT' ? 'SICK' : (permit.type === 'PERUBAHAN_SHIFT' ? 'SHIFT_CHANGE' : 'PERMIT')) : 'ABSENT',
                                 shiftType: shiftCode,
                                 scheduledClockIn: timings.start,
                                 scheduledClockOut: timings.end,
@@ -168,6 +168,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
             case 'ABSENT': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
             case 'SICK': return 'bg-blue-100 text-blue-700 dark:bg-blue-900/30 dark:text-blue-400';
             case 'PERMIT': return 'bg-orange-100 text-orange-700 dark:bg-orange-900/30 dark:text-orange-400';
+            case 'SHIFT_CHANGE': return 'bg-indigo-100 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-400';
             default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
         }
     };
@@ -236,7 +237,8 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                         attendance.status === 'ABSENT' ? 'TIDAK HADIR' :
                                             attendance.status === 'SICK' ? 'SAKIT' :
                                                 attendance.status === 'PERMIT' ? 'IZIN' :
-                                                    attendance.status}
+                                                    attendance.status === 'SHIFT_CHANGE' ? 'TUKAR SHIFT' :
+                                                        attendance.status}
                                 </span>
                             </div>
 
@@ -500,7 +502,8 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                                     attendance.status === 'ABSENT' ? 'TIDAK HADIR' :
                                                         attendance.status === 'SICK' ? 'SAKIT' :
                                                             attendance.status === 'PERMIT' ? 'IZIN' :
-                                                                attendance.status}
+                                                                attendance.status === 'SHIFT_CHANGE' ? 'TUKAR SHIFT' :
+                                                                    attendance.status}
                                             </span>
                                         </td>
                                     </tr>
