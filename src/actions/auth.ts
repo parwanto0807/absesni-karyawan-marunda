@@ -33,6 +33,7 @@ export async function login(formData: FormData) {
             userId: user.id,
             role: user.role as UserRole,
             username: user.username,
+            iat: Math.floor(Date.now() / 1000), // Original login time
         });
 
         // Save the session in a cookie

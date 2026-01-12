@@ -27,9 +27,20 @@ export default async function middleware(req: NextRequest) {
 
     // 6. Refresh the session so it doesn't expire (Edge Compatible)
     if (session) {
+        const now = Math.floor(Date.now() / 1000);
+        const sevenDaysInSeconds = 7 * 24 * 60 * 60;
+
+        // Check if the session is older than 7 days from initial login
+        // If it is, we don't refresh and let it expire naturally (or redirect to login)
+        if (now - session.iat > sevenDaysInSeconds) {
+            const response = NextResponse.redirect(new URL('/login', req.nextUrl));
+            response.cookies.set('session', '', { expires: new Date(0) });
+            return response;
+        }
+
         const response = NextResponse.next();
 
-        // Extend session by 2 hours
+        // Extend session by 2 hours (Access Token style)
         const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000);
         const newSessionToken = await encrypt(session);
 

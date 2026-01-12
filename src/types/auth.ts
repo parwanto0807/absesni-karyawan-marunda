@@ -13,4 +13,5 @@ export interface SessionPayload {
     role: UserRole;
     username: string;
     image?: string | null;
+    iat: number; // Issued At (Timestamp)
 }

@@ -14,9 +14,10 @@ import {
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { TIMEZONE } from '@/lib/date-utils';
-import { clockIn, clockOut, getTodayAttendance } from '@/actions/attendance';
+import { clockIn, clockOut, getTodayAttendance, getTodayUserShift } from '@/actions/attendance';
 import { getSettings } from '@/actions/settings';
 import { calculateDistance } from '@/lib/location-utils';
+import { SHIFT_DETAILS } from '@/lib/schedule-utils';
 import { toast } from 'sonner';
 
 export default function AttendanceClient({ user }: { user: any }) {
@@ -34,10 +35,10 @@ export default function AttendanceClient({ user }: { user: any }) {
         radius: number;
         name: string;
     } | null>(null);
-    const [distance, setDistance] = useState<number | null>(null);
     const [currentAttendance, setCurrentAttendance] = useState<any>(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
     const [settingsLoaded, setSettingsLoaded] = useState(false);
+    const [todayShift, setTodayShift] = useState<string | null>(null);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -78,6 +79,10 @@ export default function AttendanceClient({ user }: { user: any }) {
                 startCamera();
                 getLocation();
             }
+
+            // Fetch today's shift
+            const shift = await getTodayUserShift(user.userId);
+            setTodayShift(shift);
         };
         init();
 
@@ -132,17 +137,6 @@ export default function AttendanceClient({ user }: { user: any }) {
                     lng: longitude,
                     address: `Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
                 });
-
-                // Calculate distance from office if settings are available
-                if (officeSettings) {
-                    const dist = calculateDistance(
-                        latitude,
-                        longitude,
-                        officeSettings.lat,
-                        officeSettings.lng
-                    );
-                    setDistance(dist);
-                }
             },
             (error) => {
                 console.error("Error getting location:", error);
@@ -272,6 +266,10 @@ export default function AttendanceClient({ user }: { user: any }) {
         }
     };
 
+    const distance = (location && officeSettings)
+        ? calculateDistance(location.lat, location.lng, officeSettings.lat, officeSettings.lng)
+        : null;
+
     const isOutside = distance !== null && officeSettings ? distance > officeSettings.radius : false;
     const isClockedIn = currentAttendance && !currentAttendance.clockOut;
     const isFinished = currentAttendance && currentAttendance.clockOut;
@@ -383,6 +381,42 @@ export default function AttendanceClient({ user }: { user: any }) {
                                 <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
                                     Maksimal Radius: {officeSettings?.radius} Meter
                                 </p>
+                            </div>
+                        </div>
+                    )}
+
+                    {/* Today's Shift Card */}
+                    {todayShift && todayShift !== 'OFF' && user.role !== 'ADMIN' && user.role !== 'PIC' && (
+                        <div className={cn(
+                            "rounded-[1.5rem] md:rounded-[2rem] border p-4 md:p-6 flex flex-col space-y-3",
+                            "border-indigo-100 bg-indigo-50/30 dark:border-indigo-900/20 dark:bg-indigo-900/5"
+                        )}>
+                            <div className="flex items-center space-x-3">
+                                <div className="h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl flex items-center justify-center shrink-0 bg-indigo-100 dark:bg-indigo-900/30">
+                                    <Clock className="text-indigo-600 md:w-5 md:h-5" size={16} />
+                                </div>
+                                <div className="space-y-0.5 md:space-y-1">
+                                    <p className="text-[10px] md:text-xs font-bold leading-relaxed uppercase tracking-tight text-indigo-800 dark:text-indigo-300">
+                                        Jadwal Shift Hari Ini
+                                    </p>
+                                    <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                        Pastikan Absen Tepat Waktu
+                                    </p>
+                                </div>
+                            </div>
+                            <div className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-white dark:bg-slate-900 border border-indigo-100/50 dark:border-indigo-900/30">
+                                <div className="space-y-0.5">
+                                    <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Shift</span>
+                                    <p className="text-sm md:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                        {(SHIFT_DETAILS as any)[todayShift]?.label || todayShift}
+                                    </p>
+                                </div>
+                                <div className="text-right space-y-0.5">
+                                    <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Jam Kerja</span>
+                                    <p className="text-sm md:text-lg font-black text-indigo-600 dark:text-indigo-400 tabular-nums tracking-tight">
+                                        {(SHIFT_DETAILS as any)[todayShift]?.time || '-'}
+                                    </p>
+                                </div>
                             </div>
                         </div>
                     )}

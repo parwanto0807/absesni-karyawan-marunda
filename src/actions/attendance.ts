@@ -218,6 +218,34 @@ export async function getTodayAttendance(userId: string) {
     }
 }
 
+export async function getTodayUserShift(userId: string) {
+    try {
+        const now = new Date();
+        const today = getStartOfDayJakarta(now);
+
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { schedules: { where: { date: today } } }
+        });
+
+        if (!user) return null;
+
+        let shiftCode = 'OFF';
+        if (user.schedules.length > 0) {
+            shiftCode = user.schedules[0].shiftCode;
+        } else if ((user.role as string) === 'LINGKUNGAN' || (user.role as string) === 'KEBERSIHAN') {
+            shiftCode = getStaticSchedule(user.role as string, now);
+        } else {
+            shiftCode = getShiftForDate(user.rotationOffset, now);
+        }
+
+        return shiftCode;
+    } catch (error) {
+        console.error('Get today user shift error:', error);
+        return 'OFF';
+    }
+}
+
 export async function getAttendances(userId?: string, startDate?: Date, endDate?: Date) {
     try {
         const where: any = {};

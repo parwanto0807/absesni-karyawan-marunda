@@ -75,7 +75,7 @@ export default function LoginPage() {
                             )}
                         >
                             <role.icon className={cn("h-6 w-6 mb-1", selectedRole === role.id ? "text-indigo-600" : "text-slate-400")} />
-                            <span className={cn("text-[10px] font-bold uppercase", selectedRole === role.id ? "text-indigo-700" : "text-slate-500")}>
+                            <span className={cn("text-[9px] font-bold uppercase truncate w-full text-center px-0.5", selectedRole === role.id ? "text-indigo-700" : "text-slate-500")}>
                                 {role.label}
                             </span>
                         </button>
