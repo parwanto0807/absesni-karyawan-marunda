@@ -40,7 +40,7 @@ export default async function HistoryPage() {
                     </h1>
                     <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 font-medium">
                         {session.role === 'ADMIN' || session.role === 'PIC'
-                            ? 'Memantau seluruh data absensi karyawan Marunda Center.'
+                            ? 'Memantau seluruh data absensi karyawan Cluster Taman Marunda .'
                             : 'Melihat catatan kehadiran pribadi Anda.'}
                     </p>
                 </div>

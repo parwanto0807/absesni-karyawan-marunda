@@ -28,7 +28,7 @@ export default function AttendancePage({ user }: { user: any }) {
         lat: -6.123,
         lng: 106.123,
         radius: 100,
-        name: 'Marunda Center'
+        name: 'POS Cluster Taman Marunda'
     });
     const [distance, setDistance] = useState<number | null>(null);
 
@@ -94,13 +94,19 @@ export default function AttendancePage({ user }: { user: any }) {
             return;
         }
 
+        const options = {
+            enableHighAccuracy: true,
+            timeout: 10000,
+            maximumAge: 0
+        };
+
         navigator.geolocation.getCurrentPosition(
             async (position) => {
                 const { latitude, longitude } = position.coords;
                 setLocation({
                     lat: latitude,
                     lng: longitude,
-                    address: 'Kordinat Anda saat ini (Terdeteksi GPS)'
+                    address: `Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
                 });
 
                 // Calculate distance from office
@@ -115,8 +121,26 @@ export default function AttendancePage({ user }: { user: any }) {
             (error) => {
                 console.error("Error getting location:", error);
                 setStatus('error');
-                setMessage('Gagal mendapatkan lokasi. Pastikan GPS aktif.');
-            }
+
+                let errorMsg = 'Gagal mendapatkan lokasi.';
+                switch (error.code) {
+                    case error.PERMISSION_DENIED:
+                        errorMsg = 'Izin lokasi ditolak. Mohon aktifkan izin lokasi di browser.';
+                        break;
+                    case error.POSITION_UNAVAILABLE:
+                        errorMsg = 'Lokasi tidak tersedia.';
+                        // Detect if insecure origin (HTTP + non-localhost)
+                        if (window.location.protocol === 'http:' && window.location.hostname !== 'localhost') {
+                            errorMsg += ' (Akses via HTTP IP Address memblokir GPS. Gunakan HTTPS atau localhost).';
+                        }
+                        break;
+                    case error.TIMEOUT:
+                        errorMsg = 'Waktu permintaan lokasi habis. Coba lagi.';
+                        break;
+                }
+                setMessage(errorMsg);
+            },
+            options
         );
     };
 

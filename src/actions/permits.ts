@@ -2,31 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
-import fs from 'fs';
-import path from 'path';
-
-async function saveFile(file: File): Promise<string | null> {
-    if (!file || file.size === 0) return null;
-
-    try {
-        const bytes = await file.arrayBuffer();
-        const buffer = Buffer.from(bytes);
-
-        const uploadDir = path.join(process.cwd(), 'public/uploads/permits');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-        const filePath = path.join(uploadDir, fileName);
-
-        fs.writeFileSync(filePath, buffer);
-        return `/uploads/permits/${fileName}`;
-    } catch (error) {
-        console.error('Save permit file error:', error);
-        return null;
-    }
-}
+import { createNotification } from './notifications';
 
 export async function createPermit(formData: FormData) {
     try {
@@ -38,7 +14,13 @@ export async function createPermit(formData: FormData) {
         const reason = formData.get('reason') as string;
         const file = formData.get('image') as File;
 
-        const imageUrl = await saveFile(file);
+        // ✅ Vercel Compatible: Convert File to Base64
+        let imageUrl: string | null = null;
+        if (file && file.size > 0) {
+            const bytes = await file.arrayBuffer();
+            const buffer = Buffer.from(bytes);
+            imageUrl = `data:${file.type};base64,${buffer.toString('base64')}`;
+        }
 
         // Check for overlapping permits
         const existingPermit = await prisma.permit.findFirst({
@@ -74,6 +56,26 @@ export async function createPermit(formData: FormData) {
             }
         });
 
+        // 🎉 Notify User
+        await createNotification({
+            userId,
+            title: 'Pengajuan Izin Berhasil',
+            message: `Pengajuan izin ${type} Anda telah diterima dan sedang menunggu persetujuan.`,
+            type: 'PERMIT',
+        });
+
+        // 🎉 Notify Admins
+        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+        for (const admin of admins) {
+            await createNotification({
+                userId: admin.id,
+                title: 'Pengajuan Izin Baru',
+                message: `User telah mengajukan izin ${type}.`,
+                type: 'PERMIT',
+                link: '/admin/permits'
+            });
+        }
+
         revalidatePath('/permits');
         return { success: true, message: 'Pengajuan izin berhasil dibuat.' };
     } catch (error) {
@@ -101,6 +103,17 @@ export async function approvePermit(permitId: string, role: string, status: 'APP
                 lingkunganStatus: status,
             }
         });
+
+        // 🎉 Notify User of Approval/Rejection
+        const permit = await prisma.permit.findUnique({ where: { id: permitId } });
+        if (permit) {
+            await createNotification({
+                userId: permit.userId,
+                title: status === 'APPROVED' ? 'Izin Disetujui' : 'Izin Ditolak',
+                message: `Pengajuan izin ${permit.type} Anda telah ${status === 'APPROVED' ? 'disetujui' : 'ditolak'}.`,
+                type: 'PERMIT',
+            });
+        }
 
         revalidatePath('/permits');
         return { success: true, message: `Pengajuan izin telah ${status === 'APPROVED' ? 'disetujui' : 'ditolak'} oleh ${role}.` };

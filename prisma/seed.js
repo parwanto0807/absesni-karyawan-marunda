@@ -29,8 +29,8 @@ async function main() {
   // Settings Kantot
   await prisma.setting.upsert({
     where: { key: 'OFFICE_NAME' },
-    update: { value: 'Marunda Center' },
-    create: { key: 'OFFICE_NAME', value: 'Marunda Center' }
+    update: { value: 'POS Cluster Taman Marunda' },
+    create: { key: 'OFFICE_NAME', value: 'POS Cluster Taman Marunda' }
   });
 
   await prisma.setting.upsert({

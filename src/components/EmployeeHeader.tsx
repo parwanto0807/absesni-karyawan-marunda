@@ -12,7 +12,7 @@ export default function EmployeeHeader() {
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
                     <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Data Karyawan</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Kelola informasi seluruh personil security dan staff Marunda Center.</p>
+                    <p className="text-slate-500 dark:text-slate-400">Kelola informasi seluruh personil security dan staff Cluster Taman Marunda.</p>
                 </div>
 
                 <div className="flex items-center space-x-3">

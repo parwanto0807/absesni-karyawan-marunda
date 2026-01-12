@@ -3,50 +3,78 @@
 import { revalidatePath } from 'next/cache';
 import { AttendanceStatus } from '@/types/attendance';
 import { prisma } from '@/lib/db';
-
-import fs from 'fs';
-import path from 'path';
-
-async function saveFile(base64Image: string): Promise<string | null> {
-    if (!base64Image) return null;
-
-    try {
-        const base64Data = base64Image.replace(/^data:image\/\w+;base64,/, "");
-        const buffer = Buffer.from(base64Data, 'base64');
-
-        const uploadDir = path.join(process.cwd(), 'public/uploads/attendance');
-        if (!fs.existsSync(uploadDir)) {
-            fs.mkdirSync(uploadDir, { recursive: true });
-        }
-
-        const fileName = `${Date.now()}-attendance.jpg`;
-        const filePath = path.join(uploadDir, fileName);
-
-        fs.writeFileSync(filePath, buffer);
-        return `/uploads/attendance/${fileName}`;
-    } catch (error) {
-        console.error('Save attendance file error:', error);
-        return null;
-    }
-}
+import { createNotification } from './notifications';
 
 export async function clockIn(userId: string, location: { lat: number, lng: number, address: string }, image: string) {
     try {
-        const imageUrl = await saveFile(image);
+        const now = new Date();
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
 
+        // Cek apakah sudah ada attendance hari ini yang belum clock out
+        const todayAttendance = await prisma.attendance.findFirst({
+            where: {
+                userId,
+                clockIn: {
+                    gte: today,
+                    lt: tomorrow
+                },
+                clockOut: null
+            },
+            orderBy: { clockIn: 'desc' }
+        });
+
+        if (todayAttendance) {
+            return {
+                success: false,
+                message: 'Anda sudah clock in hari ini. Silakan clock out terlebih dahulu.'
+            };
+        }
+
+        // Cek apakah ada clock out dalam 3 menit terakhir (toleransi shift)
+        const threeMinutesAgo = new Date(now.getTime() - 3 * 60 * 1000);
+        const recentClockOut = await prisma.attendance.findFirst({
+            where: {
+                userId,
+                clockOut: { gte: threeMinutesAgo }
+            },
+            orderBy: { clockOut: 'desc' }
+        });
+
+        if (recentClockOut) {
+            const waitTime = Math.ceil((3 * 60 * 1000 - (now.getTime() - new Date(recentClockOut.clockOut!).getTime())) / 1000 / 60);
+            return {
+                success: false,
+                message: `Tunggu ${waitTime} menit setelah clock out untuk clock in shift berikutnya.`
+            };
+        }
+
+        // ✅ Simpan base64 langsung ke database (Vercel compatible)
         const attendance = await prisma.attendance.create({
             data: {
                 userId,
-                clockIn: new Date(),
+                clockIn: now,
                 latitude: location.lat,
                 longitude: location.lng,
                 address: location.address,
-                image: imageUrl,
+                image: image, // Simpan base64 langsung
                 status: 'PRESENT',
             },
         });
 
+        // 🎉 Create Notification
+        await createNotification({
+            userId,
+            title: 'Absen Masuk Berhasil',
+            message: `Anda telah melakukan absen masuk pada ${now.toLocaleTimeString('id-ID')}`,
+            type: 'ATTENDANCE',
+        });
+
         revalidatePath('/');
+        revalidatePath('/attendance');
+        revalidatePath('/history');
         return { success: true, message: 'Berhasil absen masuk!', data: attendance };
     } catch (error) {
         console.error('Clock in error:', error);
@@ -63,7 +91,19 @@ export async function clockOut(attendanceId: string) {
             },
         });
 
+        const userId = (await prisma.attendance.findUnique({ where: { id: attendanceId } }))?.userId;
+        if (userId) {
+            await createNotification({
+                userId,
+                title: 'Absen Keluar Berhasil',
+                message: `Anda telah melakukan absen keluar pada ${new Date().toLocaleTimeString('id-ID')}`,
+                type: 'ATTENDANCE',
+            });
+        }
+
         revalidatePath('/');
+        revalidatePath('/attendance');
+        revalidatePath('/history');
         return { success: true, message: 'Berhasil absen keluar!', data: attendance };
     } catch (error) {
         console.error('Clock out error:', error);
@@ -90,6 +130,32 @@ export async function submitPermit(data: { userId: string, type: string, reason:
         return { success: false, message: 'Gagal mengajukan izin.' };
     }
 }
+
+export async function getTodayAttendance(userId: string) {
+    try {
+        const today = new Date();
+        today.setHours(0, 0, 0, 0);
+        const tomorrow = new Date(today);
+        tomorrow.setDate(tomorrow.getDate() + 1);
+
+        const attendance = await prisma.attendance.findFirst({
+            where: {
+                userId,
+                clockIn: {
+                    gte: today,
+                    lt: tomorrow
+                }
+            },
+            orderBy: { clockIn: 'desc' }
+        });
+
+        return attendance;
+    } catch (error) {
+        console.error('Get today attendance error:', error);
+        return null;
+    }
+}
+
 export async function getAttendances(userId?: string) {
     try {
         return await prisma.attendance.findMany({

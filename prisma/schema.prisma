@@ -27,19 +27,20 @@ enum AttendanceStatus {
 }
 
 model User {
-  id             String       @id @default(cuid())
-  username       String       @unique
+  id             String         @id @default(cuid())
+  username       String         @unique
   password       String
   name           String
-  role           Role         @default(STAFF)
-  employeeId     String       @unique
+  role           Role           @default(STAFF)
+  employeeId     String         @unique
   image          String?
-  rotationOffset Int          @default(0)
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  rotationOffset Int            @default(0)
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
   attendances    Attendance[]
   schedules      Schedule[]
-  permits        Permit[]     @relation("UserPermits")
+  permits        Permit[]       @relation("UserPermits")
+  notifications  Notification[]
 }
 
 model Schedule {
@@ -55,20 +56,25 @@ model Schedule {
 }
 
 model Attendance {
-  id        String           @id @default(cuid())
-  userId    String
-  user      User             @relation(fields: [userId], references: [id])
-  date      DateTime         @default(now())
-  clockIn   DateTime
-  clockOut  DateTime?
-  status    AttendanceStatus @default(PRESENT)
-  image     String?
-  latitude  Float?
-  longitude Float?
-  address   String?
-  notes     String?
-  createdAt DateTime         @default(now())
-  updatedAt DateTime         @updatedAt
+  id                String           @id @default(cuid())
+  userId            String
+  user              User             @relation(fields: [userId], references: [id])
+  date              DateTime         @default(now())
+  clockIn           DateTime
+  clockOut          DateTime?
+  status            AttendanceStatus @default(PRESENT)
+  image             String?
+  latitude          Float?
+  longitude         Float?
+  address           String?
+  notes             String?
+  shiftType         String? // P, PM, M
+  scheduledClockIn  DateTime? // Jadwal clock in seharusnya
+  scheduledClockOut DateTime? // Jadwal clock out seharusnya
+  isLate            Boolean          @default(false) // Apakah terlambat
+  lateMinutes       Int              @default(0) // Berapa menit terlambat
+  createdAt         DateTime         @default(now())
+  updatedAt         DateTime         @updatedAt
 }
 
 enum PermitStatus {
@@ -108,4 +114,16 @@ model Setting {
   id    String @id @default(cuid())
   key   String @unique
   value String
+}
+
+model Notification {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  title     String
+  message   String
+  type      String // ATTENDANCE, PERMIT, SYSTEM
+  link      String? // Optional link to redirect
+  isRead    Boolean  @default(false)
+  createdAt DateTime @default(now())
 }

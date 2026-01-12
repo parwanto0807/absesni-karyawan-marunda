@@ -3,26 +3,6 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { UserRole } from '@/types/attendance';
-import fs from 'fs';
-import path from 'path';
-
-async function saveFile(file: File): Promise<string | null> {
-    if (!file || file.size === 0) return null;
-
-    const bytes = await file.arrayBuffer();
-    const buffer = Buffer.from(bytes);
-
-    const uploadDir = path.join(process.cwd(), 'public/uploads');
-    if (!fs.existsSync(uploadDir)) {
-        fs.mkdirSync(uploadDir, { recursive: true });
-    }
-
-    const fileName = `${Date.now()}-${file.name.replace(/\s+/g, '-')}`;
-    const filePath = path.join(uploadDir, fileName);
-
-    fs.writeFileSync(filePath, buffer);
-    return `/uploads/${fileName}`;
-}
 
 export async function createUser(formData: FormData) {
     const name = formData.get('name') as string;
@@ -30,12 +10,17 @@ export async function createUser(formData: FormData) {
     const password = formData.get('password') as string;
     const role = formData.get('role') as UserRole;
     const employeeId = formData.get('employeeId') as string;
-    const imageFile = formData.get('image') as File;
+    const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
     try {
-        const imageUrl = await saveFile(imageFile);
+        // Validate image - must be string and start with data:image or be null
+        let validImage: string | null = null;
+        if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
+            validImage = imageBase64;
+        }
 
+        // ✅ Simpan base64 langsung ke database (Vercel compatible)
         await prisma.user.create({
             data: {
                 name,
@@ -43,7 +28,7 @@ export async function createUser(formData: FormData) {
                 password,
                 role: role as any,
                 employeeId,
-                image: imageUrl,
+                image: validImage,
                 rotationOffset,
             },
         });
@@ -64,7 +49,7 @@ export async function updateUser(id: string, formData: FormData) {
     const role = formData.get('role') as UserRole;
     const employeeId = formData.get('employeeId') as string;
     const password = formData.get('password') as string;
-    const imageFile = formData.get('image') as File;
+    const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
     try {
@@ -76,10 +61,9 @@ export async function updateUser(id: string, formData: FormData) {
             rotationOffset,
         };
 
-        // Handle image upload if a new file is provided
-        if (imageFile && imageFile.size > 0) {
-            const imageUrl = await saveFile(imageFile);
-            if (imageUrl) data.image = imageUrl;
+        // Handle image upload if base64 is provided and valid
+        if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
+            data.image = imageBase64; // Simpan base64 langsung
         }
 
         // Only update password if provided
@@ -102,15 +86,7 @@ export async function updateUser(id: string, formData: FormData) {
 
 export async function deleteUser(id: string) {
     try {
-        // Find user to delete image file
-        const user = await prisma.user.findUnique({ where: { id } });
-        if (user?.image) {
-            const filePath = path.join(process.cwd(), 'public', user.image);
-            if (fs.existsSync(filePath)) {
-                fs.unlinkSync(filePath);
-            }
-        }
-
+        // ✅ No need to delete file, base64 is in database
         await prisma.user.delete({
             where: { id },
         });

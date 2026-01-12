@@ -12,7 +12,7 @@ export default function SettingsPage() {
         OFFICE_LAT: '-6.123',
         OFFICE_LNG: '106.123',
         ALLOWED_RADIUS: '100', // in meters
-        OFFICE_NAME: 'Marunda Center'
+        OFFICE_NAME: 'POS Cluster Taman Marunda'
     });
 
     useEffect(() => {
@@ -23,7 +23,7 @@ export default function SettingsPage() {
                     OFFICE_LAT: data.OFFICE_LAT || '-6.123',
                     OFFICE_LNG: data.OFFICE_LNG || '106.123',
                     ALLOWED_RADIUS: data.ALLOWED_RADIUS || '100',
-                    OFFICE_NAME: data.OFFICE_NAME || 'Marunda Center'
+                    OFFICE_NAME: data.OFFICE_NAME || 'POS Cluster Taman Marunda'
                 });
             }
             setFetching(false);
@@ -138,7 +138,7 @@ export default function SettingsPage() {
                                     value={settings.OFFICE_NAME}
                                     onChange={(e) => setSettings({ ...settings, OFFICE_NAME: e.target.value })}
                                     className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs md:text-sm text-slate-900 dark:text-white"
-                                    placeholder="Contoh: Marunda Center Pos 1"
+                                    placeholder="Contoh: POS Cluster Taman Marunda"
                                 />
                             </div>
                         </div>

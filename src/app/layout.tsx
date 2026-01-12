@@ -20,7 +20,24 @@ const geistMono = Geist_Mono({
 
 export const metadata: Metadata = {
   title: "Absensi Karyawan Marunda",
-  description: "Sistem Manajemen Kehadiran Karyawan dan Security",
+  description: "Sistem Manajemen Kehadiran Karyawan dan Security - Manage Access with Ease and Security",
+  manifest: "/manifest.json",
+  themeColor: "#4f46e5",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "Absensi Karyawan Marunda",
+  },
+  icons: {
+    icon: "/icon-512x512.png",
+    apple: "/icon-512x512.png",
+  },
+  viewport: {
+    width: "device-width",
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
+  },
 };
 
 export default async function RootLayout({
