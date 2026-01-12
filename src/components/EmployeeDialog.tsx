@@ -16,10 +16,15 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(employee?.image || null);
+    const [imageBase64, setImageBase64] = useState<string | null>(employee?.image || null);
     const [selectedRole, setSelectedRole] = useState<string>(employee?.role || 'STAFF');
 
     useEffect(() => {
-        if (employee) setSelectedRole(employee.role);
+        if (employee) {
+            setSelectedRole(employee.role);
+            setPreview(employee.image || null);
+            setImageBase64(employee.image || null);
+        }
     }, [employee]);
 
     if (!isOpen) return null;
@@ -27,9 +32,39 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            // Compress image before converting to base64
             const reader = new FileReader();
             reader.onloadend = () => {
-                setPreview(reader.result as string);
+                const img = new Image();
+                img.onload = () => {
+                    // Create canvas for compression
+                    const canvas = document.createElement('canvas');
+                    const ctx = canvas.getContext('2d');
+
+                    // Calculate new dimensions (max 800px)
+                    let width = img.width;
+                    let height = img.height;
+                    const maxSize = 800;
+
+                    if (width > height && width > maxSize) {
+                        height = (height * maxSize) / width;
+                        width = maxSize;
+                    } else if (height > maxSize) {
+                        width = (width * maxSize) / height;
+                        height = maxSize;
+                    }
+
+                    canvas.width = width;
+                    canvas.height = height;
+
+                    // Draw and compress
+                    ctx?.drawImage(img, 0, 0, width, height);
+                    const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
+
+                    setPreview(compressedBase64);
+                    setImageBase64(compressedBase64);
+                };
+                img.src = reader.result as string;
             };
             reader.readAsDataURL(file);
         }
@@ -41,6 +76,12 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
         setError(null);
 
         const formData = new FormData(event.currentTarget);
+
+        // Explicitly append the base64 image to FormData
+        if (imageBase64) {
+            formData.set('image', imageBase64);
+        }
+
         let result;
 
         if (employee) {
@@ -108,7 +149,6 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                     <Fingerprint size={14} />
                                     <input
                                         type="file"
-                                        name="image"
                                         className="hidden"
                                         accept="image/*"
                                         onChange={handleFileChange}

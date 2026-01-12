@@ -13,11 +13,20 @@ export async function createUser(formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
+    console.log('📸 Image Upload Debug:', {
+        hasImage: !!imageBase64,
+        imageLength: imageBase64?.length || 0,
+        imagePrefix: imageBase64?.substring(0, 30) || 'null'
+    });
+
     try {
         // Validate image - must be string and start with data:image or be null
         let validImage: string | null = null;
         if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
             validImage = imageBase64;
+            console.log('✅ Image validated successfully, length:', validImage.length);
+        } else {
+            console.log('⚠️ No valid image provided');
         }
 
         // ✅ Simpan base64 langsung ke database (Vercel compatible)
@@ -52,6 +61,12 @@ export async function updateUser(id: string, formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
+    console.log('📸 Update Image Debug:', {
+        hasImage: !!imageBase64,
+        imageLength: imageBase64?.length || 0,
+        imagePrefix: imageBase64?.substring(0, 30) || 'null'
+    });
+
     try {
         const data: any = {
             name,
@@ -64,6 +79,9 @@ export async function updateUser(id: string, formData: FormData) {
         // Handle image upload if base64 is provided and valid
         if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
             data.image = imageBase64; // Simpan base64 langsung
+            console.log('✅ Image will be updated, length:', imageBase64.length);
+        } else {
+            console.log('⚠️ No valid image to update');
         }
 
         // Only update password if provided
