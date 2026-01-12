@@ -42,6 +42,7 @@ export default function AttendanceClient({ user }: { user: any }) {
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const startingCamera = useRef(false);
 
     useEffect(() => {
         setTime(new Date());
@@ -50,9 +51,12 @@ export default function AttendanceClient({ user }: { user: any }) {
     }, []);
 
     useEffect(() => {
+        let isMounted = true;
         const init = async () => {
             // Load settings from database - REQUIRED
             const settings = await getSettings();
+            if (!isMounted) return;
+
             if (settings.OFFICE_LAT && settings.OFFICE_LNG && settings.ALLOWED_RADIUS && settings.OFFICE_NAME) {
                 setOfficeSettings({
                     lat: parseFloat(settings.OFFICE_LAT),
@@ -71,6 +75,8 @@ export default function AttendanceClient({ user }: { user: any }) {
 
             // Check today's attendance
             const today = await getTodayAttendance(user.userId);
+            if (!isMounted) return;
+
             setCurrentAttendance(today);
             setCheckingStatus(false);
 
@@ -82,16 +88,29 @@ export default function AttendanceClient({ user }: { user: any }) {
 
             // Fetch today's shift
             const shift = await getTodayUserShift(user.userId);
-            setTodayShift(shift);
+            if (isMounted) setTodayShift(shift);
         };
         init();
 
         return () => {
+            isMounted = false;
             stopCamera();
         };
     }, [user.userId]);
 
     const startCamera = async () => {
+        if (startingCamera.current) return;
+
+        // Don't start if already active
+        if (videoRef.current?.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            if (stream.active) {
+                setIsCameraActive(true);
+                return;
+            }
+        }
+
+        startingCamera.current = true;
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
                 video: { facingMode: 'user' },
@@ -101,11 +120,19 @@ export default function AttendanceClient({ user }: { user: any }) {
                 videoRef.current.srcObject = stream;
                 setIsCameraActive(true);
             }
-        } catch (err) {
+        } catch (err: any) {
+            // Silently handle AbortError as it usually means a concurrent request was made
+            if (err.name === 'AbortError') {
+                console.warn("Camera initialization aborted - common in development React StrictMode");
+                return;
+            }
+
             console.error("Error accessing camera:", err);
             setStatus('error');
             setMessage('Gagal mengakses kamera. Pastikan izin kamera diberikan.');
             toast.error("Gagal Mengakses Kamera", { description: "Pastikan Anda memberikan izin akses kamera." });
+        } finally {
+            startingCamera.current = false;
         }
     };
 

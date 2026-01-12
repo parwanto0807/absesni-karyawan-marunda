@@ -58,9 +58,10 @@ export function getShiftTimings(shiftCode: string, targetDate: Date): { start: D
             startJakarta.setHours(8, 0);
             endJakarta.setHours(20, 0);
             break;
-        case 'PM': // 13:00 - 20:00 (Logic kept from previous version despite label discrepancy)
+        case 'PM': // 13:00 - 08:00 (Next Day)
             startJakarta.setHours(13, 0);
-            endJakarta.setHours(20, 0);
+            endJakarta.setDate(endJakarta.getDate() + 1);
+            endJakarta.setHours(8, 0);
             break;
         case 'M': // 20:00 - 08:00 (Next Day)
             startJakarta.setHours(20, 0);

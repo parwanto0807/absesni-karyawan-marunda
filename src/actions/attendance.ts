@@ -1,4 +1,5 @@
 'use server';
+import { toZonedTime } from 'date-fns-tz';
 
 import { revalidatePath } from 'next/cache';
 import { AttendanceStatus } from '@/types/attendance';
@@ -221,14 +222,50 @@ export async function getTodayAttendance(userId: string) {
 export async function getTodayUserShift(userId: string) {
     try {
         const now = new Date();
-        const today = getStartOfDayJakarta(now);
+        const hour = toZonedTime(now, TIMEZONE).getHours();
 
+        // 1. Prioritas: Jika user SUDAH Clock In tapi BELUM Clock Out, 
+        // maka tampilkan shift yang sedang dia jalani tersebut.
+        const attendance = await getTodayAttendance(userId);
+        if (attendance && attendance.shiftType && !attendance.clockOut) {
+            return attendance.shiftType;
+        }
+
+        // 2. Jika hari masih pagi (00:00 - 07:59), cek apakah kemarin ada shift Malam (M)
+        // Jika ada, berarti shift tersebut masih "berjalan" sampai jam 08:00 WIB.
+        if (hour < 8) {
+            const yesterday = new Date(now);
+            yesterday.setDate(yesterday.getDate() - 1);
+            const yesterdayDate = getStartOfDayJakarta(yesterday);
+
+            const userWithYesterday = await prisma.user.findUnique({
+                where: { id: userId },
+                include: { schedules: { where: { date: yesterdayDate } } }
+            });
+
+            if (userWithYesterday) {
+                let prevShift = 'OFF';
+                if (userWithYesterday.schedules.length > 0) {
+                    prevShift = userWithYesterday.schedules[0].shiftCode;
+                } else if ((userWithYesterday.role as string) === 'SECURITY') {
+                    // Cek rotasi untuk kemarin
+                    prevShift = getShiftForDate(userWithYesterday.rotationOffset, yesterday);
+                }
+
+                // Jika shift kemarin adalah Malam (M) atau Pagi-Malam (PM), 
+                // tampilkan shift tersebut (karena keduanya berakhir jam 08:00 besoknya)
+                if (prevShift === 'M' || prevShift === 'PM') return prevShift;
+            }
+        }
+
+        // 3. Jika bukan transisi shift malam, atau user belum absen, tampilkan shift hari ini
+        const todayDate = getStartOfDayJakarta(now);
         const user = await prisma.user.findUnique({
             where: { id: userId },
-            include: { schedules: { where: { date: today } } }
+            include: { schedules: { where: { date: todayDate } } }
         });
 
-        if (!user) return null;
+        if (!user) return 'OFF';
 
         let shiftCode = 'OFF';
         if (user.schedules.length > 0) {
