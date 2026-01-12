@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useEffect, useRef } from 'react';
+import { useRouter } from 'next/navigation';
 import {
     Camera as CameraIcon,
     MapPin,
@@ -12,12 +13,14 @@ import {
     LogOut
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TIMEZONE } from '@/lib/date-utils';
 import { clockIn, clockOut, getTodayAttendance } from '@/actions/attendance';
 import { getSettings } from '@/actions/settings';
 import { calculateDistance } from '@/lib/location-utils';
 import { toast } from 'sonner';
 
 export default function AttendanceClient({ user }: { user: any }) {
+    const router = useRouter();
     const [time, setTime] = useState<Date | null>(null);
     const [loading, setLoading] = useState(false);
     const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle');
@@ -177,6 +180,13 @@ export default function AttendanceClient({ user }: { user: any }) {
     };
 
     const handleAction = async () => {
+        if (user.role === 'ADMIN' || user.role === 'PIC') {
+            toast.error("Emang situ Karyawan Mau Absen Juga ? 😀", {
+                description: "Absen hanya untuk Security, Kebersihan, dan Lingkungan."
+            });
+            return;
+        }
+
         if (distance !== null && distance > officeSettings.radius) {
             toast.error("Di Luar Jangkauan", { description: `Anda berada ${Math.round(distance)}m dari lokasi absen.` });
             setStatus('error');
@@ -202,6 +212,10 @@ export default function AttendanceClient({ user }: { user: any }) {
                     setMessage('Absen Keluar Berhasil. Sampai jumpa besok!');
                     setCurrentAttendance({ ...currentAttendance, clockOut: new Date() });
                     stopCamera();
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        router.push('/');
+                    }, 2000);
                 } else {
                     toast.error('Gagal Absen Keluar', { description: result.message });
                 }
@@ -224,9 +238,11 @@ export default function AttendanceClient({ user }: { user: any }) {
                     setStatus('success');
                     setMessage(result.message);
                     setCurrentAttendance(result.data); // Update state to reflect clock-in
-                    // Don't stop camera immediately if we want to show success with photo? 
-                    // Actually usually we stop it.
                     stopCamera();
+                    // Redirect after 2 seconds
+                    setTimeout(() => {
+                        router.push('/');
+                    }, 2000);
                 } else {
                     toast.error('Gagal Absen Masuk', { description: result.message });
                     setStatus('error');
@@ -271,10 +287,10 @@ export default function AttendanceClient({ user }: { user: any }) {
                         <div className="space-y-0.5 md:space-y-1">
                             <span className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em]">{isClockedIn ? "Waktu Pulang Menunggu" : "Waktu Sekarang"}</span>
                             <h2 className="text-3xl md:text-5xl font-black text-slate-900 dark:text-white tabular-nums tracking-tighter">
-                                {time ? time.toLocaleTimeString('id-ID', { hour12: false }) : "--:--:--"}
+                                {time ? time.toLocaleTimeString('id-ID', { hour12: false, timeZone: TIMEZONE }) : "--:--:--"}
                             </h2>
                             <p className="text-[10px] md:text-sm font-bold text-slate-500 dark:text-slate-400 uppercase tracking-wide">
-                                {time ? time.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) : "Loading..."}
+                                {time ? time.toLocaleDateString('id-ID', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric', timeZone: TIMEZONE }) : "Loading..."}
                             </p>
                         </div>
 

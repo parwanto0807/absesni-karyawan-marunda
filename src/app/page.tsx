@@ -13,7 +13,9 @@ import {
   Settings,
   ChevronRight,
   ArrowRight,
-  Activity
+  Activity,
+  CheckCircle2,
+  XCircle
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
@@ -23,6 +25,10 @@ import { redirect } from 'next/navigation';
 import { getAttendances } from '@/actions/attendance';
 import { prisma } from '@/lib/db';
 import PatroliButton from '@/components/PatroliButton';
+import PerformanceDashboard from '@/components/PerformanceDashboard';
+import { ImageModal } from '@/components/ImageModal';
+import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
+import { TIMEZONE } from '@/lib/date-utils';
 
 export default async function Home() {
   const session = await getSession();
@@ -38,17 +44,33 @@ export default async function Home() {
   sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
   sevenDaysAgo.setHours(0, 0, 0, 0);
 
+  const getStatusColor = (status: string) => {
+    switch (status) {
+      case 'PRESENT': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
+      case 'LATE': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
+      case 'ALPH': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
+      default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
+    }
+  };
+
+  const formatDuration = (minutes: number) => {
+    if (minutes < 60) return `${minutes} Menit`;
+    const hours = Math.floor(minutes / 60);
+    const mins = minutes % 60;
+    return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
+  };
+
   // 1. Data untuk Security/Lingkungan: History 7 hari rekan kerja
   const teamAttendance = await prisma.attendance.findMany({
     where: {
       // Jika Field Role, lihat security/lingkungan saja (atau semua jika diinginkan, tapi default rekan kerja). 
       // User request: "Dashboard Mode Desktop... riwayat Absensi... 7 hari terakhir"
       // Asumsikan menampilkan data relevan user.
-      ...(isFieldRole ? { user: { role: { in: ['SECURITY', 'LINGKUNGAN'] } } } : {}),
+      ...(isFieldRole ? { userId: session.userId } : {}),
       clockIn: { gte: sevenDaysAgo }
     },
     include: {
-      user: { select: { name: true, employeeId: true, role: true } }
+      user: { select: { name: true, employeeId: true, role: true, image: true } }
     },
     orderBy: { clockIn: 'desc' },
     take: 50
@@ -61,10 +83,11 @@ export default async function Home() {
   const presentSecurity = await prisma.attendance.findMany({
     where: {
       clockIn: { gte: todayStart },
-      user: { role: { in: ['SECURITY', 'LINGKUNGAN'] } }
+      clockOut: null,
+      user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
     },
     include: {
-      user: { select: { name: true, role: true, employeeId: true } }
+      user: { select: { name: true, role: true, employeeId: true, image: true } }
     },
     orderBy: { clockIn: 'desc' },
     distinct: ['userId']
@@ -86,19 +109,22 @@ export default async function Home() {
 
   const stats = {
     totalEmployees: await prisma.user.count({
-      where: { role: { in: ['SECURITY', 'LINGKUNGAN'] } }
+      where: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
     }),
     presentToday: await prisma.attendance.count({
       where: {
         clockIn: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-        status: 'PRESENT'
+        clockOut: null,
+        status: { in: ['PRESENT', 'LATE'] }
       }
     }),
     pendingPermits: await prisma.permit.count({ where: { finalStatus: 'PENDING' } }),
     onDutyToday: await prisma.attendance.count({
       where: {
         clockIn: { gte: new Date(new Date().setHours(0, 0, 0, 0)) },
-        user: { role: 'SECURITY' }
+        clockOut: null,
+        user: { role: 'SECURITY' },
+        status: { in: ['PRESENT', 'LATE'] }
       }
     })
   };
@@ -149,20 +175,107 @@ export default async function Home() {
       </div>
 
       {/* --- DESKTOP DASHBOARD LAYOUT --- */}
-      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8">
+      <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 grid-flow-row-dense">
 
-        {/* --- LEFT COLUMN (MAIN - 3 COLS) --- */}
+        {/* --- 1. STATS SECTION (Main Col) --- */}
         <div className="lg:col-span-3 space-y-8">
-
-          {/* 1. STATS ROW */}
+          {/* STATS ROW */}
           <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
             <StatCard title="Karyawan" value={stats.totalEmployees.toString()} icon={Users} color="indigo" />
-            <StatCard title="Hadir (Unit)" value={stats.presentToday.toString()} icon={UserCheck} color="emerald" />
-            <StatCard title="Ijin (Pending)" value={stats.pendingPermits.toString()} icon={Activity} color="rose" />
-            <StatCard title="Security On Duty" value={stats.onDutyToday.toString()} icon={ShieldCheck} color="amber" />
+            <StatCard title="Total Hadir (SCR,KBR,LNK)" value={stats.presentToday.toString()} icon={UserCheck} color="emerald" />
+            <StatCard title="Izin (Menunggu)" value={stats.pendingPermits.toString()} icon={Activity} color="rose" />
+            <StatCard title="Security Bertugas" value={stats.onDutyToday.toString()} icon={ShieldCheck} color="amber" />
+          </div>
+        </div>
+
+        {/* --- 2. SIDEBAR (Right Column on Desktop, Middle on Mobile) --- */}
+        <div className="lg:col-span-1 lg:row-span-2 space-y-6 h-fit">
+
+          {/* A. DAFTAR PERSONIL */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Personil Hadir</h3>
+              <div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg text-[10px] font-bold">
+                {securityEmployees.length} ORG
+              </div>
+            </div>
+            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
+              {securityEmployees.length === 0 ? (
+                <p className="text-center text-xs text-slate-400 italic py-4">Belum ada personil hadir</p>
+              ) : (
+                securityEmployees.map((emp) => (
+                  <div key={emp.employeeId} className="flex items-center justify-between group">
+                    <div className="flex items-center space-x-3">
+                      <div className="h-10 w-10 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-xs group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
+                        {emp.image ? <img src={emp.image} className="h-full w-full object-cover rounded-2xl" /> : emp.name.charAt(0)}
+                      </div>
+                      <div>
+                        <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">{emp.name}</div>
+                        <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{emp.role}</div>
+                      </div>
+                    </div>
+                    <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
+                  </div>
+                ))
+              )}
+            </div>
           </div>
 
-          {/* 2. HISTORY ABSENSI CARD (7 DAYS) */}
+          {/* B. PERFORMANCE DASHBOARD (ADMIN/PIC ONLY) */}
+          {isPowerful && (
+            <PerformanceDashboard />
+          )}
+
+          {/* C. AKTIFITAS IZIN */}
+          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Izin Terbaru</h3>
+            </div>
+            <div className="space-y-4">
+              {allPermitActivity.length === 0 ? (
+                <p className="text-center text-xs text-slate-400 italic">Tidak ada pengajuan</p>
+              ) : (
+                allPermitActivity.slice(0, 3).map((permit, i) => (
+                  <div key={i} className="flex items-start space-x-3 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
+                    <div className="mt-0.5">
+                      <div className={cn(
+                        "h-2 w-2 rounded-full",
+                        permit.finalStatus === 'APPROVED' ? "bg-emerald-500" : permit.finalStatus === 'REJECTED' ? "bg-rose-500" : "bg-amber-500 animate-pulse"
+                      )} />
+                    </div>
+                    <div>
+                      <div className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">{permit.user.name}</div>
+                      <div className="text-[10px] text-slate-500 leading-snug">
+                        Mengajukan :  <span className="font-semibold text-indigo-600">{permit.type}</span>
+                      </div>
+                      <div className="text-[9px] text-slate-400 mt-1">{new Date(permit.createdAt).toLocaleDateString('id-ID')}</div>
+                    </div>
+                  </div>
+                ))
+              )}
+            </div>
+          </div>
+
+          {/* D. PATROLI CARD (Moved to Bottom) */}
+          <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-indigo-700 dark:from-slate-800 dark:to-slate-900 p-6 text-white shadow-2xl relative overflow-hidden group border border-indigo-500/20 dark:border-slate-700">
+            <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/5 dark:bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-white/10 dark:group-hover:bg-indigo-500/20 transition-all duration-700" />
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-8">
+                <ShieldCheck size={36} className="text-white dark:text-indigo-400" />
+                <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10">
+                  <TrendingUp size={18} className="text-emerald-400 dark:text-emerald-500" />
+                </div>
+              </div>
+              <h3 className="text-lg md:text-xl font-black leading-tight uppercase tracking-tighter text-white">Patroli Kawasan</h3>
+              <p className="mt-2 text-[10px] text-indigo-100 dark:text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Status Keamanan 100% Kondusif.</p>
+              <PatroliButton />
+            </div>
+          </div>
+
+        </div>
+
+        {/* --- 3. HISTORY SECTION (Main Col, Below Stats) --- */}
+        <div className="lg:col-span-3 mt-10">
           <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none overflow-hidden">
             <div className="px-4 md:px-6 py-4 md:py-5 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
               <div className="flex items-center space-x-2">
@@ -191,7 +304,7 @@ export default async function Home() {
                     <div className="flex items-start justify-between mb-2">
                       <div className="flex items-center space-x-2">
                         <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[10px]">
-                          {item.user.name.charAt(0)}
+                          {item.user.image ? <img src={item.user.image} className="w-full h-full object-cover rounded-lg" /> : item.user.name.charAt(0)}
                         </div>
                         <div>
                           <div className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">{item.user.name}</div>
@@ -224,18 +337,20 @@ export default async function Home() {
             <div className="hidden md:block overflow-x-auto">
               <table className="w-full text-left border-collapse">
                 <thead className="bg-slate-50 dark:bg-slate-800/50">
-                  <tr>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Personil</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Role</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Tanggal</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Jam Masuk</th>
-                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
+                  <tr className="border-b border-slate-100 dark:border-slate-800">
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400">Karyawan</th>
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Jadwal Shift</th>
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Waktu Absen</th>
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400">Lokasi / GPS</th>
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Performance</th>
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400">Foto</th>
+                    <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
                   </tr>
                 </thead>
                 <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
                   {teamAttendance.length === 0 ? (
                     <tr>
-                      <td colSpan={5} className="px-6 py-12 text-center">
+                      <td colSpan={7} className="px-6 py-12 text-center">
                         <div className="flex flex-col items-center justify-center text-slate-400">
                           <Activity size={32} className="mb-3 opacity-20" />
                           <span className="text-xs font-bold uppercase tracking-widest">Belum ada data rekaman</span>
@@ -243,37 +358,134 @@ export default async function Home() {
                       </td>
                     </tr>
                   ) : (
-                    teamAttendance.map((item, i) => (
+                    teamAttendance.map((attendance: any, i) => (
                       <tr key={i} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors group">
-                        <td className="px-6 py-3">
+                        <td className="px-6 py-4">
                           <div className="flex items-center space-x-3">
-                            <div className="h-8 w-8 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-xs group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                              {item.user.name.charAt(0)}
+                            <div className="h-10 w-10 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-sm uppercase overflow-hidden">
+                              {attendance.user.image ? (
+                                <img src={attendance.user.image} alt={attendance.user.name} className="h-full w-full object-cover" />
+                              ) : (
+                                attendance.user.name.charAt(0)
+                              )}
                             </div>
-                            <span className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">{item.user.name}</span>
+                            <div>
+                              <div className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{attendance.user.name}</div>
+                              <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{attendance.user.employeeId}</div>
+                            </div>
                           </div>
                         </td>
-                        <td className="px-6 py-3">
-                          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest px-2 py-1 rounded bg-slate-100 dark:bg-slate-800">{item.user.role}</span>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-center w-full min-w-[150px]">
+                            <div className="flex items-center justify-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800 w-full">
+                              <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                                {attendance.shiftType === 'LINGKUNGAN' ? 'LNK' : attendance.shiftType === 'KEBERSIHAN' ? 'KBR' : attendance.shiftType || 'OFF'}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 w-full uppercase font-bold">
+                              <div className="flex flex-col items-center justify-center">
+                                <div className="text-[12px] font-medium whitespace-nowrap">
+                                  <span className="text-slate-400 font-bold mr-1">In :</span>
+                                  <span className="text-slate-600 dark:text-slate-300 font-bold">
+                                    {attendance.scheduledClockIn ? new Date(attendance.scheduledClockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                  </span>
+                                </div>
+                              </div>
+                              <div className="flex flex-col items-center justify-center border-l border-slate-100 dark:border-slate-800 pl-4">
+                                <div className="text-[12px] font-medium whitespace-nowrap">
+                                  <span className="text-slate-400 font-bold mr-1">Out :</span>
+                                  <span className="text-slate-600 dark:text-slate-300 font-bold">
+                                    {attendance.scheduledClockOut ? new Date(attendance.scheduledClockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                  </span>
+                                </div>
+                              </div>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-3">
-                          <span className="text-xs font-medium text-slate-600 dark:text-slate-300">
-                            {new Date(item.clockIn).toLocaleDateString('id-ID', { weekday: 'short', day: 'numeric', month: 'short' })}
-                          </span>
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-center w-full min-w-[200px]">
+                            <div className="flex items-center justify-center space-x-1.5 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800 w-full">
+                              <Calendar size={12} className="text-slate-400" />
+                              <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TIMEZONE })}
+                              </span>
+                            </div>
+                            <div className="grid grid-cols-2 gap-4 w-full uppercase">
+                              <div className="flex flex-col items-center">
+                                <div className="text-[12px] font-bold whitespace-nowrap mb-1">
+                                  <span className="text-slate-400 font-normal mr-1 text-[12px]">In :</span>
+                                  <span className="text-indigo-600 font-black">{new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB</span>
+                                </div>
+                                {attendance.isLate ? (
+                                  <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900 w-full text-center">
+                                    Telat {formatDuration(attendance.lateMinutes)}
+                                  </span>
+                                ) : (
+                                  <span className="h-[22px]"></span>
+                                )}
+                              </div>
+                              <div className="flex flex-col items-center border-l border-slate-100 dark:border-slate-800 pl-4">
+                                {attendance.clockOut ? (
+                                  <>
+                                    <div className="text-[12px] font-bold whitespace-nowrap mb-1">
+                                      <span className="text-slate-400 font-normal mr-1 text-[12px]">Out :</span>
+                                      <span className="text-indigo-600 font-black text-[12px]">{new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB</span>
+                                    </div>
+                                    {attendance.isEarlyLeave ? (
+                                      <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900 w-full text-center">
+                                        Cepat {formatDuration(attendance.earlyLeaveMinutes)}
+                                      </span>
+                                    ) : (
+                                      <span className="h-[22px]"></span>
+                                    )}
+                                  </>
+                                ) : (
+                                  <div className="flex flex-col items-center justify-center h-full">
+                                    <span className="text-[9px] italic text-slate-300">Belum Absen</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-3">
-                          <span className="font-mono text-xs font-bold text-slate-900 dark:text-white">
-                            {new Date(item.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                          </span>
+                        <td className="px-6 py-4">
+                          <div className="flex items-center space-x-2 max-w-[200px]">
+                            <MapPin size={14} className="text-rose-500 shrink-0" />
+                            <div className="flex items-center space-x-1 min-w-0">
+                              <span className="text-[10px] font-bold text-slate-500 truncate" title={attendance.address ?? undefined}>
+                                {attendance.address || `${attendance.latitude}, ${attendance.longitude}`}
+                              </span>
+                              <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                            </div>
+                          </div>
                         </td>
-                        <td className="px-6 py-3 text-center">
-                          <span className={cn(
-                            "inline-flex items-center justify-center px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-widest border",
-                            item.status === 'PRESENT'
-                              ? "bg-emerald-50 text-emerald-600 border-emerald-100 dark:bg-emerald-900/20 dark:border-emerald-900/30"
-                              : "bg-amber-50 text-amber-600 border-amber-100 dark:bg-amber-900/20 dark:border-amber-900/30"
-                          )}>
-                            {item.status === 'PRESENT' ? 'Hadir' : item.status}
+                        <td className="px-6 py-4">
+                          <div className="flex flex-col items-center justify-center w-24">
+                            <div className="flex items-center justify-between w-full mb-1">
+                              <span className={cn("text-[10px] font-black", getPerformanceColor(calculateDailyPerformance(attendance)).split(' ')[0])}>
+                                {calculateDailyPerformance(attendance)}%
+                              </span>
+                            </div>
+                            <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                              <div
+                                className={cn("h-full rounded-full transition-all duration-500", getPerformanceBarColor(calculateDailyPerformance(attendance)))}
+                                style={{ width: `${calculateDailyPerformance(attendance)}%` }}
+                              />
+                            </div>
+                          </div>
+                        </td>
+                        <td className="px-6 py-4">
+                          {attendance.image ? (
+                            <ImageModal src={attendance.image} alt="Absen" />
+                          ) : (
+                            <div className="w-12 h-12 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300">
+                              <XCircle size={16} />
+                            </div>
+                          )}
+                        </td>
+                        <td className="px-6 py-4 text-center">
+                          <span className={cn("px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest", getStatusColor(attendance.status))}>
+                            {attendance.status === 'PRESENT' ? 'HADIR' : attendance.status}
                           </span>
                         </td>
                       </tr>
@@ -288,85 +500,8 @@ export default async function Home() {
               </Link>
             </div>
           </div>
-
         </div>
 
-        {/* --- RIGHT COLUMN (SIDEBAR - 1 COL) --- */}
-        <div className="space-y-6">
-
-          {/* 1. PATROLI CARD */}
-          <div className="rounded-[2rem] bg-gradient-to-br from-indigo-600 to-indigo-700 dark:from-slate-800 dark:to-slate-900 p-6 text-white shadow-2xl relative overflow-hidden group border border-indigo-500/20 dark:border-slate-700">
-            <div className="absolute -right-4 -top-4 w-32 h-32 bg-white/5 dark:bg-indigo-500/10 rounded-full blur-3xl group-hover:bg-white/10 dark:group-hover:bg-indigo-500/20 transition-all duration-700" />
-            <div className="relative z-10">
-              <div className="flex items-center justify-between mb-8">
-                <ShieldCheck size={36} className="text-white dark:text-indigo-400" />
-                <div className="h-10 w-10 flex items-center justify-center rounded-2xl bg-white/10 dark:bg-white/5 backdrop-blur-md border border-white/20 dark:border-white/10">
-                  <TrendingUp size={18} className="text-emerald-400 dark:text-emerald-500" />
-                </div>
-              </div>
-              <h3 className="text-lg md:text-xl font-black leading-tight uppercase tracking-tighter text-white">Patroli Kawasan</h3>
-              <p className="mt-2 text-[10px] text-indigo-100 dark:text-slate-400 font-bold uppercase tracking-widest leading-relaxed">Status Keamanan 100% Kondusif.</p>
-              <PatroliButton />
-            </div>
-          </div>
-
-          {/* 2. DAFTAR PERSONIL (NEW) */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Personil Hadir Hari Ini</h3>
-              <div className="bg-indigo-50 text-indigo-600 px-2 py-1 rounded-lg text-[10px] font-bold">
-                {securityEmployees.length} ORG
-              </div>
-            </div>
-            <div className="space-y-4 max-h-[400px] overflow-y-auto pr-2 scrollbar-thin scrollbar-thumb-slate-200">
-              {securityEmployees.map((emp) => (
-                <div key={emp.employeeId} className="flex items-center justify-between group">
-                  <div className="flex items-center space-x-3">
-                    <div className="h-10 w-10 rounded-2xl bg-slate-50 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-xs group-hover:bg-indigo-50 group-hover:text-indigo-600 transition-colors">
-                      {emp.name.charAt(0)}
-                    </div>
-                    <div>
-                      <div className="text-xs font-bold text-slate-900 dark:text-white uppercase tracking-tight">{emp.name}</div>
-                      <div className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{emp.role}</div>
-                    </div>
-                  </div>
-                  <div className="h-2 w-2 rounded-full bg-emerald-500 ring-4 ring-emerald-500/20" />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          {/* 3. AKTIFITAS IZIN (EXISTING) */}
-          <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6">
-            <div className="flex items-center justify-between mb-6">
-              <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Izin Terbaru</h3>
-            </div>
-            <div className="space-y-4">
-              {allPermitActivity.length === 0 ? (
-                <p className="text-center text-xs text-slate-400 italic">Tidak ada pengajuan</p>
-              ) : (
-                allPermitActivity.slice(0, 3).map((permit, i) => (
-                  <div key={i} className="flex items-start space-x-3 pb-4 border-b border-slate-50 last:border-0 last:pb-0">
-                    <div className="mt-0.5">
-                      <div className={cn(
-                        "h-2 w-2 rounded-full",
-                        permit.finalStatus === 'APPROVED' ? "bg-emerald-500" : permit.finalStatus === 'REJECTED' ? "bg-rose-500" : "bg-amber-500 animate-pulse"
-                      )} />
-                    </div>
-                    <div>
-                      <div className="text-[10px] font-bold text-slate-900 dark:text-white uppercase">{permit.user.name}</div>
-                      <div className="text-[10px] text-slate-500 leading-snug">
-                        Mengajukan <span className="font-semibold text-indigo-600">{permit.type}</span>
-                      </div>
-                      <div className="text-[9px] text-slate-400 mt-1">{new Date(permit.createdAt).toLocaleDateString('id-ID')}</div>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
-          </div>
-
-        </div>
       </div>
     </div >
   );

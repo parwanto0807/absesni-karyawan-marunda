@@ -35,10 +35,10 @@ export default async function PermitsPage() {
                         <span>Sistem Pengajuan Izin</span>
                     </div>
                     <h1 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
-                        Ijin & <span className="text-indigo-600">Cuti</span>
+                        Ijin & <span className="text-indigo-600">Pergantian Shift</span>
                     </h1>
                     <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 font-medium max-w-lg leading-relaxed">
-                        Manajemen pengajuan izin, cuti, dan sakit dengan sistem persetujuan bertingkat.
+                        Manajemen pengajuan izin, pergantian shift, dan sakit dengan sistem persetujuan bertingkat.
                     </p>
                 </div>
 

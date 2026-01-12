@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Leaf } from 'lucide-react';
+import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Leaf, Sparkles } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User, UserRole } from '@/types/attendance';
 import { createUser, updateUser } from '@/actions/employees';
@@ -16,6 +16,11 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const [isLoading, setIsLoading] = useState(false);
     const [error, setError] = useState<string | null>(null);
     const [preview, setPreview] = useState<string | null>(employee?.image || null);
+    const [selectedRole, setSelectedRole] = useState<string>(employee?.role || 'STAFF');
+
+    useEffect(() => {
+        if (employee) setSelectedRole(employee.role);
+    }, [employee]);
 
     if (!isOpen) return null;
 
@@ -58,6 +63,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
         { id: 'SECURITY', label: 'Security', icon: Shield },
         { id: 'PIC', label: 'PIC', icon: Briefcase },
         { id: 'LINGKUNGAN', label: 'Lingkungan', icon: Leaf },
+        { id: 'KEBERSIHAN', label: 'Kebersihan', icon: Sparkles },
         { id: 'STAFF', label: 'Staff', icon: UserIcon },
     ];
 
@@ -198,7 +204,8 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                             type="radio"
                                             name="role"
                                             value={opt.id}
-                                            defaultChecked={employee?.role === opt.id || (!employee && opt.id === 'STAFF')}
+                                            checked={selectedRole === opt.id}
+                                            onChange={(e) => setSelectedRole(e.target.value)}
                                             className="hidden"
                                         />
                                         <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 has-[:checked]:text-indigo-700">{opt.label}</span>
@@ -207,23 +214,51 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                             </div>
                         </div>
 
-                        {/* Rotation Offset (Only for Security) */}
-                        <div className="md:col-span-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                Pola Awal (Januari 1)
-                            </label>
-                            <select
-                                name="rotationOffset"
-                                defaultValue={employee?.rotationOffset || 0}
-                                className="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white text-xs font-bold"
-                            >
-                                <option value="0">Tipe 1: P → PM → M → OFF → OFF</option>
-                                <option value="4">Tipe 2: OFF → P → PM → M → OFF</option>
-                                <option value="3">Tipe 3: OFF → OFF → P → PM → M</option>
-                                <option value="2">Tipe 4: M → OFF → OFF → P → PM</option>
-                                <option value="1">Tipe 5: PM → M → OFF → OFF → P</option>
-                            </select>
-                        </div>
+                        {/* Schedule Info based on Role */}
+                        {selectedRole === 'SECURITY' && (
+                            <div className="md:col-span-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                    Pola Awal (Januari 1)
+                                </label>
+                                <select
+                                    name="rotationOffset"
+                                    defaultValue={employee?.rotationOffset || 0}
+                                    className="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white text-xs font-bold"
+                                >
+                                    <option value="0">Tipe 1: P → PM → M → OFF → OFF</option>
+                                    <option value="4">Tipe 2: OFF → P → PM → M → OFF</option>
+                                    <option value="3">Tipe 3: OFF → OFF → P → PM → M</option>
+                                    <option value="2">Tipe 4: M → OFF → OFF → P → PM</option>
+                                    <option value="1">Tipe 5: PM → M → OFF → OFF → P</option>
+                                </select>
+                            </div>
+                        )}
+
+                        {selectedRole === 'LINGKUNGAN' && (
+                            <div className="md:col-span-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <Leaf size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Jadwal Reguler</h4>
+                                    <p className="text-[11px] font-medium text-emerald-600/80 dark:text-emerald-500 mt-0.5">
+                                        Senin - Jumat (08:00 - 17:00)<br />
+                                        Sabtu - Minggu (Libur)
+                                    </p>
+                                </div>
+                            </div>
+                        )}
+
+                        {selectedRole === 'KEBERSIHAN' && (
+                            <div className="md:col-span-2 p-4 rounded-xl bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-100 dark:border-teal-800/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                <Sparkles size={18} className="text-teal-600 shrink-0 mt-0.5" />
+                                <div>
+                                    <h4 className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-wide">Jadwal Kebersihan</h4>
+                                    <p className="text-[11px] font-medium text-teal-600/80 dark:text-teal-500 mt-0.5">
+                                        Senin - Sabtu (07:00 - 16:00)<br />
+                                        Minggu (Libur)
+                                    </p>
+                                </div>
+                            </div>
+                        )}
                     </div>
 
                     <div className="flex space-x-3 pt-2 shrink-0">

@@ -7,6 +7,8 @@ import LayoutContent from "@/components/LayoutContent";
 import { getSession } from "@/lib/auth";
 import { Toaster } from 'sonner';
 import { ThemeProvider } from "@/components/theme-provider";
+import { prisma } from "@/lib/db";
+import { SessionPayload, UserRole } from "@/types/auth"; // import UserRole for casting if needed
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -53,6 +55,25 @@ export default async function RootLayout({
   children: React.ReactNode;
 }>) {
   const session = await getSession();
+  let currentUser: SessionPayload | null = session;
+
+  if (session?.userId) {
+    const dbUser = await prisma.user.findUnique({
+      where: { id: session.userId },
+      select: { name: true, role: true, username: true, image: true }
+    });
+    if (dbUser) {
+      // safe spread since dbUser fields match SessionPayload structure (except image is string|null vs optional)
+      currentUser = {
+        userId: session.userId,
+        // Ensure role is cast correctly or validated. 
+        // dbUser.role is from Prisma options, should match UserRole.
+        role: dbUser.role as unknown as UserRole,
+        username: dbUser.username,
+        image: dbUser.image
+      };
+    }
+  }
 
   return (
     <html lang="id" suppressHydrationWarning>
@@ -64,10 +85,10 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Toaster position="top-center" richColors closeButton />
-          {session ? (
+          {currentUser ? (
             <SidebarProvider>
-              <Sidebar user={session} />
-              <LayoutContent user={session}>
+              <Sidebar user={currentUser} />
+              <LayoutContent user={currentUser}>
                 {children}
               </LayoutContent>
             </SidebarProvider>

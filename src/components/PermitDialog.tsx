@@ -77,7 +77,7 @@ export default function PermitDialog({ userId }: { userId: string }) {
                                 </div>
                                 <div>
                                     <h3 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight uppercase">Form Pengajuan</h3>
-                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Isi data ijin atau cuti Anda dengan benar.</p>
+                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mt-1">Isi data ijin atau pergantian shift Anda dengan benar.</p>
                                 </div>
                             </div>
 
@@ -92,7 +92,7 @@ export default function PermitDialog({ userId }: { userId: string }) {
                                             className="w-full px-4 py-4 rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-slate-900 dark:text-white appearance-none h-14"
                                         >
                                             <option value="IZIN">IZIN (TIDAK MASUK KERJA)</option>
-                                            <option value="CUTI">CUTI</option>
+                                            <option value="PERUBAHAN_SHIFT">PERUBAHAN SHIFT</option>
                                             <option value="SAKIT">SAKIT (BEROBAT/ISTIRAHAT)</option>
                                         </select>
                                     </div>

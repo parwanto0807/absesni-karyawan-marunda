@@ -11,25 +11,25 @@ export default function EmployeeHeader() {
         <>
             <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                 <div>
-                    <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Data Karyawan</h1>
-                    <p className="text-slate-500 dark:text-slate-400">Kelola informasi seluruh personil security dan staff Cluster Taman Marunda.</p>
+                    <h1 className="text-lg md:text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Data Karyawan</h1>
+                    <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400">Kelola informasi seluruh personil security dan staff Cluster Taman Marunda.</p>
                 </div>
 
                 <div className="flex items-center space-x-3">
-                    <button className="flex items-center space-x-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 transition-all">
-                        <Filter size={18} />
-                        <span>Filter</span>
+                    <button className="flex items-center space-x-2 rounded-xl border border-slate-200 bg-white px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 transition-all">
+                        <Filter size={16} className="md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Filter</span>
                     </button>
-                    <button className="flex items-center space-x-2 rounded-xl border border-slate-200 bg-white px-4 py-2.5 text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 transition-all">
-                        <Download size={18} />
-                        <span>Export</span>
+                    <button className="flex items-center space-x-2 rounded-xl border border-slate-200 bg-white px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-semibold text-slate-600 hover:bg-slate-50 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-400 dark:hover:bg-slate-800 transition-all">
+                        <Download size={16} className="md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Export</span>
                     </button>
                     <button
                         onClick={() => setIsCreateOpen(true)}
-                        className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-4 py-2.5 text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
+                        className="flex items-center space-x-2 rounded-xl bg-indigo-600 px-3 py-2 md:px-4 md:py-2.5 text-xs md:text-sm font-semibold text-white shadow-lg shadow-indigo-200 hover:bg-indigo-700 transition-all active:scale-95"
                     >
-                        <UserPlus size={18} />
-                        <span>Tambah Karyawan</span>
+                        <UserPlus size={16} className="md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Tambah Karyawan</span>
                     </button>
                 </div>
             </div>

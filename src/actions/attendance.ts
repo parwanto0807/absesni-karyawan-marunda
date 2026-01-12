@@ -4,13 +4,16 @@ import { revalidatePath } from 'next/cache';
 import { AttendanceStatus } from '@/types/attendance';
 import { prisma } from '@/lib/db';
 import { createNotification } from './notifications';
-import { getShiftForDate, getShiftTimings, ShiftCode } from '@/lib/schedule-utils';
+import { getShiftForDate, getShiftTimings, ShiftCode, getStaticSchedule } from '@/lib/schedule-utils';
+import { getStartOfDayJakarta, TIMEZONE } from '@/lib/date-utils';
 
 export async function clockIn(userId: string, location: { lat: number, lng: number, address: string }, image: string) {
     try {
         const now = new Date();
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        // Use Jakarta timezone to determine the start of "today"
+        const today = getStartOfDayJakarta(now);
+
+        // Define tomorrow as 24 hours after today's start
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -68,6 +71,8 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
             // Check manual schedule first
             if (user.schedules.length > 0) {
                 shiftCode = user.schedules[0].shiftCode;
+            } else if ((user.role as string) === 'LINGKUNGAN' || (user.role as string) === 'KEBERSIHAN') {
+                shiftCode = getStaticSchedule(user.role as string, now);
             } else {
                 shiftCode = getShiftForDate(user.rotationOffset, now);
             }
@@ -109,7 +114,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
         await createNotification({
             userId,
             title: 'Absen Masuk Berhasil',
-            message: `Anda telah melakukan absen masuk pada ${now.toLocaleTimeString('id-ID')}`,
+            message: `Anda telah melakukan absen masuk pada ${now.toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
             type: 'ATTENDANCE',
         });
 
@@ -154,7 +159,7 @@ export async function clockOut(attendanceId: string) {
             await createNotification({
                 userId,
                 title: 'Absen Keluar Berhasil',
-                message: `Anda telah melakukan absen keluar pada ${new Date().toLocaleTimeString('id-ID')}`,
+                message: `Anda telah melakukan absen keluar pada ${new Date().toLocaleTimeString('id-ID', { timeZone: TIMEZONE })}`,
                 type: 'ATTENDANCE',
             });
         }
@@ -191,8 +196,7 @@ export async function submitPermit(data: { userId: string, type: string, reason:
 
 export async function getTodayAttendance(userId: string) {
     try {
-        const today = new Date();
-        today.setHours(0, 0, 0, 0);
+        const today = getStartOfDayJakarta(new Date());
         const tomorrow = new Date(today);
         tomorrow.setDate(tomorrow.getDate() + 1);
 
@@ -214,10 +218,26 @@ export async function getTodayAttendance(userId: string) {
     }
 }
 
-export async function getAttendances(userId?: string) {
+export async function getAttendances(userId?: string, startDate?: Date, endDate?: Date) {
     try {
+        const where: any = {};
+        if (userId) where.userId = userId;
+
+        if (startDate || endDate) {
+            where.clockIn = {};
+            if (startDate) {
+                where.clockIn.gte = startDate;
+            }
+            if (endDate) {
+                // Ensure we get the whole end day
+                const endOfDay = new Date(endDate);
+                endOfDay.setHours(23, 59, 59, 999);
+                where.clockIn.lte = endOfDay;
+            }
+        }
+
         return await prisma.attendance.findMany({
-            where: userId ? { userId } : {},
+            where,
             include: {
                 user: {
                     select: {
@@ -231,7 +251,7 @@ export async function getAttendances(userId?: string) {
             orderBy: {
                 clockIn: 'desc'
             },
-            take: 100 // Limit to last 100 records for performance
+            take: (startDate || endDate) ? 1000 : 100 // Higher limit when filtering by date
         });
     } catch (error) {
         console.error('Get attendances error:', error);

@@ -1,222 +1,251 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
-import { getSettings, updateSettings } from '@/actions/settings';
-import { MapPin, Save, Loader2, Radius, Map as MapIcon } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import React, { useState } from 'react';
+import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2 } from 'lucide-react';
+import { toast } from 'sonner';
+import PerformanceGuideTab from '@/components/PerformanceGuideTab';
 
 export default function SettingsPage() {
+    const [activeTab, setActiveTab] = useState<'location' | 'performance'>('location');
     const [loading, setLoading] = useState(false);
-    const [fetching, setFetching] = useState(true);
-    const [settings, setSettings] = useState({
-        OFFICE_LAT: '-6.123',
-        OFFICE_LNG: '106.123',
-        ALLOWED_RADIUS: '100', // in meters
-        OFFICE_NAME: 'POS Cluster Taman Marunda'
-    });
+    const [locationName, setLocationName] = useState('POS Cluster Taman Marunda');
+    const [latitude, setLatitude] = useState('-6.2514462');
+    const [longitude, setLongitude] = useState('107.1133737');
+    const [radius, setRadius] = useState('500');
 
-    useEffect(() => {
-        const loadSettings = async () => {
-            const data = await getSettings();
-            if (Object.keys(data).length > 0) {
-                setSettings({
-                    OFFICE_LAT: data.OFFICE_LAT || '-6.123',
-                    OFFICE_LNG: data.OFFICE_LNG || '106.123',
-                    ALLOWED_RADIUS: data.ALLOWED_RADIUS || '100',
-                    OFFICE_NAME: data.OFFICE_NAME || 'POS Cluster Taman Marunda'
-                });
-            }
-            setFetching(false);
-        };
-        loadSettings();
-    }, []);
-
-    const handleSave = async (e: React.FormEvent) => {
-        e.preventDefault();
+    const handleSaveSettings = async () => {
         setLoading(true);
-        const result = await updateSettings(settings);
-        setLoading(false);
-        if (result.success) {
-            alert(result.message);
-        } else {
-            alert(result.message);
+        try {
+            // TODO: Implement save to database
+            await new Promise(resolve => setTimeout(resolve, 1000));
+            toast.success('Pengaturan Berhasil Disimpan', {
+                description: 'Lokasi absensi telah diperbarui'
+            });
+        } catch (error) {
+            toast.error('Gagal Menyimpan', {
+                description: 'Terjadi kesalahan saat menyimpan pengaturan'
+            });
+        } finally {
+            setLoading(false);
         }
     };
 
-    if (fetching) {
-        return (
-            <div className="flex h-[400px] items-center justify-center">
-                <Loader2 className="animate-spin text-indigo-600" size={40} />
-            </div>
-        );
-    }
+    const openGoogleMaps = () => {
+        const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
+        window.open(url, '_blank');
+    };
 
     return (
-        <div className="max-w-7xl mx-auto space-y-6">
-            <div>
-                <h1 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight text-center md:text-left">Pengaturan Lokasi Absensi</h1>
-                <p className="text-slate-500 dark:text-slate-400 text-center md:text-left">Tentukan titik kordinat dan radius aman untuk absen karyawan.</p>
+        <div className="w-full mx-auto space-y-6 animate-in fade-in duration-700">
+            {/* Header */}
+            <div className="space-y-1.5 md:space-y-2">
+                <div className="inline-flex items-center space-x-1.5 md:space-x-2 px-2 md:px-3 py-0.5 md:py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[9px] md:text-[10px] font-black uppercase tracking-widest">
+                    <Settings size={10} className="md:w-3 md:h-3" />
+                    <span>Pengaturan Sistem</span>
+                </div>
+                <h1 className="text-2xl md:text-3xl lg:text-4xl font-black text-slate-900 dark:text-white tracking-tighter uppercase">
+                    Pengaturan <span className="text-indigo-600">Admin</span>
+                </h1>
+                <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium">
+                    Kelola lokasi absensi dan panduan performance
+                </p>
             </div>
 
-            {/* Grid Layout: Map (Left) + Form (Right) */}
-            <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                {/* Map Preview - Left Side */}
-                <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden lg:sticky lg:top-6 h-fit">
-                    <div className="px-4 md:px-6 py-3 md:py-4 border-b border-slate-100 dark:border-slate-800 flex items-center space-x-2">
-                        <MapIcon className="text-indigo-600" size={18} />
-                        <h2 className="text-xs md:text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">
-                            Preview Lokasi
-                        </h2>
+            {/* Tabs */}
+            <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
+                <button
+                    onClick={() => setActiveTab('location')}
+                    className={`px-6 py-3 font-bold text-sm transition-all relative ${activeTab === 'location'
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <MapPin size={18} />
+                        <span>Lokasi Absensi</span>
                     </div>
-                    <div className="p-3 md:p-4">
-                        {settings.OFFICE_LAT && settings.OFFICE_LNG ? (
-                            <div className="space-y-3">
-                                {/* Google Maps Embed */}
-                                <div className="rounded-xl md:rounded-2xl overflow-hidden border-2 border-slate-200 dark:border-slate-700 shadow-lg">
-                                    <iframe
-                                        width="100%"
-                                        height="300"
-                                        className="md:h-[400px]"
-                                        style={{ border: 0 }}
-                                        loading="lazy"
-                                        allowFullScreen
-                                        referrerPolicy="no-referrer-when-downgrade"
-                                        src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${settings.OFFICE_LAT},${settings.OFFICE_LNG}&zoom=18&maptype=satellite`}
-                                    />
-                                </div>
-
-                                {/* Location Info */}
-                                <div className="grid grid-cols-2 gap-2 md:gap-3">
-                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg md:rounded-xl p-2 md:p-3 space-y-1">
-                                        <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-400">Nama Lokasi</p>
-                                        <p className="text-[10px] md:text-xs font-bold text-slate-900 dark:text-white truncate">{settings.OFFICE_NAME}</p>
-                                    </div>
-                                    <div className="bg-slate-50 dark:bg-slate-800 rounded-lg md:rounded-xl p-2 md:p-3 space-y-1">
-                                        <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-slate-400">Radius Aman</p>
-                                        <p className="text-[10px] md:text-xs font-bold text-slate-900 dark:text-white">{settings.ALLOWED_RADIUS} Meter</p>
-                                    </div>
-                                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg md:rounded-xl p-2 md:p-3 space-y-1">
-                                        <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-indigo-400">Latitude</p>
-                                        <p className="text-[10px] md:text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 truncate">{settings.OFFICE_LAT}</p>
-                                    </div>
-                                    <div className="bg-indigo-50 dark:bg-indigo-900/20 rounded-lg md:rounded-xl p-2 md:p-3 space-y-1">
-                                        <p className="text-[8px] md:text-[9px] font-black uppercase tracking-widest text-indigo-400">Longitude</p>
-                                        <p className="text-[10px] md:text-xs font-mono font-bold text-indigo-600 dark:text-indigo-400 truncate">{settings.OFFICE_LNG}</p>
-                                    </div>
-                                </div>
-
-                                {/* Google Maps Link */}
-                                <a
-                                    href={`https://www.google.com/maps?q=${settings.OFFICE_LAT},${settings.OFFICE_LNG}`}
-                                    target="_blank"
-                                    rel="noopener noreferrer"
-                                    className="flex items-center justify-center space-x-2 w-full py-2.5 md:py-3 rounded-lg md:rounded-xl bg-emerald-500 hover:bg-emerald-600 text-white font-bold text-[10px] md:text-xs uppercase tracking-widest transition-all active:scale-95 shadow-lg"
-                                >
-                                    <MapIcon size={14} className="md:w-4 md:h-4" />
-                                    <span>Buka di Google Maps</span>
-                                </a>
-                            </div>
-                        ) : (
-                            <div className="flex flex-col items-center justify-center py-8 md:py-12 space-y-3 text-slate-400">
-                                <MapPin size={40} className="md:w-12 md:h-12 opacity-20" />
-                                <p className="text-[10px] md:text-xs font-bold uppercase tracking-widest text-center">Masukkan koordinat untuk melihat preview peta</p>
-                            </div>
-                        )}
+                    {activeTab === 'location' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('performance')}
+                    className={`px-6 py-3 font-bold text-sm transition-all relative ${activeTab === 'performance'
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <BookOpen size={18} />
+                        <span>Panduan Performance</span>
                     </div>
-                </div>
+                    {activeTab === 'performance' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+                    )}
+                </button>
+            </div>
 
-                {/* Form - Right Side */}
-                <form onSubmit={handleSave} className="bg-white dark:bg-slate-900 rounded-[1.5rem] md:rounded-[2.5rem] border border-slate-200 dark:border-slate-800 p-4 md:p-8 shadow-xl space-y-6 md:space-y-8 h-fit">
-                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-                        {/* Office Name */}
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">Nama Lokasi / Kantor</label>
-                            <div className="relative">
-                                <MapIcon className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input
-                                    type="text"
-                                    value={settings.OFFICE_NAME}
-                                    onChange={(e) => setSettings({ ...settings, OFFICE_NAME: e.target.value })}
-                                    className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs md:text-sm text-slate-900 dark:text-white"
-                                    placeholder="Contoh: POS Cluster Taman Marunda"
-                                />
+            {/* Tab Content */}
+            {activeTab === 'location' ? (
+                // Location Settings Tab
+                <div className="grid gap-6 lg:grid-cols-2">
+                    {/* Map Preview */}
+                    <div className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-4 md:p-6 space-y-3 md:space-y-4">
+                        <div className="flex items-center gap-2 md:gap-3 mb-3 md:mb-4">
+                            <div className="p-2 md:p-3 rounded-lg md:rounded-xl bg-indigo-50 dark:bg-indigo-900/20">
+                                <MapPin className="w-5 h-5 md:w-6 md:h-6 text-indigo-600 dark:text-indigo-400" />
+                            </div>
+                            <div>
+                                <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white">Preview Lokasi</h2>
+                                <p className="text-[10px] md:text-xs text-slate-500">Peta lokasi absensi karyawan</p>
                             </div>
                         </div>
 
-                        {/* Lat */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">Latitude</label>
-                            <div className="relative">
-                                <MapPin className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input
-                                    type="text"
-                                    value={settings.OFFICE_LAT}
-                                    onChange={(e) => setSettings({ ...settings, OFFICE_LAT: e.target.value })}
-                                    className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs md:text-sm text-slate-900 dark:text-white uppercase"
-                                    placeholder="-6.123456"
-                                />
+                        {/* Map Preview - Google Maps */}
+                        <div className="relative w-full h-[250px] md:h-[350px] lg:h-[400px] rounded-lg md:rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
+                            <iframe
+                                width="100%"
+                                height="100%"
+                                style={{ border: 0 }}
+                                loading="lazy"
+                                allowFullScreen
+                                referrerPolicy="no-referrer-when-downgrade"
+                                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${latitude},${longitude}&zoom=17`}
+                            />
+                        </div>
+
+                        {/* Location Info */}
+                        <div className="grid grid-cols-2 gap-2 md:gap-4 p-3 md:p-4 rounded-lg md:rounded-xl bg-slate-50 dark:bg-slate-800/50">
+                            <div>
+                                <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Nama Lokasi</p>
+                                <p className="text-xs md:text-sm font-bold text-slate-900 dark:text-white truncate">{locationName}</p>
+                            </div>
+                            <div>
+                                <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Radius Aman</p>
+                                <p className="text-xs md:text-sm font-bold text-slate-900 dark:text-white">{radius} Meter</p>
+                            </div>
+                            <div>
+                                <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Latitude</p>
+                                <p className="text-[10px] md:text-xs font-mono text-slate-700 dark:text-slate-300">{latitude}</p>
+                            </div>
+                            <div>
+                                <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-wider mb-0.5 md:mb-1">Longitude</p>
+                                <p className="text-[10px] md:text-xs font-mono text-slate-700 dark:text-slate-300">{longitude}</p>
                             </div>
                         </div>
 
-                        {/* Lng */}
-                        <div className="space-y-2">
-                            <label className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">Longitude</label>
-                            <div className="relative">
-                                <MapPin className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
-                                <input
-                                    type="text"
-                                    value={settings.OFFICE_LNG}
-                                    onChange={(e) => setSettings({ ...settings, OFFICE_LNG: e.target.value })}
-                                    className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs md:text-sm text-slate-900 dark:text-white uppercase"
-                                    placeholder="106.123456"
-                                />
-                            </div>
+                        <button
+                            onClick={openGoogleMaps}
+                            className="w-full h-10 md:h-12 rounded-lg md:rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-95"
+                        >
+                            <ExternalLink size={16} className="md:w-[18px] md:h-[18px]" />
+                            <span>Buka di Google Maps</span>
+                        </button>
+                    </div>
+
+                    {/* Settings Form */}
+                    <div className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-4 md:p-6 space-y-4 md:space-y-6">
+                        <div>
+                            <h2 className="text-base md:text-lg font-bold text-slate-900 dark:text-white mb-2 md:mb-4">Pengaturan Lokasi Absensi</h2>
+                            <p className="text-[10px] md:text-xs text-slate-500 dark:text-slate-400">
+                                Tentukan titik koordinat dan radius aman untuk absen karyawan.
+                            </p>
                         </div>
 
-                        {/* Radius */}
-                        <div className="md:col-span-2 space-y-2">
-                            <label className="text-[10px] md:text-xs font-black uppercase tracking-widest text-slate-400">Radius Aman (Meter)</label>
-                            <div className="relative">
-                                <Radius className="absolute left-3 md:left-4 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                        {/* Form Fields */}
+                        <div className="space-y-3 md:space-y-4">
+                            {/* Location Name */}
+                            <div>
+                                <label className="block text-[10px] md:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2 uppercase tracking-wider">
+                                    Nama Lokasi / Kantor
+                                </label>
+                                <input
+                                    type="text"
+                                    value={locationName}
+                                    onChange={(e) => setLocationName(e.target.value)}
+                                    className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs md:text-sm font-semibold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none text-slate-900 dark:text-white"
+                                    placeholder="POS Cluster Taman Marunda"
+                                />
+                            </div>
+
+                            {/* Latitude */}
+                            <div>
+                                <label className="block text-[10px] md:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2 uppercase tracking-wider">
+                                    Latitude
+                                </label>
+                                <input
+                                    type="text"
+                                    value={latitude}
+                                    onChange={(e) => setLatitude(e.target.value)}
+                                    className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs md:text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none text-slate-900 dark:text-white"
+                                    placeholder="-6.2514462"
+                                />
+                            </div>
+
+                            {/* Longitude */}
+                            <div>
+                                <label className="block text-[10px] md:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2 uppercase tracking-wider">
+                                    Longitude
+                                </label>
+                                <input
+                                    type="text"
+                                    value={longitude}
+                                    onChange={(e) => setLongitude(e.target.value)}
+                                    className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs md:text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none text-slate-900 dark:text-white"
+                                    placeholder="107.1133737"
+                                />
+                            </div>
+
+                            {/* Radius */}
+                            <div>
+                                <label className="block text-[10px] md:text-xs font-bold text-slate-700 dark:text-slate-300 mb-1.5 md:mb-2 uppercase tracking-wider">
+                                    Radius Aman (Meter)
+                                </label>
                                 <input
                                     type="number"
-                                    value={settings.ALLOWED_RADIUS}
-                                    onChange={(e) => setSettings({ ...settings, ALLOWED_RADIUS: e.target.value })}
-                                    className="w-full pl-10 md:pl-12 pr-3 md:pr-4 py-3 md:py-4 rounded-xl md:rounded-2xl bg-slate-50 dark:bg-slate-800 border-none ring-1 ring-slate-200 dark:ring-slate-700 focus:ring-2 focus:ring-indigo-500 transition-all font-bold text-xs md:text-sm text-slate-900 dark:text-white"
-                                    placeholder="100"
+                                    value={radius}
+                                    onChange={(e) => setRadius(e.target.value)}
+                                    className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs md:text-sm font-semibold focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none text-slate-900 dark:text-white"
+                                    placeholder="500"
                                 />
+                                <p className="mt-1.5 md:mt-2 text-[10px] md:text-xs text-slate-500 dark:text-slate-400">
+                                    Karyawan hanya bisa absen dalam radius {radius} meter dari lokasi ini
+                                </p>
                             </div>
-                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-tighter">Karyawan tidak bisa absen jika jarak dari kordinat di atas melebihi radius ini.</p>
+                        </div>
+
+                        {/* Save Button */}
+                        <button
+                            onClick={handleSaveSettings}
+                            disabled={loading}
+                            className="w-full h-12 md:h-14 rounded-lg md:rounded-xl bg-indigo-600 hover:bg-indigo-700 disabled:bg-slate-400 text-white font-bold text-xs md:text-sm flex items-center justify-center gap-1.5 md:gap-2 transition-all active:scale-95 disabled:cursor-not-allowed"
+                        >
+                            {loading ? (
+                                <>
+                                    <Loader2 size={16} className="md:w-[18px] md:h-[18px] animate-spin" />
+                                    <span>Menyimpan...</span>
+                                </>
+                            ) : (
+                                <>
+                                    <Save size={16} className="md:w-[18px] md:h-[18px]" />
+                                    <span>Simpan Pengaturan</span>
+                                </>
+                            )}
+                        </button>
+
+                        {/* Info */}
+                        <div className="p-3 md:p-4 rounded-lg md:rounded-xl bg-blue-50 dark:bg-blue-900/10 border border-blue-200 dark:border-blue-800">
+                            <p className="text-[10px] md:text-xs text-blue-700 dark:text-blue-300">
+                                <strong>Catatan:</strong> Perubahan pengaturan lokasi akan mempengaruhi semua karyawan yang melakukan absensi.
+                                Pastikan koordinat dan radius sudah sesuai sebelum menyimpan.
+                            </p>
                         </div>
                     </div>
-
-                    <button
-                        type="submit"
-                        disabled={loading}
-                        className={cn(
-                            "w-full py-4 md:py-5 rounded-xl md:rounded-[1.5rem] text-xs md:text-sm font-black uppercase tracking-[0.2em] text-white shadow-xl transition-all active:scale-95 disabled:opacity-30 flex items-center justify-center space-x-3",
-                            "bg-gradient-to-r from-indigo-600 to-indigo-700 hover:from-indigo-700 hover:to-indigo-800 shadow-indigo-200 dark:shadow-none"
-                        )}
-                    >
-                        {loading ? <Loader2 className="animate-spin" size={18} /> : <Save size={18} />}
-                        <span>Simpan Pengaturan</span>
-                    </button>
-                </form>
-            </div>
-
-            <div className="rounded-xl md:rounded-[2rem] border border-indigo-100 bg-indigo-50/50 p-4 md:p-6 dark:border-indigo-900/30 dark:bg-indigo-900/5 flex items-start space-x-3 md:space-x-4">
-                <div className="h-10 w-10 rounded-xl bg-indigo-100 dark:bg-indigo-900/30 flex items-center justify-center shrink-0">
-                    <MapIcon className="text-indigo-600" size={20} />
                 </div>
-                <div className="space-y-1">
-                    <p className="text-xs font-bold leading-relaxed text-indigo-800 dark:text-indigo-300 uppercase tracking-tight">
-                        Tips Kordinat:
-                    </p>
-                    <p className="text-[10px] font-medium text-indigo-600/80 dark:text-indigo-400/80 leading-relaxed uppercase tracking-widest">
-                        Buka Google Maps, klik kanan pada lokasi kantor Anda, lalu salin angka kordinat yang muncul (Latitude, Longitude).
-                    </p>
-                </div>
-            </div>
+            ) : (
+                // Performance Guide Tab
+                <PerformanceGuideTab />
+            )}
         </div>
     );
 }

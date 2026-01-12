@@ -4,18 +4,57 @@ import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { Clock, Download, Filter, Search, Calendar, MapPin, CheckCircle2, XCircle } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { TIMEZONE } from '@/lib/date-utils';
+import { ImageModal, ImageModalMobile } from '@/components/ImageModal';
+import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
 
-export default async function HistoryPage() {
+import { prisma } from '@/lib/db';
+import HistoryFilter from '@/components/HistoryFilter';
+import ExportButtons from '@/components/ExportButtons';
+
+export default async function HistoryPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
+    const searchParams = await props.searchParams;
     const session = await getSession();
     if (!session) {
         redirect('/login');
     }
 
-    // Filter attendances based on role
-    // Security and Lingkungan only see their own data
-    const attendances = (session.role === 'ADMIN' || session.role === 'PIC')
-        ? await getAttendances()
-        : await getAttendances(session.userId);
+    // Fetch users for filter (Admin/PIC only)
+    let filterUsers;
+    if (session.role === 'ADMIN' || session.role === 'PIC') {
+        filterUsers = await prisma.user.findMany({
+            select: { id: true, name: true },
+            orderBy: { name: 'asc' }
+        });
+    }
+
+    // Determine filter parameters
+    let targetUserId: string | undefined = session.userId;
+    if (session.role === 'ADMIN' || session.role === 'PIC') {
+        const pUserId = searchParams.userId;
+        const pUserIdStr = Array.isArray(pUserId) ? pUserId[0] : pUserId;
+        targetUserId = pUserIdStr || undefined;
+    }
+
+    const parseDate = (d: string | string[] | undefined) => {
+        if (!d) return undefined;
+        const str = Array.isArray(d) ? d[0] : d;
+        const date = new Date(str);
+        return isNaN(date.getTime()) ? undefined : date;
+    };
+
+    const startDate = parseDate(searchParams.startDate);
+    const endDate = parseDate(searchParams.endDate);
+
+    const attendances = await getAttendances(targetUserId, startDate, endDate);
+
+    // Get filter info for export
+    const selectedUser = filterUsers?.find(u => u.id === targetUserId);
+    const filterInfo = {
+        userName: selectedUser?.name,
+        startDate: searchParams.startDate ? String(searchParams.startDate) : undefined,
+        endDate: searchParams.endDate ? String(searchParams.endDate) : undefined,
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -24,6 +63,14 @@ export default async function HistoryPage() {
             case 'ALPH': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
             default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
         }
+    };
+
+    // Helper to format duration: > 60 mins becomes "X Jam Y Menit"
+    const formatDuration = (minutes: number) => {
+        if (minutes < 60) return `${minutes} Menit`;
+        const hours = Math.floor(minutes / 60);
+        const mins = minutes % 60;
+        return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
     };
 
     return (
@@ -45,13 +92,10 @@ export default async function HistoryPage() {
                     </p>
                 </div>
 
-                <div className="hidden md:flex items-center space-x-3">
-                    <button className="h-12 px-6 rounded-2xl bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-800 text-slate-600 dark:text-slate-300 font-bold text-sm shadow-sm flex items-center space-x-2 hover:bg-slate-50 transition-all">
-                        <Download size={18} />
-                        <span>Export CSV</span>
-                    </button>
-                </div>
+                <ExportButtons attendances={attendances} filterInfo={filterInfo} />
             </div>
+
+            <HistoryFilter users={filterUsers} />
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
@@ -90,49 +134,84 @@ export default async function HistoryPage() {
                                 <div className="flex items-center space-x-1">
                                     <Calendar size={10} className="text-slate-400" />
                                     <span className="font-bold text-slate-700 dark:text-slate-300">
-                                        {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                        {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TIMEZONE })}
                                     </span>
                                 </div>
-                                <div className="flex flex-col items-end">
-                                    <div className="flex items-center space-x-1">
-                                        <Clock size={10} className="text-slate-400" />
-                                        <span className="font-black text-indigo-600">
-                                            {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                            {attendance.clockOut && ` - ${new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`}
-                                        </span>
-                                    </div>
-                                    <div className="flex space-x-1 mt-1">
+                                <div className="flex flex-col items-end space-y-2 mt-1">
+                                    {/* IN Group */}
+                                    <div className="flex flex-col items-end">
+                                        <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                            <span className="text-slate-400 mr-1">In:</span>
+                                            <span className="font-bold text-indigo-600">{new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB</span>
+                                        </div>
                                         {attendance.isLate && (
-                                            <span className="px-2 py-0.5 rounded-full text-[8px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
-                                                Telat {attendance.lateMinutes}m
-                                            </span>
-                                        )}
-                                        {attendance.isEarlyLeave && (
-                                            <span className="px-2 py-0.5 rounded-full text-[8px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
-                                                Cepat {attendance.earlyLeaveMinutes}m
+                                            <span className="mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900">
+                                                Telat {formatDuration(attendance.lateMinutes)}
                                             </span>
                                         )}
                                     </div>
+
+                                    {/* OUT Group */}
+                                    {(attendance.clockOut || attendance.scheduledClockOut) && (
+                                        <div className="flex flex-col items-end">
+                                            {attendance.clockOut ? (
+                                                <div className="text-[10px] font-medium text-slate-500 dark:text-slate-400">
+                                                    <span className="text-slate-400 mr-1">Out:</span>
+                                                    <span className="font-bold text-indigo-600">{new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB</span>
+                                                </div>
+                                            ) : (
+                                                <span className="text-[9px] italic text-slate-300">Belum Absen Pulang</span>
+                                            )}
+
+                                            {attendance.isEarlyLeave && (
+                                                <span className="mt-0.5 px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900">
+                                                    Cepat {formatDuration(attendance.earlyLeaveMinutes)}
+                                                </span>
+                                            )}
+                                        </div>
+                                    )}
+
+                                    {/* Shift Info (Compact) */}
+                                    {(attendance.scheduledClockIn || attendance.shiftType) && (
+                                        <div className="flex items-center justify-end space-x-1 text-[8px] font-medium text-slate-300 mt-1 pt-1 border-t border-slate-100 dark:border-slate-800 w-full">
+                                            <span className="uppercase tracking-widest">{attendance.shiftType || 'SHIFT'}</span>
+                                            <span>
+                                                {attendance.scheduledClockIn ? new Date(attendance.scheduledClockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                                <span className="mx-1">||</span>
+                                                {attendance.scheduledClockOut ? new Date(attendance.scheduledClockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                            </span>
+                                        </div>
+                                    )}
                                 </div>
                             </div>
 
-                            {/* Location & Photo */}
-                            <div className="flex items-center justify-between gap-3">
+                            <div className="flex items-center justify-between gap-3 pt-2 border-t border-slate-50 dark:border-slate-800">
                                 <div className="flex items-center space-x-2 min-w-0 flex-1">
                                     <MapPin size={12} className="text-rose-500 shrink-0" />
-                                    <span className="text-[9px] font-bold text-slate-500 truncate" title={attendance.address ?? undefined}>
-                                        {attendance.address || `${attendance.latitude}, ${attendance.longitude}`}
-                                    </span>
-                                </div>
-                                {attendance.image ? (
-                                    <a href={attendance.image} target="_blank" rel="noreferrer" className="block w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 hover:ring-2 hover:ring-indigo-500 transition-all shrink-0">
-                                        <img src={attendance.image} alt="Absen" className="w-full h-full object-cover" />
-                                    </a>
-                                ) : (
-                                    <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 shrink-0">
-                                        <XCircle size={14} />
+                                    <div className="flex items-center space-x-1 min-w-0">
+                                        <span className="text-[9px] font-bold text-slate-500 truncate" title={attendance.address ?? undefined}>
+                                            {attendance.address || `${attendance.latitude}, ${attendance.longitude}`}
+                                        </span>
+                                        {attendance.address && <CheckCircle2 size={10} className="text-emerald-500 shrink-0" />}
                                     </div>
-                                )}
+                                </div>
+
+                                {/* Mobile Performance Indicator */}
+                                <div className="flex items-center space-x-2">
+                                    <div className="flex flex-col items-end">
+                                        <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">Perf</span>
+                                        <span className={cn("text-[10px] font-black", getPerformanceColor(calculateDailyPerformance(attendance)).split(' ')[0])}>
+                                            {calculateDailyPerformance(attendance)}%
+                                        </span>
+                                    </div>
+                                    {attendance.image ? (
+                                        <ImageModalMobile src={attendance.image} alt="Absen" />
+                                    ) : (
+                                        <div className="w-10 h-10 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300 shrink-0">
+                                            <XCircle size={14} />
+                                        </div>
+                                    )}
+                                </div>
                             </div>
                         </div>
                     ))
@@ -140,16 +219,18 @@ export default async function HistoryPage() {
             </div>
 
             {/* Desktop Table View */}
-            <div className="hidden md:block bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
+            <div className="hidden md:block bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
                 <div className="overflow-x-auto">
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Karyawan</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Waktu Absen</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Lokasi / GPS</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Foto</th>
-                                <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400">Karyawan</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Jadwal Shift</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Waktu Absen</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400">Lokasi / GPS</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Performance</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400">Foto</th>
+                                <th className="px-6 py-5 text-[12px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
                             </tr>
                         </thead>
                         <tbody>
@@ -181,47 +262,119 @@ export default async function HistoryPage() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <div className="space-y-1">
-                                                <div className="flex items-center space-x-2">
+                                            <div className="flex flex-col items-center w-full min-w-[150px]">
+                                                {/* Shift Badge Row */}
+                                                <div className="flex items-center justify-center mb-3 pb-2 border-b border-slate-100 dark:border-slate-800 w-full">
+                                                    <span className="text-[10px] font-black uppercase tracking-widest px-3 py-1 rounded-full bg-slate-100 dark:bg-slate-800 text-slate-500 border border-slate-200 dark:border-slate-700">
+                                                        {attendance.shiftType || 'OFF'}
+                                                    </span>
+                                                </div>
+
+                                                {/* Scheduled Times Grid */}
+                                                <div className="grid grid-cols-2 gap-4 w-full uppercase font-bold">
+                                                    {/* IN Column */}
+                                                    <div className="flex flex-col items-center justify-center">
+                                                        <div className="text-[12px] font-medium whitespace-nowrap">
+                                                            <span className="text-slate-400 font-bold mr-1">In :</span>
+                                                            <span className="text-slate-600 dark:text-slate-300 font-bold">
+                                                                {attendance.scheduledClockIn ? new Date(attendance.scheduledClockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+
+                                                    {/* OUT Column */}
+                                                    <div className="flex flex-col items-center justify-center border-l border-slate-100 dark:border-slate-800 pl-4">
+                                                        <div className="text-[12px] font-medium whitespace-nowrap">
+                                                            <span className="text-slate-400 font-bold mr-1">Out :</span>
+                                                            <span className="text-slate-600 dark:text-slate-300 font-bold">
+                                                                {attendance.scheduledClockOut ? new Date(attendance.scheduledClockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                                            </span>
+                                                        </div>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col items-center w-full min-w-[200px]">
+                                                {/* Date Row */}
+                                                <div className="flex items-center justify-center space-x-1.5 mb-3 pb-2 border-b border-slate-100 dark:border-slate-800 w-full">
                                                     <Calendar size={12} className="text-slate-400" />
-                                                    <span className="text-xs font-bold text-slate-700 dark:text-slate-300">
-                                                        {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    <span className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                                        {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TIMEZONE })}
                                                     </span>
                                                 </div>
-                                                <div className="flex items-center space-x-2">
-                                                    <Clock size={12} className="text-slate-400" />
-                                                    <span className="text-[10px] font-black text-indigo-600 uppercase">
-                                                        {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
-                                                        {attendance.clockOut && ` - ${new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`}
-                                                    </span>
-                                                </div>
-                                                <div className="flex flex-wrap gap-1 mt-1">
-                                                    {attendance.isLate && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900">
-                                                            Telat {attendance.lateMinutes}m
-                                                        </span>
-                                                    )}
-                                                    {attendance.isEarlyLeave && (
-                                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900">
-                                                            Cepat {attendance.earlyLeaveMinutes}m
-                                                        </span>
-                                                    )}
+
+                                                {/* Times Grid */}
+                                                <div className="grid grid-cols-2 gap-4 w-full uppercase">
+                                                    {/* IN Column */}
+                                                    <div className="flex flex-col items-center">
+                                                        <div className="text-[12px] font-bold whitespace-nowrap mb-1">
+                                                            <span className="text-slate-400 font-normal mr-1 text-[12px]">In :</span>
+                                                            <span className="text-indigo-600 font-black">{new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB</span>
+                                                        </div>
+                                                        {attendance.isLate ? (
+                                                            <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900 w-full text-center">
+                                                                Telat {formatDuration(attendance.lateMinutes)}
+                                                            </span>
+                                                        ) : (
+                                                            <span className="h-[22px]"></span> // Spacer to keep alignment
+                                                        )}
+                                                    </div>
+
+                                                    {/* OUT Column */}
+                                                    <div className="flex flex-col items-center border-l border-slate-100 dark:border-slate-800 pl-4">
+                                                        {attendance.clockOut ? (
+                                                            <>
+                                                                <div className="text-[12px] font-bold whitespace-nowrap mb-1">
+                                                                    <span className="text-slate-400 font-normal mr-1 text-[12px]">Out :</span>
+                                                                    <span className="text-indigo-600 font-black text-[12px]">{new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB</span>
+                                                                </div>
+                                                                {attendance.isEarlyLeave ? (
+                                                                    <span className="px-2 py-0.5 rounded text-[10px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900 w-full text-center">
+                                                                        Cepat {formatDuration(attendance.earlyLeaveMinutes)}
+                                                                    </span>
+                                                                ) : (
+                                                                    <span className="h-[22px]"></span>
+                                                                )}
+                                                            </>
+                                                        ) : (
+                                                            <div className="flex flex-col items-center justify-center h-full">
+                                                                <span className="text-[9px] italic text-slate-300">Belum Absen</span>
+                                                            </div>
+                                                        )}
+                                                    </div>
                                                 </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-2 max-w-[200px]">
                                                 <MapPin size={14} className="text-rose-500 shrink-0" />
-                                                <span className="text-[10px] font-bold text-slate-500 truncate" title={attendance.address ?? undefined}>
-                                                    {attendance.address || `${attendance.latitude}, ${attendance.longitude}`}
-                                                </span>
+                                                <div className="flex items-center space-x-1 min-w-0">
+                                                    <span className="text-[10px] font-bold text-slate-500 truncate" title={attendance.address ?? undefined}>
+                                                        {attendance.address || `${attendance.latitude}, ${attendance.longitude}`}
+                                                    </span>
+                                                    <CheckCircle2 size={12} className="text-emerald-500 shrink-0" />
+                                                </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex flex-col items-center justify-center w-24">
+                                                <div className="flex items-center justify-between w-full mb-1">
+                                                    <span className={cn("text-[10px] font-black", getPerformanceColor(calculateDailyPerformance(attendance)).split(' ')[0])}>
+                                                        {calculateDailyPerformance(attendance)}%
+                                                    </span>
+                                                </div>
+                                                <div className="h-1.5 w-full bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
+                                                    <div
+                                                        className={cn("h-full rounded-full transition-all duration-500", getPerformanceBarColor(calculateDailyPerformance(attendance)))}
+                                                        style={{ width: `${calculateDailyPerformance(attendance)}%` }}
+                                                    />
+                                                </div>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             {attendance.image ? (
-                                                <a href={attendance.image} target="_blank" rel="noreferrer" className="block w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 hover:ring-2 hover:ring-indigo-500 transition-all">
-                                                    <img src={attendance.image} alt="Absen" className="w-full h-full object-cover" />
-                                                </a>
+                                                <ImageModal src={attendance.image} alt="Absen" />
                                             ) : (
                                                 <div className="w-12 h-12 rounded-lg bg-slate-50 dark:bg-slate-800 flex items-center justify-center text-slate-300">
                                                     <XCircle size={16} />

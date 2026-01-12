@@ -1,4 +1,4 @@
-export type UserRole = 'ADMIN' | 'PIC' | 'SECURITY' | 'LINGKUNGAN' | 'STAFF';
+export type UserRole = 'ADMIN' | 'PIC' | 'SECURITY' | 'LINGKUNGAN' | 'STAFF' | 'KEBERSIHAN';
 
 export interface User {
     id: string;
@@ -12,5 +12,5 @@ export interface SessionPayload {
     userId: string;
     role: UserRole;
     username: string;
-    image: string | null;
+    image?: string | null;
 }

@@ -33,7 +33,6 @@ export async function login(formData: FormData) {
             userId: user.id,
             role: user.role as UserRole,
             username: user.username,
-            image: user.image
         });
 
         // Save the session in a cookie

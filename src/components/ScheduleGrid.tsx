@@ -2,9 +2,11 @@
 
 import React, { useState } from 'react';
 import { cn } from '@/lib/utils';
-import { getShiftForDate, SHIFT_DETAILS } from '@/lib/schedule-utils';
+import { getShiftForDate, getStaticSchedule, SHIFT_DETAILS } from '@/lib/schedule-utils';
 import { createManualSchedule, deleteManualSchedule } from '@/actions/employees';
 import { Loader2, RotateCcw } from 'lucide-react';
+import { toZonedTime } from 'date-fns-tz';
+import { TIMEZONE } from '@/lib/date-utils';
 
 interface ScheduleGridProps {
     users: any[];
@@ -19,8 +21,22 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
     const [selectedCell, setSelectedCell] = useState<{ userId: string; day: number } | null>(null);
 
+    // Helper to constructing a date that safely represents the given day in Jakarta context
+    // We use UTC noon (or a safe offset) to ensure we target the correct calendar day
+    const constructDate = (y: number, m: number, d: number) => {
+        // Create a UTC date at 06:00 UTC (13:00 Jakarta) to stay safely in the middle of the day.
+        return new Date(Date.UTC(y, m, d, 6, 0, 0));
+    };
+
+    const getBaseShift = (user: any, date: Date) => {
+        if (user.role === 'LINGKUNGAN' || user.role === 'KEBERSIHAN') {
+            return getStaticSchedule(user.role, date);
+        }
+        return getShiftForDate(user.rotationOffset, date);
+    };
+
     const handleShiftChange = async (userId: string, day: number, shiftCode: string) => {
-        const date = new Date(currentYear, currentMonth, day);
+        const date = constructDate(currentYear, currentMonth, day);
         setIsUpdating(`${userId}-${day}`);
         await createManualSchedule(userId, date, shiftCode);
         setIsUpdating(null);
@@ -28,7 +44,7 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
     };
 
     const handleResetShift = async (userId: string, day: number) => {
-        const date = new Date(currentYear, currentMonth, day);
+        const date = constructDate(currentYear, currentMonth, day);
         setIsUpdating(`${userId}-${day}`);
         await deleteManualSchedule(userId, date);
         setIsUpdating(null);
@@ -50,7 +66,8 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
             >
                 <div className="text-center space-y-1 mb-4">
                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                        Ubah Shift: {new Date(currentYear, currentMonth, day).toLocaleDateString('id-ID', { day: 'numeric', month: 'long' })}
+                        {/* Use Jakarta timezone for display formatting */}
+                        Ubah Shift: {constructDate(currentYear, currentMonth, day).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', timeZone: TIMEZONE })}
                     </h3>
                     <p className="text-xs font-medium text-slate-500">{user.name}</p>
                 </div>
@@ -92,7 +109,8 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
         </div>
     );
 
-    const today = new Date();
+    // Determine 'today' in Jakarta context
+    const today = toZonedTime(new Date(), TIMEZONE);
     const isCurrentMonth = currentMonth === today.getMonth() && currentYear === today.getFullYear();
     const startDay = isCurrentMonth ? today.getDate() : 1;
     const filteredDays = days.filter(day => day >= startDay);
@@ -109,24 +127,25 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                             </div>
                             <div>
                                 <div className="font-black text-slate-900 dark:text-white uppercase text-sm tracking-tight">{user.name}</div>
-                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Security Guard</div>
+                                <div className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">{user.role}</div>
                             </div>
                         </div>
 
                         <div className="flex overflow-x-auto pb-4 -mx-4 px-4 space-x-2 scrollbar-hide">
                             {filteredDays.map((day, index) => {
-                                const date = new Date(currentYear, currentMonth, day);
+                                const date = constructDate(currentYear, currentMonth, day);
                                 const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                                const dayName = date.toLocaleString('id-ID', { weekday: 'short' }).charAt(0);
+                                const dayName = date.toLocaleString('id-ID', { weekday: 'short', timeZone: TIMEZONE }).charAt(0);
 
-                                const manual = manualSchedules.find(m =>
-                                    m.userId === user.id &&
-                                    new Date(m.date).getDate() === day &&
-                                    new Date(m.date).getMonth() === currentMonth &&
-                                    new Date(m.date).getFullYear() === currentYear
-                                );
+                                const manual = manualSchedules.find(m => {
+                                    const mDate = toZonedTime(m.date, TIMEZONE);
+                                    return m.userId === user.id &&
+                                        mDate.getDate() === day &&
+                                        mDate.getMonth() === currentMonth &&
+                                        mDate.getFullYear() === currentYear
+                                });
 
-                                const shift = manual ? manual.shiftCode : getShiftForDate(user.rotationOffset, date);
+                                const shift = manual ? manual.shiftCode : getBaseShift(user, date);
                                 const detail = SHIFT_DETAILS[shift as keyof typeof SHIFT_DETAILS] || SHIFT_DETAILS.OFF;
                                 const isSelected = selectedCell?.userId === user.id && selectedCell?.day === day;
                                 const statusKey = `${user.id}-${day}`;
@@ -188,9 +207,9 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                     <span className="text-[10px] font-black uppercase tracking-widest text-slate-400">Nama Personil</span>
                                 </th>
                                 {days.map(day => {
-                                    const date = new Date(currentYear, currentMonth, day);
+                                    const date = constructDate(currentYear, currentMonth, day);
                                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
-                                    const dayName = date.toLocaleString('id-ID', { weekday: 'short' }).charAt(0);
+                                    const dayName = date.toLocaleString('id-ID', { weekday: 'short', timeZone: TIMEZONE }).charAt(0);
 
                                     return (
                                         <th key={day} className={cn(
@@ -224,17 +243,18 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                         </div>
                                     </td>
                                     {days.map(day => {
-                                        const date = new Date(currentYear, currentMonth, day);
+                                        const date = constructDate(currentYear, currentMonth, day);
                                         const isWeekend = date.getDay() === 0 || date.getDay() === 6;
 
-                                        const manual = manualSchedules.find(m =>
-                                            m.userId === user.id &&
-                                            new Date(m.date).getDate() === day &&
-                                            new Date(m.date).getMonth() === currentMonth &&
-                                            new Date(m.date).getFullYear() === currentYear
-                                        );
+                                        const manual = manualSchedules.find(m => {
+                                            const mDate = toZonedTime(m.date, TIMEZONE);
+                                            return m.userId === user.id &&
+                                                mDate.getDate() === day &&
+                                                mDate.getMonth() === currentMonth &&
+                                                mDate.getFullYear() === currentYear
+                                        });
 
-                                        const shift = manual ? manual.shiftCode : getShiftForDate(user.rotationOffset, date);
+                                        const shift = manual ? manual.shiftCode : getBaseShift(user, date);
                                         const detail = SHIFT_DETAILS[shift as keyof typeof SHIFT_DETAILS] || SHIFT_DETAILS.OFF;
                                         const isSelected = selectedCell?.userId === user.id && selectedCell?.day === day;
                                         const statusKey = `${user.id}-${day}`;
@@ -288,15 +308,16 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                 const user = users.find(u => u.id === selectedCell.userId);
                 if (!user) return null;
 
-                const manual = manualSchedules.find(m =>
-                    m.userId === selectedCell.userId &&
-                    new Date(m.date).getDate() === selectedCell.day &&
-                    new Date(m.date).getMonth() === currentMonth &&
-                    new Date(m.date).getFullYear() === currentYear
-                );
+                const manual = manualSchedules.find(m => {
+                    const mDate = toZonedTime(m.date, TIMEZONE);
+                    return m.userId === selectedCell.userId &&
+                        mDate.getDate() === selectedCell.day &&
+                        mDate.getMonth() === currentMonth &&
+                        mDate.getFullYear() === currentYear
+                });
 
-                const date = new Date(currentYear, currentMonth, selectedCell.day);
-                const shift = manual ? manual.shiftCode : getShiftForDate(user.rotationOffset, date);
+                const date = constructDate(currentYear, currentMonth, selectedCell.day);
+                const shift = manual ? manual.shiftCode : getBaseShift(user, date);
 
                 return <ShiftPopover user={user} day={selectedCell.day} shift={shift} manual={manual} />;
             })()}

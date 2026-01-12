@@ -42,7 +42,7 @@ export default function Sidebar({ user }: { user: any }) {
         { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
         { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC'] },
         { icon: ShieldCheck, label: 'Jadwal Security', href: '/schedules', roles: ['ADMIN', 'PIC', 'STAFF', 'SECURITY', 'LINGKUNGAN'] },
-        { icon: CalendarCheck, label: 'Izin & Cuti', href: '/permits', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
+        { icon: CalendarCheck, label: 'Ijin & Pergantian Shift', href: '/permits', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
         { icon: Settings, label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC'] },
     ];
 

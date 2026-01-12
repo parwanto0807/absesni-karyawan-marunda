@@ -15,7 +15,7 @@ enum Role {
   PIC
   SECURITY
   LINGKUNGAN
-  STAFF
+  KEBERSIHAN
 }
 
 enum AttendanceStatus {
@@ -31,7 +31,7 @@ model User {
   username       String         @unique
   password       String
   name           String
-  role           Role           @default(STAFF)
+  role           Role           @default(PIC)
   employeeId     String         @unique
   image          String?
   rotationOffset Int            @default(0)

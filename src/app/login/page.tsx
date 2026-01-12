@@ -13,7 +13,8 @@ import {
     Shield,
     Briefcase,
     Users,
-    Leaf
+    Leaf,
+    Sparkles
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -39,7 +40,7 @@ export default function LoginPage() {
 
     const roles = [
         { id: 'ADMIN', label: 'Admin', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-50' },
-        { id: 'PIC', label: 'PIC', icon: Briefcase, color: 'text-blue-600', bg: 'bg-blue-50' },
+        { id: 'KEBERSIHAN', label: 'Kebersihan', icon: Sparkles, color: 'text-teal-600', bg: 'bg-teal-50' },
         { id: 'SECURITY', label: 'Security', icon: ShieldCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'LINGKUNGAN', label: 'Lingkungan', icon: Leaf, color: 'text-emerald-600', bg: 'bg-emerald-50' },
     ];

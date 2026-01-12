@@ -93,7 +93,7 @@ export default function NotificationBell({ userId }: { userId: string }) {
             </button>
 
             {isOpen && (
-                <div className="absolute right-0 mt-2 w-80 md:w-96 bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 overflow-hidden z-50 animate-in fade-in zoom-in-95 duration-200 origin-top-right">
+                <div className="fixed left-1/2 top-20 z-50 w-[90vw] max-w-sm -translate-x-1/2 rounded-xl border border-slate-200 bg-white shadow-xl dark:border-slate-800 dark:bg-slate-900 lg:absolute lg:right-0 lg:top-full lg:mt-2 lg:w-96 lg:translate-x-0 lg:left-auto overflow-hidden animate-in fade-in zoom-in-95 duration-200 origin-top-right">
                     <div className="p-4 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between bg-slate-50/50 dark:bg-slate-900/50 backdrop-blur">
                         <h3 className="font-bold text-sm text-slate-800 dark:text-white">Notifikasi</h3>
                         {unreadCount > 0 && (
