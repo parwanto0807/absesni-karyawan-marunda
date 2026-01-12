@@ -1,26 +1,55 @@
 'use client';
 
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 import PerformanceGuideTab from '@/components/PerformanceGuideTab';
+import { getSettings, updateSettings } from '@/actions/settings';
 
 export default function SettingsPage() {
     const [activeTab, setActiveTab] = useState<'location' | 'performance'>('location');
     const [loading, setLoading] = useState(false);
+    const [initialLoading, setInitialLoading] = useState(true);
     const [locationName, setLocationName] = useState('POS Cluster Taman Marunda');
-    const [latitude, setLatitude] = useState('-6.2514462');
-    const [longitude, setLongitude] = useState('107.1133737');
+    const [latitude, setLatitude] = useState('-6.251427');
+    const [longitude, setLongitude] = useState('107.113802');
     const [radius, setRadius] = useState('500');
+
+    // Load settings from database on mount
+    useEffect(() => {
+        const loadSettings = async () => {
+            try {
+                const settings = await getSettings();
+                if (settings.OFFICE_NAME) setLocationName(settings.OFFICE_NAME);
+                if (settings.OFFICE_LAT) setLatitude(settings.OFFICE_LAT);
+                if (settings.OFFICE_LNG) setLongitude(settings.OFFICE_LNG);
+                if (settings.ALLOWED_RADIUS) setRadius(settings.ALLOWED_RADIUS);
+            } catch (error) {
+                console.error('Failed to load settings:', error);
+            } finally {
+                setInitialLoading(false);
+            }
+        };
+        loadSettings();
+    }, []);
 
     const handleSaveSettings = async () => {
         setLoading(true);
         try {
-            // TODO: Implement save to database
-            await new Promise(resolve => setTimeout(resolve, 1000));
-            toast.success('Pengaturan Berhasil Disimpan', {
-                description: 'Lokasi absensi telah diperbarui'
+            const result = await updateSettings({
+                OFFICE_NAME: locationName,
+                OFFICE_LAT: latitude,
+                OFFICE_LNG: longitude,
+                ALLOWED_RADIUS: radius
             });
+
+            if (result.success) {
+                toast.success('Pengaturan Berhasil Disimpan', {
+                    description: 'Lokasi absensi telah diperbarui'
+                });
+            } else {
+                throw new Error(result.message);
+            }
         } catch (error) {
             toast.error('Gagal Menyimpan', {
                 description: 'Terjadi kesalahan saat menyimpan pengaturan'
@@ -34,6 +63,15 @@ export default function SettingsPage() {
         const url = `https://www.google.com/maps?q=${latitude},${longitude}`;
         window.open(url, '_blank');
     };
+
+    if (initialLoading) {
+        return (
+            <div className="flex h-[400px] items-center justify-center space-x-2 text-slate-400">
+                <Loader2 className="animate-spin" />
+                <span className="text-xs font-bold uppercase tracking-widest">Memuat Pengaturan...</span>
+            </div>
+        );
+    }
 
     return (
         <div className="w-full mx-auto space-y-6 animate-in fade-in duration-700">
@@ -178,7 +216,7 @@ export default function SettingsPage() {
                                     value={latitude}
                                     onChange={(e) => setLatitude(e.target.value)}
                                     className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs md:text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none text-slate-900 dark:text-white"
-                                    placeholder="-6.2514462"
+                                    placeholder="-6.251427"
                                 />
                             </div>
 
@@ -192,7 +230,7 @@ export default function SettingsPage() {
                                     value={longitude}
                                     onChange={(e) => setLongitude(e.target.value)}
                                     className="w-full h-10 md:h-12 px-3 md:px-4 rounded-lg md:rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 text-xs md:text-sm font-mono focus:border-indigo-500 focus:ring-2 focus:ring-indigo-200 dark:focus:ring-indigo-800 outline-none text-slate-900 dark:text-white"
-                                    placeholder="107.1133737"
+                                    placeholder="107.113802"
                                 />
                             </div>
 

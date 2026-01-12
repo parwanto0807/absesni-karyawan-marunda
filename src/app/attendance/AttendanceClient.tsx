@@ -28,15 +28,16 @@ export default function AttendanceClient({ user }: { user: any }) {
     const [location, setLocation] = useState<{ lat: number; lng: number; address: string } | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
-    const [officeSettings, setOfficeSettings] = useState({
-        lat: -6.251440,
-        lng: 107.113805,
-        radius: 100,
-        name: 'POS Cluster Taman Marunda'
-    });
+    const [officeSettings, setOfficeSettings] = useState<{
+        lat: number;
+        lng: number;
+        radius: number;
+        name: string;
+    } | null>(null);
     const [distance, setDistance] = useState<number | null>(null);
     const [currentAttendance, setCurrentAttendance] = useState<any>(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
+    const [settingsLoaded, setSettingsLoaded] = useState(false);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -49,14 +50,21 @@ export default function AttendanceClient({ user }: { user: any }) {
 
     useEffect(() => {
         const init = async () => {
-            // Load settings
+            // Load settings from database - REQUIRED
             const settings = await getSettings();
-            if (settings.OFFICE_LAT) {
+            if (settings.OFFICE_LAT && settings.OFFICE_LNG && settings.ALLOWED_RADIUS && settings.OFFICE_NAME) {
                 setOfficeSettings({
                     lat: parseFloat(settings.OFFICE_LAT),
                     lng: parseFloat(settings.OFFICE_LNG),
                     radius: parseInt(settings.ALLOWED_RADIUS),
                     name: settings.OFFICE_NAME
+                });
+                setSettingsLoaded(true);
+            } else {
+                // Settings not configured in database
+                setSettingsLoaded(false);
+                toast.error("Pengaturan Lokasi Belum Dikonfigurasi", {
+                    description: "Hubungi admin untuk mengatur lokasi absensi di halaman Settings."
                 });
             }
 
@@ -125,14 +133,16 @@ export default function AttendanceClient({ user }: { user: any }) {
                     address: `Lokasi GPS: ${latitude.toFixed(6)}, ${longitude.toFixed(6)}`
                 });
 
-                // Calculate distance from office
-                const dist = calculateDistance(
-                    latitude,
-                    longitude,
-                    officeSettings.lat,
-                    officeSettings.lng
-                );
-                setDistance(dist);
+                // Calculate distance from office if settings are available
+                if (officeSettings) {
+                    const dist = calculateDistance(
+                        latitude,
+                        longitude,
+                        officeSettings.lat,
+                        officeSettings.lng
+                    );
+                    setDistance(dist);
+                }
             },
             (error) => {
                 console.error("Error getting location:", error);
@@ -184,6 +194,11 @@ export default function AttendanceClient({ user }: { user: any }) {
             toast.error("Emang situ Karyawan Mau Absen Juga ? 😀", {
                 description: "Absen hanya untuk Security, Kebersihan, dan Lingkungan."
             });
+            return;
+        }
+
+        if (!officeSettings) {
+            toast.error("Gagal Memproses", { description: "Pengaturan lokasi tidak ditemukan." });
             return;
         }
 
@@ -257,7 +272,7 @@ export default function AttendanceClient({ user }: { user: any }) {
         }
     };
 
-    const isOutside = distance !== null && distance > officeSettings.radius;
+    const isOutside = distance !== null && officeSettings ? distance > officeSettings.radius : false;
     const isClockedIn = currentAttendance && !currentAttendance.clockOut;
     const isFinished = currentAttendance && currentAttendance.clockOut;
 
@@ -266,6 +281,28 @@ export default function AttendanceClient({ user }: { user: any }) {
             <div className="flex h-screen items-center justify-center space-x-2 text-slate-400">
                 <Loader2 className="animate-spin" />
                 <span className="text-xs font-bold uppercase tracking-widest">Memuat Data Absensi...</span>
+            </div>
+        );
+    }
+
+    if (!settingsLoaded || !officeSettings) {
+        return (
+            <div className="flex flex-col h-screen items-center justify-center space-y-4 p-6 text-center">
+                <div className="p-4 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400">
+                    <AlertCircle size={40} />
+                </div>
+                <div className="space-y-2">
+                    <h2 className="text-lg font-bold text-slate-900 dark:text-white uppercase tracking-tight">Konfigurasi Dibutuhkan</h2>
+                    <p className="text-sm text-slate-500 dark:text-slate-400 max-w-xs mx-auto">
+                        Lokasi absensi belum diatur oleh Admin. Silakan hubungi Admin untuk melakukan pengaturan di menu Settings.
+                    </p>
+                </div>
+                <button
+                    onClick={() => router.push('/')}
+                    className="px-6 py-2 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 font-bold text-xs uppercase tracking-widest hover:bg-slate-200 dark:hover:bg-slate-700 transition-all"
+                >
+                    Kembali ke Dashboard
+                </button>
             </div>
         );
     }
@@ -306,7 +343,7 @@ export default function AttendanceClient({ user }: { user: any }) {
                                 {location && (
                                     <span className="hidden md:inline">•</span>
                                 )}
-                                {location && (
+                                {location && officeSettings && (
                                     <span className="opacity-80">{officeSettings.name} {distance && isOutside && `(${Math.round(distance)}m)`}</span>
                                 )}
                             </div>
@@ -341,10 +378,10 @@ export default function AttendanceClient({ user }: { user: any }) {
                             </div>
                             <div className="space-y-0.5 md:space-y-1">
                                 <p className={cn("text-[10px] md:text-xs font-bold leading-relaxed uppercase tracking-tight", isOutside ? "text-rose-800 dark:text-rose-300" : "text-amber-800 dark:text-amber-300")}>
-                                    {isOutside ? `Jarak terlalu jauh dari kantor.` : `Area Presensi: ${officeSettings.name}`}
+                                    {isOutside ? `Jarak terlalu jauh dari kantor.` : `Area Presensi: ${officeSettings?.name}`}
                                 </p>
                                 <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-widest">
-                                    Maksimal Radius: {officeSettings.radius} Meter
+                                    Maksimal Radius: {officeSettings?.radius} Meter
                                 </p>
                             </div>
                         </div>
