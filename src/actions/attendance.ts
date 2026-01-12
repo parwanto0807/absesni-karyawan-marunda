@@ -255,22 +255,34 @@ export async function submitPermit(data: { userId: string, type: string, reason:
 
 export async function getTodayAttendance(userId: string) {
     try {
-        const today = getStartOfDayJakarta(new Date());
-        const tomorrow = new Date(today);
-        tomorrow.setDate(tomorrow.getDate() + 1);
+        const now = new Date();
+        const todayStart = getStartOfDayJakarta(now);
+        const yesterdayStart = new Date(todayStart);
+        yesterdayStart.setDate(yesterdayStart.getDate() - 1);
 
-        const attendance = await prisma.attendance.findFirst({
+        // 1. Cek absen hari ini dulu
+        const todayAttendance = await prisma.attendance.findFirst({
             where: {
                 userId,
-                clockIn: {
-                    gte: today,
-                    lt: tomorrow
-                }
+                clockIn: { gte: todayStart }
             },
             orderBy: { clockIn: 'desc' }
         });
 
-        return attendance;
+        if (todayAttendance) return todayAttendance;
+
+        // 2. Jika tidak ada absen hari ini, cek apakah ada absen kemarin yang BELUM Clock Out
+        // Ini penting untuk Shift Malam (M) atau Pagi-Malam (PM)
+        const activeAttendance = await prisma.attendance.findFirst({
+            where: {
+                userId,
+                clockIn: { gte: yesterdayStart, lt: todayStart },
+                clockOut: null
+            },
+            orderBy: { clockIn: 'desc' }
+        });
+
+        return activeAttendance;
     } catch (error) {
         console.error('Get today attendance error:', error);
         return null;

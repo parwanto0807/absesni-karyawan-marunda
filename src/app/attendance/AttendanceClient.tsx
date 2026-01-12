@@ -10,9 +10,12 @@ import {
     AlertCircle,
     Loader2,
     RefreshCw,
-    LogOut
+    LogOut,
+    MapPinCheck,
+    CircleDashed
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
+import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
 import { clockIn, clockOut, getTodayAttendance, getTodayUserShift } from '@/actions/attendance';
 import { getSettings } from '@/actions/settings';
@@ -434,21 +437,92 @@ export default function AttendanceClient({ user }: { user: any }) {
                             <div className="flex items-center justify-between p-3 md:p-4 rounded-xl md:rounded-2xl bg-white dark:bg-slate-900 border border-indigo-100/50 dark:border-indigo-900/30">
                                 <div className="space-y-0.5">
                                     <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Shift</span>
-                                    <p className="text-sm md:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                    <p className="text-sm md:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">
                                         {(SHIFT_DETAILS as any)[todayShift]?.label || todayShift}
                                     </p>
                                 </div>
                                 <div className="text-right space-y-0.5">
                                     <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Jam Kerja</span>
-                                    <p className="text-sm md:text-lg font-black text-indigo-600 dark:text-indigo-400 tabular-nums tracking-tight">
+                                    <p className="text-sm md:text-lg font-black text-indigo-600 dark:text-indigo-400 tabular-nums tracking-tight leading-none">
                                         {(SHIFT_DETAILS as any)[todayShift]?.time || '-'}
                                     </p>
                                 </div>
                             </div>
 
+                            {/* Progress Bar Berdasarkan Waktu Sekarang */}
+                            {(() => {
+                                const now = time || new Date();
+                                const hour = toZonedTime(now, TIMEZONE).getHours();
+                                let targetDate = new Date(now);
+
+                                // Logika penyesuaian tanggal untuk shift yang melintasi tengah malam
+                                // Jika jam 00-08 pagi dan shift adalah M atau PM, berarti itu shift dari 'kemarin'
+                                if (hour < 8 && (todayShift === 'M' || todayShift === 'PM')) {
+                                    targetDate.setDate(targetDate.getDate() - 1);
+                                }
+
+                                const timings = getShiftTimings(todayShift, targetDate);
+                                if (!timings) return null;
+
+                                const totalMs = timings.end.getTime() - timings.start.getTime();
+                                const elapsedMs = now.getTime() - timings.start.getTime();
+                                const progress = Math.max(0, Math.min(100, (elapsedMs / totalMs) * 100));
+
+                                return (
+                                    <div className="space-y-1.5 px-1">
+                                        <div className="flex items-center justify-between text-[8px] font-black uppercase tracking-widest">
+                                            <span className="text-slate-400">Progress Shift</span>
+                                            <span className={cn("text-indigo-600", progress >= 100 ? "text-emerald-600" : "")}>
+                                                {progress >= 100 ? "Selesai" : `${Math.floor(progress)}%`}
+                                            </span>
+                                        </div>
+                                        <div className="flex items-center gap-2">
+                                            {/* Start Icon: In Attendance Status */}
+                                            {currentAttendance ? (
+                                                <div className="flex items-center justify-center shrink-0 h-8 w-8 rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-200 animate-in zoom-in duration-300">
+                                                    <MapPinCheck size={18} className="stroke-[3]" />
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center shrink-0 h-8 w-8 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-300 border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                    <CircleDashed size={14} className="animate-spin-slow opacity-50" />
+                                                </div>
+                                            )}
+
+                                            <div className="flex-1 h-3 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden border border-indigo-100/30 dark:border-indigo-900/30 shadow-inner">
+                                                <div
+                                                    className={cn(
+                                                        "h-full rounded-full transition-all duration-1000",
+                                                        progress >= 100 ? "bg-emerald-500 shadow-[0_0_12px_rgba(16,185,129,0.5)]" : "bg-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.5)]"
+                                                    )}
+                                                    style={{ width: `${progress}%` }}
+                                                />
+                                            </div>
+
+                                            {/* End Icon: Out Attendance Status */}
+                                            {currentAttendance?.clockOut ? (
+                                                <div className="flex items-center justify-center shrink-0 h-8 w-8 rounded-xl bg-emerald-500 text-white shadow-lg shadow-emerald-200 animate-in zoom-in duration-300">
+                                                    <MapPinCheck size={18} className="stroke-[3]" />
+                                                </div>
+                                            ) : (
+                                                <div className="flex items-center justify-center shrink-0 h-8 w-8 rounded-xl bg-slate-50 dark:bg-slate-800 text-slate-300 border-2 border-dashed border-slate-200 dark:border-slate-700">
+                                                    <div className="w-2 h-2 rounded-full bg-slate-200" />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                );
+                            })()}
+
                             {/* Attendance Window Info */}
                             {(() => {
-                                const timings = getShiftTimings(todayShift, new Date());
+                                const now = time || new Date();
+                                const hour = toZonedTime(now, TIMEZONE).getHours();
+                                let targetDate = new Date(now);
+                                if (hour < 8 && (todayShift === 'M' || todayShift === 'PM')) {
+                                    targetDate.setDate(targetDate.getDate() - 1);
+                                }
+
+                                const timings = getShiftTimings(todayShift, targetDate);
                                 if (!timings) return null;
 
                                 const targetTime = isClockedIn ? timings.end : timings.start;
@@ -570,6 +644,13 @@ export default function AttendanceClient({ user }: { user: any }) {
             <style jsx>{`
                 .mirror {
                     transform: scaleX(-1);
+                }
+                .animate-spin-slow {
+                    animation: spin 3s linear infinite;
+                }
+                @keyframes spin {
+                    from { transform: rotate(0deg); }
+                    to { transform: rotate(360deg); }
                 }
             `}</style>
         </div>
