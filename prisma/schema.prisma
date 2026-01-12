@@ -1,0 +1,111 @@
+// This is your Prisma schema file,
+// learn more about it in the docs: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  PIC
+  SECURITY
+  LINGKUNGAN
+  STAFF
+}
+
+enum AttendanceStatus {
+  PRESENT
+  LATE
+  ABSENT
+  PERMIT
+  SICK
+}
+
+model User {
+  id             String       @id @default(cuid())
+  username       String       @unique
+  password       String
+  name           String
+  role           Role         @default(STAFF)
+  employeeId     String       @unique
+  image          String?
+  rotationOffset Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+  attendances    Attendance[]
+  schedules      Schedule[]
+  permits        Permit[]     @relation("UserPermits")
+}
+
+model Schedule {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  date      DateTime
+  shiftCode String // P, PM, M, OFF
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@unique([userId, date])
+}
+
+model Attendance {
+  id        String           @id @default(cuid())
+  userId    String
+  user      User             @relation(fields: [userId], references: [id])
+  date      DateTime         @default(now())
+  clockIn   DateTime
+  clockOut  DateTime?
+  status    AttendanceStatus @default(PRESENT)
+  image     String?
+  latitude  Float?
+  longitude Float?
+  address   String?
+  notes     String?
+  createdAt DateTime         @default(now())
+  updatedAt DateTime         @updatedAt
+}
+
+enum PermitStatus {
+  PENDING
+  APPROVED
+  REJECTED
+}
+
+model Permit {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation("UserPermits", fields: [userId], references: [id])
+  type      String // IZIN, CUTI, SAKIT
+  startDate DateTime
+  endDate   DateTime
+  reason    String
+  image     String? // Lampiran surat dokter/dokumen
+
+  // Multi-level approval status
+  securityStatus PermitStatus @default(PENDING)
+  securityId     String?
+  securityAt     DateTime?
+
+  lingkunganStatus PermitStatus @default(PENDING)
+  lingkunganId     String?
+  lingkunganAt     DateTime?
+
+  finalStatus PermitStatus @default(PENDING)
+  adminId     String?
+  adminAt     DateTime?
+
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+}
+
+model Setting {
+  id    String @id @default(cuid())
+  key   String @unique
+  value String
+}
