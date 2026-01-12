@@ -75,12 +75,13 @@ export default async function Home() {
     take: 50
   });
 
-  // 2. Daftar Personil (Security & Lingkungan) yang Hadir Hari Ini
-  const todayStart = getStartOfDayJakarta();
+  // 2. Daftar Personil (Security & Lingkungan) yang Hadir/Aktif saat ini
+  // Kita ambil yang belum clock-out dalam 24 jam terakhir agar Shift Malam (M) terbawa
+  const activeWindow = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 
   const presentSecurity = await prisma.attendance.findMany({
     where: {
-      clockIn: { gte: todayStart },
+      clockIn: { gte: activeWindow },
       clockOut: null,
       user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
     },
@@ -111,15 +112,18 @@ export default async function Home() {
     }),
     presentToday: await prisma.attendance.count({
       where: {
-        clockIn: { gte: getStartOfDayJakarta() },
-        clockOut: null,
+        OR: [
+          { clockIn: { gte: getStartOfDayJakarta() } },
+          { clockIn: { gte: activeWindow }, clockOut: null }
+        ],
+        user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } },
         status: { in: ['PRESENT', 'LATE'] }
       }
     }),
     pendingPermits: await prisma.permit.count({ where: { finalStatus: 'PENDING' } }),
     onDutyToday: await prisma.attendance.count({
       where: {
-        clockIn: { gte: getStartOfDayJakarta() },
+        clockIn: { gte: activeWindow },
         clockOut: null,
         user: { role: 'SECURITY' },
         status: { in: ['PRESENT', 'LATE'] }
