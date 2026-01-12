@@ -70,7 +70,8 @@ export default async function RootLayout({
         // dbUser.role is from Prisma options, should match UserRole.
         role: dbUser.role as unknown as UserRole,
         username: dbUser.username,
-        image: dbUser.image
+        image: dbUser.image,
+        iat: session.iat
       };
     }
   }
