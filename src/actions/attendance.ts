@@ -4,6 +4,7 @@ import { revalidatePath } from 'next/cache';
 import { AttendanceStatus } from '@/types/attendance';
 import { prisma } from '@/lib/db';
 import { createNotification } from './notifications';
+import { getShiftForDate, getShiftTimings, ShiftCode } from '@/lib/schedule-utils';
 
 export async function clockIn(userId: string, location: { lat: number, lng: number, address: string }, image: string) {
     try {
@@ -51,6 +52,41 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
             };
         }
 
+        // Calculate Shift and Lateness
+        const user = await prisma.user.findUnique({
+            where: { id: userId },
+            include: { schedules: { where: { date: today } } }
+        });
+
+        let shiftCode = 'OFF';
+        let scheduledStart = null;
+        let scheduledEnd = null;
+        let isLate = false;
+        let lateMinutes = 0;
+
+        if (user) {
+            // Check manual schedule first
+            if (user.schedules.length > 0) {
+                shiftCode = user.schedules[0].shiftCode;
+            } else {
+                shiftCode = getShiftForDate(user.rotationOffset, now);
+            }
+
+            const timings = getShiftTimings(shiftCode as ShiftCode, now);
+            if (timings) {
+                scheduledStart = timings.start;
+                scheduledEnd = timings.end;
+
+                // Tolerance 15 or 0? Strict for now.
+                // If now > scheduledStart
+                if (now > scheduledStart) {
+                    const diff = now.getTime() - scheduledStart.getTime();
+                    lateMinutes = Math.floor(diff / 60000);
+                    if (lateMinutes > 0) isLate = true;
+                }
+            }
+        }
+
         // ✅ Simpan base64 langsung ke database (Vercel compatible)
         const attendance = await prisma.attendance.create({
             data: {
@@ -60,7 +96,12 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                 longitude: location.lng,
                 address: location.address,
                 image: image, // Simpan base64 langsung
-                status: 'PRESENT',
+                status: isLate ? 'LATE' : 'PRESENT',
+                shiftType: shiftCode,
+                scheduledClockIn: scheduledStart,
+                scheduledClockOut: scheduledEnd,
+                isLate,
+                lateMinutes,
             },
         });
 
@@ -84,10 +125,27 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
 
 export async function clockOut(attendanceId: string) {
     try {
+        const now = new Date();
+        const existingAttendance = await prisma.attendance.findUnique({ where: { id: attendanceId } });
+
+        let isEarlyLeave = false;
+        let earlyLeaveMinutes = 0;
+
+        if (existingAttendance && existingAttendance.scheduledClockOut) {
+            const scheduledEnd = new Date(existingAttendance.scheduledClockOut);
+            if (now < scheduledEnd) {
+                const diff = scheduledEnd.getTime() - now.getTime();
+                earlyLeaveMinutes = Math.floor(diff / 60000);
+                if (earlyLeaveMinutes > 0) isEarlyLeave = true;
+            }
+        }
+
         const attendance = await prisma.attendance.update({
             where: { id: attendanceId },
             data: {
-                clockOut: new Date(),
+                clockOut: now,
+                isEarlyLeave,
+                earlyLeaveMinutes
             },
         });
 
@@ -172,7 +230,8 @@ export async function getAttendances(userId?: string) {
             },
             orderBy: {
                 clockIn: 'desc'
-            }
+            },
+            take: 100 // Limit to last 100 records for performance
         });
     } catch (error) {
         console.error('Get attendances error:', error);

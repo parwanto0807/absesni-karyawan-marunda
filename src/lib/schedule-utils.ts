@@ -32,3 +32,34 @@ export const SHIFT_DETAILS = {
     "M": { label: "MALAM", time: "20:00 - 08:00", color: "bg-slate-100 dark:bg-slate-800" },
     "OFF": { label: "OFF", time: "-", color: "bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-700" }
 };
+
+export function getShiftTimings(shiftCode: ShiftCode, targetDate: Date): { start: Date; end: Date } | null {
+    if (shiftCode === 'OFF') return null;
+
+    const start = new Date(targetDate);
+    const end = new Date(targetDate);
+
+    // Reset seconds/ms
+    start.setSeconds(0, 0);
+    end.setSeconds(0, 0);
+
+    switch (shiftCode) {
+        case 'P': // 08:00 - 20:00
+            start.setHours(8, 0);
+            end.setHours(20, 0);
+            break;
+        case 'PM': // 13:00 - 20:00 (Assuming 7 hours based on previous context)
+            start.setHours(13, 0);
+            end.setHours(20, 0);
+            break;
+        case 'M': // 20:00 - 08:00 (Next Day)
+            start.setHours(20, 0);
+            end.setDate(end.getDate() + 1);
+            end.setHours(8, 0);
+            break;
+        default:
+            return null;
+    }
+
+    return { start, end };
+}

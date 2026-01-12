@@ -39,8 +39,8 @@ export default function NotificationBell({ userId }: { userId: string }) {
 
     useEffect(() => {
         fetchUnreadCount();
-        // Poll every 15 seconds for count
-        const interval = setInterval(fetchUnreadCount, 15000);
+        // Poll every 60 seconds for count
+        const interval = setInterval(fetchUnreadCount, 60000);
 
         // Refresh when window gains focus
         const onFocus = () => fetchUnreadCount();

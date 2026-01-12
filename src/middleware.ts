@@ -31,10 +31,7 @@ export default async function middleware(req: NextRequest) {
 
         // Extend session by 2 hours
         const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000);
-        const newSessionToken = await encrypt({
-            ...session,
-            expires: newExpires, // Ensure payload has expiration
-        });
+        const newSessionToken = await encrypt(session);
 
         response.cookies.set({
             name: 'session',

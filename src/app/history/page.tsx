@@ -93,12 +93,26 @@ export default async function HistoryPage() {
                                         {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
                                     </span>
                                 </div>
-                                <div className="flex items-center space-x-1">
-                                    <Clock size={10} className="text-slate-400" />
-                                    <span className="font-black text-indigo-600">
-                                        {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
-                                        {attendance.clockOut && ` - ${new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`}
-                                    </span>
+                                <div className="flex flex-col items-end">
+                                    <div className="flex items-center space-x-1">
+                                        <Clock size={10} className="text-slate-400" />
+                                        <span className="font-black text-indigo-600">
+                                            {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}
+                                            {attendance.clockOut && ` - ${new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })}`}
+                                        </span>
+                                    </div>
+                                    <div className="flex space-x-1 mt-1">
+                                        {attendance.isLate && (
+                                            <span className="px-2 py-0.5 rounded-full text-[8px] font-bold bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400">
+                                                Telat {attendance.lateMinutes}m
+                                            </span>
+                                        )}
+                                        {attendance.isEarlyLeave && (
+                                            <span className="px-2 py-0.5 rounded-full text-[8px] font-bold bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400">
+                                                Cepat {attendance.earlyLeaveMinutes}m
+                                            </span>
+                                        )}
+                                    </div>
                                 </div>
                             </div>
 
@@ -180,6 +194,18 @@ export default async function HistoryPage() {
                                                         {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
                                                         {attendance.clockOut && ` - ${new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB`}
                                                     </span>
+                                                </div>
+                                                <div className="flex flex-wrap gap-1 mt-1">
+                                                    {attendance.isLate && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900">
+                                                            Telat {attendance.lateMinutes}m
+                                                        </span>
+                                                    )}
+                                                    {attendance.isEarlyLeave && (
+                                                        <span className="px-1.5 py-0.5 rounded text-[8px] font-bold bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900">
+                                                            Cepat {attendance.earlyLeaveMinutes}m
+                                                        </span>
+                                                    )}
                                                 </div>
                                             </div>
                                         </td>
