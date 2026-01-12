@@ -32,6 +32,8 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
+            console.log('📁 File selected:', file.name, 'Size:', file.size, 'bytes');
+
             // Compress image before converting to base64
             const reader = new FileReader();
             reader.onloadend = () => {
@@ -61,6 +63,12 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                     ctx?.drawImage(img, 0, 0, width, height);
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
 
+                    console.log('✅ Image compressed:', {
+                        originalSize: file.size,
+                        base64Length: compressedBase64.length,
+                        dimensions: `${width}x${height}`
+                    });
+
                     setPreview(compressedBase64);
                     setImageBase64(compressedBase64);
                 };
@@ -77,9 +85,20 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
 
         const formData = new FormData(event.currentTarget);
 
+        // Debug logging
+        console.log('🖼️ Client-side Image Debug:', {
+            hasImageBase64: !!imageBase64,
+            imageLength: imageBase64?.length || 0,
+            imagePrefix: imageBase64?.substring(0, 50) || 'null',
+            isUpdate: !!employee
+        });
+
         // Explicitly append the base64 image to FormData
         if (imageBase64) {
             formData.set('image', imageBase64);
+            console.log('✅ Image appended to FormData');
+        } else {
+            console.log('⚠️ No image to append');
         }
 
         let result;

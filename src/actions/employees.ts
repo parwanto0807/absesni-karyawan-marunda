@@ -61,11 +61,13 @@ export async function updateUser(id: string, formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
-    console.log('📸 Update Image Debug:', {
+    const debugInfo = {
         hasImage: !!imageBase64,
         imageLength: imageBase64?.length || 0,
         imagePrefix: imageBase64?.substring(0, 30) || 'null'
-    });
+    };
+
+    console.log('📸 Update Image Debug:', debugInfo);
 
     try {
         const data: any = {
@@ -95,7 +97,10 @@ export async function updateUser(id: string, formData: FormData) {
         });
         revalidatePath('/employees');
         revalidatePath('/');
-        return { success: true, message: 'Data karyawan berhasil diperbarui.' };
+
+        // Return debug info in message
+        const debugMsg = `Data karyawan berhasil diperbarui. [DEBUG: Image=${debugInfo.hasImage ? 'YES' : 'NO'}, Length=${debugInfo.imageLength}]`;
+        return { success: true, message: debugMsg };
     } catch (error: any) {
         console.error('Update User Error:', error);
         return { success: false, message: 'Gagal memperbarui data karyawan. Detail: ' + (error.message || 'Unknown error') };
