@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { decrypt } from '@/lib/auth';
+import { decrypt, encrypt } from '@/lib/auth';
 
 // 1. Specify protected and public routes
 const protectedRoutes = ['/', '/attendance', '/history', '/employees', '/schedules', '/permits'];
@@ -23,6 +23,30 @@ export default async function middleware(req: NextRequest) {
     // 5. Redirect to / if the user is authenticated
     if (isPublicRoute && session) {
         return NextResponse.redirect(new URL('/', req.nextUrl));
+    }
+
+    // 6. Refresh the session so it doesn't expire (Edge Compatible)
+    if (session) {
+        const response = NextResponse.next();
+
+        // Extend session by 2 hours
+        const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000);
+        const newSessionToken = await encrypt({
+            ...session,
+            expires: newExpires, // Ensure payload has expiration
+        });
+
+        response.cookies.set({
+            name: 'session',
+            value: newSessionToken,
+            httpOnly: true,
+            secure: process.env.NODE_ENV === 'production',
+            sameSite: 'lax',
+            path: '/',
+            expires: newExpires,
+        });
+
+        return response;
     }
 
     return NextResponse.next();
