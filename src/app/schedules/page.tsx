@@ -164,7 +164,7 @@ export default async function SchedulesPage({
             <div className="grid grid-cols-2 md:grid-cols-4 gap-3 pt-6 border-t border-slate-200 dark:border-slate-800">
                 {Object.entries(SHIFT_DETAILS).map(([code, det]) => (
                     <div key={code} className="bg-white dark:bg-slate-900 p-3 rounded-2xl border border-slate-200 dark:border-slate-800 flex items-center space-x-3 shadow-sm">
-                        <div className={cn("h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl flex items-center justify-center font-black text-[10px] md:text-xs shadow-sm border border-slate-100 dark:border-slate-700", det.color)}>
+                        <div className={cn("h-8 w-8 md:h-10 md:w-10 rounded-lg md:rounded-xl flex items-center justify-center font-black text-[10px] md:text-xs shadow-sm border", det.color)}>
                             {code}
                         </div>
                         <div>

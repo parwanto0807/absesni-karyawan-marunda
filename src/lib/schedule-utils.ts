@@ -32,13 +32,37 @@ export function getShiftForDate(offset: number | null | undefined, targetDate: D
 }
 
 export const SHIFT_DETAILS = {
-    "P": { label: "PAGI", time: "08:00 - 20:00", color: "bg-white dark:bg-slate-900" },
-    "PM": { label: "PAGI-MALAM", time: "13:00 - 08:00", color: "bg-blue-50 dark:bg-blue-900/20" },
-    "M": { label: "MALAM", time: "20:00 - 08:00", color: "bg-slate-100 dark:bg-slate-800" },
-    "OFF": { label: "OFF", time: "-", color: "bg-emerald-100/50 dark:bg-emerald-900/20 text-emerald-700" },
+    "P": {
+        label: "PAGI",
+        time: "08:00 - 20:00",
+        color: "bg-orange-50 dark:bg-orange-500/10 text-orange-600 dark:text-orange-400 border-orange-400 dark:border-orange-500/20"
+    },
+    "PM": {
+        label: "PAGI-MALAM",
+        time: "13:00 - 08:00",
+        color: "bg-indigo-50 dark:bg-indigo-500/10 text-indigo-600 dark:text-indigo-400 border-indigo-400 dark:border-indigo-500/20"
+    },
+    "M": {
+        label: "MALAM",
+        time: "20:00 - 08:00",
+        color: "bg-slate-400 dark:bg-slate-800 text-slate-900 dark:text-slate-200 border-slate-500 dark:border-slate-700"
+    },
+    "OFF": {
+        label: "OFF",
+        time: "-",
+        color: "bg-slate-50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800/50"
+    },
     // Static Roles
-    "LNK": { label: "REGULER", time: "08:00 - 17:00", color: "bg-orange-50 dark:bg-orange-900/20" },
-    "KBR": { label: "REGULER", time: "07:00 - 16:00", color: "bg-teal-50 dark:bg-teal-900/20" }
+    "LNK": {
+        label: "REGULER",
+        time: "08:00 - 17:00",
+        color: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-400 dark:border-amber-500/20"
+    },
+    "KBR": {
+        label: "REGULER",
+        time: "07:00 - 16:00",
+        color: "bg-teal-50 dark:bg-teal-500/10 text-teal-600 dark:text-teal-400 border-teal-400 dark:border-teal-500/20"
+    }
 };
 
 export function getShiftTimings(shiftCode: string, targetDate: Date): { start: Date; end: Date } | null {

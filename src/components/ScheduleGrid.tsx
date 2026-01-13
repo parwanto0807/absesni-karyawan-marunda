@@ -168,9 +168,9 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                         </div>
 
                                         <div className={cn(
-                                            "h-7 w-7 rounded-md flex items-center justify-center text-[9px] font-black relative",
+                                            "h-7 w-7 rounded-md flex items-center justify-center text-[9px] font-black relative border shadow-sm transition-all",
                                             manual
-                                                ? "bg-amber-50 dark:bg-amber-900/30 border border-amber-400 text-amber-900 dark:text-amber-200"
+                                                ? "bg-amber-50 dark:bg-amber-900/30 border-amber-400 text-amber-900 dark:text-amber-200"
                                                 : detail.color
                                         )}>
                                             {isUpdating === statusKey ? (
@@ -268,11 +268,10 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                                 }}
                                             >
                                                 <div className={cn(
-                                                    "h-10 w-full flex items-center justify-center rounded-lg text-[10px] font-black transition-all relative",
+                                                    "h-10 w-full flex items-center justify-center rounded-lg text-[10px] font-black transition-all relative border shadow-sm",
                                                     manual
                                                         ? "bg-amber-50 dark:bg-amber-900/30 border-2 border-amber-400 text-amber-900 dark:text-amber-200"
                                                         : detail.color,
-                                                    (shift === 'OFF' && !manual) ? "opacity-100" : "shadow-sm border border-slate-100 dark:border-slate-700",
                                                 )}>
                                                     {isUpdating === statusKey ? (
                                                         <Loader2 className="animate-spin h-4 w-4 text-indigo-600" />
