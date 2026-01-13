@@ -7,6 +7,10 @@ import { prisma } from '@/lib/db';
 import { createNotification } from './notifications';
 import { getShiftForDate, getShiftTimings, ShiftCode, getStaticSchedule } from '@/lib/schedule-utils';
 import { getStartOfDayJakarta, TIMEZONE } from '@/lib/date-utils';
+import { getSettings } from './settings';
+import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 export async function clockIn(userId: string, location: { lat: number, lng: number, address: string }, image: string) {
     try {
@@ -136,6 +140,24 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
             }
         }
 
+        // 📢 WhatsApp Notification for Lateness
+        if (isLate && user) {
+            const settings = await getSettings();
+            if (settings.WA_ENABLE_LATE_NOTIF === 'true' && settings.WA_API_KEY && settings.WA_GROUP_ID) {
+                const message = `🚨 *NOTIFIKASI KETERLAMBATAN* 🚨\n\n` +
+                    `*Nama:* ${user.name}\n` +
+                    `*Divisi:* ${user.role}\n` +
+                    `*Shift:* ${shiftCode}\n` +
+                    `*Jadwal In:* ${scheduledStart ? format(scheduledStart, 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
+                    `*Waktu Absen:* ${format(now, 'HH:mm', { locale: id })} WIB\n` +
+                    `*Durasi Telat:* ${lateMinutes} Menit\n\n` +
+                    `_Mohon untuk menjadi perhatian admin._`;
+
+                // Fire and forget (don't await to avoid slowing down the response)
+                sendWhatsAppMessage(message, settings.WA_GROUP_ID, settings.WA_API_KEY);
+            }
+        }
+
         revalidatePath('/');
         revalidatePath('/attendance');
         revalidatePath('/history');
@@ -220,6 +242,37 @@ export async function clockOut(attendanceId: string) {
                     type: 'ATTENDANCE',
                     link: '/history'
                 });
+            }
+        }
+
+        if (attendanceWithUser && isEarlyLeave) {
+            const { user } = attendanceWithUser;
+
+            // 📝 Cek apakah ada izin yang sudah di-approve untuk hari ini
+            const hasApprovedPermit = await prisma.permit.findFirst({
+                where: {
+                    userId: user.id,
+                    finalStatus: 'APPROVED',
+                    startDate: { lte: now },
+                    endDate: { gte: now }
+                }
+            });
+
+            if (!hasApprovedPermit) {
+                const settings = await getSettings();
+                if (settings.WA_ENABLE_LATE_NOTIF === 'true' && settings.WA_API_KEY && settings.WA_GROUP_ID) {
+                    const message = `⚠️ *NOTIFIKASI PULANG CEPAT* ⚠️\n\n` +
+                        `*Nama:* ${user.name}\n` +
+                        `*Divisi:* ${user.role}\n` +
+                        `*Shift:* ${existingAttendance?.shiftType || '--'}\n` +
+                        `*Jadwal Out:* ${existingAttendance?.scheduledClockOut ? format(new Date(existingAttendance.scheduledClockOut), 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
+                        `*Waktu Absen:* ${format(now, 'HH:mm', { locale: id })} WIB\n` +
+                        `*Pulang Awal:* ${earlyLeaveMinutes} Menit\n\n` +
+                        `_Mohon untuk menjadi perhatian admin._`;
+
+                    // Fire and forget
+                    sendWhatsAppMessage(message, settings.WA_GROUP_ID, settings.WA_API_KEY);
+                }
             }
         }
 

@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { sendWhatsAppMessage } from '@/lib/whatsapp';
 
 export async function getSettings() {
     try {
@@ -33,5 +34,15 @@ export async function updateSettings(settings: Record<string, string>) {
     } catch (error) {
         console.error('Update Settings Error:', error);
         return { success: false, message: 'Gagal memperbarui pengaturan.' };
+    }
+}
+
+export async function testWhatsAppMessage(message: string, target: string, apiKey: string) {
+    try {
+        const result = await sendWhatsAppMessage(message, target, apiKey);
+        return result;
+    } catch (error) {
+        console.error('Test WA Error:', error);
+        return { success: false, message: 'Terjadi kesalahan saat mencoba mengirim pesan.' };
     }
 }
