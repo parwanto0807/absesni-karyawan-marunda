@@ -114,10 +114,8 @@ export default async function Home() {
     }),
     presentToday: await prisma.attendance.count({
       where: {
-        OR: [
-          { clockIn: { gte: getStartOfDayJakarta() } },
-          { clockIn: { gte: activeWindow }, clockOut: null }
-        ],
+        clockIn: { gte: activeWindow },
+        clockOut: null,
         user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } },
         status: { in: ['PRESENT', 'LATE'] }
       }

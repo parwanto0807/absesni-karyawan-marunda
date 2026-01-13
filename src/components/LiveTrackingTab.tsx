@@ -6,6 +6,7 @@ import { getLocationLogs, getTrackableUsers } from '@/actions/tracking';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { cn } from '@/lib/utils';
 
 interface LocationLog {
     id: string;
@@ -31,6 +32,7 @@ export default function LiveTrackingTab() {
     const [selectedUserId, setSelectedUserId] = useState<string>('');
     const [selectedDate, setSelectedDate] = useState<string>(new Date().toISOString().split('T')[0]);
     const [logs, setLogs] = useState<LocationLog[]>([]);
+    const [previewLog, setPreviewLog] = useState<LocationLog | null>(null);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
 
@@ -55,8 +57,12 @@ export default function LiveTrackingTab() {
         try {
             const result = await getLocationLogs(selectedUserId, new Date(selectedDate));
             if (result.success && result.data) {
-                setLogs(result.data as LocationLog[]);
-                if (result.data.length === 0) {
+                const fetchedLogs = result.data as LocationLog[];
+                setLogs(fetchedLogs);
+                if (fetchedLogs.length > 0) {
+                    setPreviewLog(fetchedLogs[fetchedLogs.length - 1]);
+                }
+                if (fetchedLogs.length === 0) {
                     toast.info('Tidak ada log pergerakan ditemukan untuk tanggal ini');
                 }
             } else {
@@ -197,8 +203,13 @@ export default function LiveTrackingTab() {
                             {logs.map((log, index) => (
                                 <div
                                     key={log.id}
-                                    className="group flex items-start gap-4 p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-all cursor-pointer"
-                                    onClick={() => openPointOnMap(log.latitude, log.longitude)}
+                                    className={cn(
+                                        "group flex items-start gap-4 p-3 rounded-xl border transition-all cursor-pointer",
+                                        previewLog?.id === log.id
+                                            ? "border-indigo-500 bg-indigo-50/50 dark:bg-indigo-900/20"
+                                            : "border-slate-100 dark:border-slate-800 hover:border-indigo-300 dark:hover:border-indigo-700 hover:bg-slate-50 dark:hover:bg-slate-800/50"
+                                    )}
+                                    onClick={() => setPreviewLog(log)}
                                 >
                                     <div className="flex flex-col items-center">
                                         <div className="w-8 h-8 rounded-full bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 dark:text-indigo-400 flex items-center justify-center text-xs font-bold">
@@ -214,8 +225,14 @@ export default function LiveTrackingTab() {
                                                 <Clock className="w-3.5 h-3.5 text-indigo-500" />
                                                 {format(new Date(log.createdAt), 'HH:mm:ss', { locale: id })} WIB
                                             </div>
-                                            <button className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline">
-                                                Detail
+                                            <button
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    openPointOnMap(log.latitude, log.longitude);
+                                                }}
+                                                className="text-[10px] text-indigo-600 dark:text-indigo-400 font-bold hover:underline"
+                                            >
+                                                Buka Maps
                                             </button>
                                         </div>
                                         <div className="flex items-center gap-2 text-[11px] text-slate-500 dark:text-slate-400 font-mono">
@@ -239,27 +256,27 @@ export default function LiveTrackingTab() {
                         </div>
 
                         <div className="flex-1 rounded-xl border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 flex flex-col items-center justify-center p-8 text-center space-y-4 overflow-hidden relative">
-                            {/* Display the latest point in frame */}
+                            {/* Display the selected point in frame with a marker */}
                             <iframe
                                 width="100%"
                                 height="100%"
                                 className="absolute inset-0"
                                 style={{ border: 0 }}
                                 loading="lazy"
-                                src={`https://www.google.com/maps/embed/v1/view?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&center=${logs[logs.length - 1].latitude},${logs[logs.length - 1].longitude}&zoom=16`}
+                                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${previewLog?.latitude},${previewLog?.longitude}&zoom=17`}
                             />
 
                             <div className="absolute bottom-4 left-4 right-4 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 text-left">
                                 <h3 className="text-xs font-black uppercase text-indigo-600 mb-2">Statistik Pergerakan</h3>
                                 <div className="grid grid-cols-2 gap-4">
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Total Pengecekan</p>
-                                        <p className="text-sm font-black text-slate-900 dark:text-white">{logs.length} Kali</p>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Titik Terpilih</p>
+                                        <p className="text-sm font-black text-slate-900 dark:text-white">Ke-{logs.findIndex(l => l.id === previewLog?.id) + 1} dari {logs.length}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Update Terakhir</p>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Waktu Titik</p>
                                         <p className="text-sm font-black text-slate-900 dark:text-white">
-                                            {format(new Date(logs[logs.length - 1].createdAt), 'HH:mm', { locale: id })} WIB
+                                            {previewLog && format(new Date(previewLog.createdAt), 'HH:mm', { locale: id })} WIB
                                         </p>
                                     </div>
                                 </div>
