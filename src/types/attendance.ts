@@ -9,6 +9,8 @@ export interface User {
     image?: string;
     employeeId: string;
     rotationOffset: number;
+    lastLogin?: string | Date;
+    updatedAt?: string | Date;
 }
 
 export type AttendanceStatus = 'PRESENT' | 'LATE' | 'ABSENT' | 'PERMIT' | 'SICK';

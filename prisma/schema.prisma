@@ -37,6 +37,7 @@ model User {
   rotationOffset Int            @default(0)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
+  lastLogin      DateTime?
   attendances    Attendance[]
   schedules      Schedule[]
   permits        Permit[]       @relation("UserPermits")

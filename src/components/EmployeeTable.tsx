@@ -1,11 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreHorizontal, Mail, Shield, User, Edit2, Trash2, X } from 'lucide-react';
+import { MoreHorizontal, Mail, Shield, User, Edit2, Trash2, X, Clock } from 'lucide-react';
 import { User as UserType } from '@/types/attendance';
 import { deleteUser } from '@/actions/employees';
 import EmployeeDialog from './EmployeeDialog';
 import { cn } from '@/lib/utils';
+import { formatDistanceToNow } from 'date-fns';
+import { id } from 'date-fns/locale';
 
 interface EmployeeTableProps {
     employees: UserType[];
@@ -49,6 +51,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Karyawan</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">ID Karyawan</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Tugas/Role</th>
+                            <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Akses Terakhir</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px] text-right">Aksi</th>
                         </tr>
                     </thead>
@@ -95,23 +98,39 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                         {emp.role}
                                     </span>
                                 </td>
+                                <td className="px-6 py-4">
+                                    {emp.username !== 'adminit' ? (
+                                        <div className="flex flex-col">
+                                            <span className="text-xs font-medium text-slate-700 dark:text-slate-300">
+                                                {emp.lastLogin ? formatDistanceToNow(new Date(emp.lastLogin), { addSuffix: true, locale: id }) : 'Belum pernah'}
+                                            </span>
+                                            <span className="text-[10px] text-slate-400">
+                                                {emp.lastLogin ? new Date(emp.lastLogin).toLocaleDateString('id-ID', { day: '2-digit', month: 'short', hour: '2-digit', minute: '2-digit' }) : '-'}
+                                            </span>
+                                        </div>
+                                    ) : (
+                                        <span className="text-[10px] text-slate-400 font-italic italic">Terproteksi</span>
+                                    )}
+                                </td>
                                 <td className="px-6 py-4 text-right">
-                                    <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                                        <button
-                                            onClick={() => setEditingEmployee(emp)}
-                                            className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 rounded-xl transition-all"
-                                            title="Edit"
-                                        >
-                                            <Edit2 size={18} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(emp.id)}
-                                            className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-all"
-                                            title="Hapus"
-                                        >
-                                            <Trash2 size={18} />
-                                        </button>
-                                    </div>
+                                    {emp.username !== 'adminit' && (
+                                        <div className="flex items-center justify-end space-x-1 opacity-0 group-hover:opacity-100 transition-opacity">
+                                            <button
+                                                onClick={() => setEditingEmployee(emp)}
+                                                className="p-2 text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/10 rounded-xl transition-all"
+                                                title="Edit"
+                                            >
+                                                <Edit2 size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(emp.id)}
+                                                className="p-2 text-slate-400 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-900/10 rounded-xl transition-all"
+                                                title="Hapus"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </td>
                             </tr>
                         ))}
@@ -143,20 +162,22 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                             <div className="flex-1 min-w-0">
                                 <div className="flex items-center justify-between mb-1">
                                     <h3 className="font-bold text-slate-900 dark:text-white uppercase tracking-tight text-sm truncate pr-2">{emp.name}</h3>
-                                    <div className="flex items-center space-x-1 shrink-0">
-                                        <button
-                                            onClick={() => setEditingEmployee(emp)}
-                                            className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 dark:bg-slate-800 rounded-lg"
-                                        >
-                                            <Edit2 size={14} />
-                                        </button>
-                                        <button
-                                            onClick={() => handleDelete(emp.id)}
-                                            className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-50 dark:bg-slate-800 rounded-lg"
-                                        >
-                                            <Trash2 size={14} />
-                                        </button>
-                                    </div>
+                                    {emp.username !== 'adminit' && (
+                                        <div className="flex items-center space-x-1 shrink-0">
+                                            <button
+                                                onClick={() => setEditingEmployee(emp)}
+                                                className="p-1.5 text-slate-400 hover:text-indigo-600 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                            >
+                                                <Edit2 size={14} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDelete(emp.id)}
+                                                className="p-1.5 text-slate-400 hover:text-rose-600 bg-slate-50 dark:bg-slate-800 rounded-lg"
+                                            >
+                                                <Trash2 size={14} />
+                                            </button>
+                                        </div>
+                                    )}
                                 </div>
                                 <div className="flex flex-wrap items-center gap-2 mb-2">
                                     <span className="text-[10px] text-slate-500 font-mono bg-slate-100 dark:bg-slate-800 px-2 py-0.5 rounded-md">
@@ -179,6 +200,12 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                     {emp.role === 'SECURITY' && <Shield size={8} className="mr-1" />}
                                     {emp.role}
                                 </span>
+                                {emp.username !== 'adminit' && (
+                                    <div className="mt-2 flex items-center text-[10px] text-slate-400">
+                                        <Clock size={10} className="mr-1" />
+                                        <span>Akses: {emp.lastLogin ? formatDistanceToNow(new Date(emp.lastLogin), { addSuffix: true, locale: id }) : 'Belum pernah'}</span>
+                                    </div>
+                                )}
                             </div>
                         </div>
                     </div>

@@ -27,6 +27,12 @@ export async function login(formData: FormData) {
             return { error: `Role tidak sesuai! Akun ini adalah ${user.role}, bukan ${selectedRole}.` };
         }
 
+        // Update last login
+        await prisma.user.update({
+            where: { id: user.id },
+            data: { lastLogin: new Date() }
+        });
+
         // Create the session
         const expires = new Date(Date.now() + 60 * 60 * 2000); // 2 hours
         const session = await encrypt({
