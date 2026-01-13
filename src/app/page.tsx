@@ -30,6 +30,7 @@ import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { ImageModal } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta } from '@/lib/date-utils';
+import DigitalClock from '@/components/DigitalClock';
 
 export default async function Home() {
   const session = await getSession();
@@ -149,15 +150,19 @@ export default async function Home() {
   return (
     <div className="space-y-6 md:space-y-8 pb-24 md:pb-8 font-sans animate-in fade-in duration-700">
       {/* --- TOP BAR --- */}
-      <div className="flex items-center justify-between">
-        <div>
-          <h1 className="text-xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
-            {isFieldRole ? 'Portal' : 'Halo,'} <span className="text-indigo-600">{isFieldRole ? session.role : session.username}</span>
-          </h1>
-          <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5 flex items-center">
-            <Calendar size={10} className="mr-1" />
-            {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: TIMEZONE })}
-          </p>
+      <div className="flex items-center justify-between gap-4">
+        <div className="flex flex-row items-center justify-between w-full md:w-auto md:justify-start gap-4 md:gap-8">
+          <div>
+            <h1 className="text-lg md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter shrink-0">
+              {isFieldRole ? 'Portal' : 'Halo,'} <span className="text-indigo-600">{isFieldRole ? session.role : session.username}</span>
+            </h1>
+            <p className="text-[8px] md:text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] mt-0.5 flex items-center">
+              <Calendar size={10} className="mr-1" />
+              {new Date().toLocaleDateString('id-ID', { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric', timeZone: TIMEZONE })}
+            </p>
+          </div>
+
+          <DigitalClock />
         </div>
         <div className="flex items-center space-x-3">
           {isPowerful && (
