@@ -1,0 +1,99 @@
+'use server';
+
+import { prisma } from '@/lib/db';
+import { revalidatePath } from 'next/cache';
+
+/**
+ * Log user activity and perform auto-cleanup of logs older than 3 days
+ */
+export async function logActivity(userId: string, action: string, target?: string, details?: string) {
+    try {
+        // 1. Record the activity
+        await prisma.activityLog.create({
+            data: {
+                userId,
+                action,
+                target,
+                details
+            }
+        });
+
+        // 2. Update user's lastActive timestamp
+        await prisma.user.update({
+            where: { id: userId },
+            data: { lastActive: new Date() }
+        });
+
+        // 3. Auto-cleanup: Delete logs older than 3 days
+        // We do this every time to keep it simple, or we could do it occasionally
+        const threeDaysAgo = new Date();
+        threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
+
+        await prisma.activityLog.deleteMany({
+            where: {
+                createdAt: {
+                    lt: threeDaysAgo
+                }
+            }
+        });
+
+    } catch (error) {
+        console.error('Failed to log activity:', error);
+    }
+}
+
+/**
+ * Get activity logs for admin view
+ */
+export async function getActivityLogs(limit: number = 100, userId?: string) {
+    try {
+        const where: any = {};
+        if (userId && userId !== 'all') {
+            where.userId = userId;
+        }
+
+        const logs = await prisma.activityLog.findMany({
+            where,
+            take: limit,
+            orderBy: {
+                createdAt: 'desc'
+            },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        username: true,
+                        role: true,
+                        image: true
+                    }
+                }
+            }
+        });
+        return logs;
+    } catch (error) {
+        console.error('Failed to fetch activity logs:', error);
+        return [];
+    }
+}
+
+/**
+ * Get all users for filter selection
+ */
+export async function getUsers() {
+    try {
+        const users = await prisma.user.findMany({
+            select: {
+                id: true,
+                name: true,
+                username: true
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return users;
+    } catch (error) {
+        console.error('Failed to fetch users:', error);
+        return [];
+    }
+}

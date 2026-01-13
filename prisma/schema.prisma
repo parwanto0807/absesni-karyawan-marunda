@@ -38,10 +38,26 @@ model User {
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
   lastLogin      DateTime?
+  lastActive     DateTime?
   attendances    Attendance[]
   schedules      Schedule[]
   permits        Permit[]       @relation("UserPermits")
   notifications  Notification[]
+  activityLogs   ActivityLog[]
+}
+
+model ActivityLog {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  action    String // VIEW_PAGE, LOGIN, etc.
+  target    String? // The URL or resource accessed
+  details   String? // Additional info
+  ipAddress String?
+  createdAt DateTime @default(now())
+
+  @@index([userId])
+  @@index([createdAt])
 }
 
 model Schedule {

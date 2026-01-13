@@ -5,6 +5,7 @@ import { redirect } from 'next/navigation';
 import { encrypt } from '@/lib/auth';
 import { UserRole } from '@/types/auth';
 import { prisma } from '@/lib/db';
+import { logActivity } from './activity';
 
 export async function login(formData: FormData) {
     const username = formData.get('username') as string;
@@ -32,6 +33,9 @@ export async function login(formData: FormData) {
             where: { id: user.id },
             data: { lastLogin: new Date() }
         });
+
+        // Record activity
+        await logActivity(user.id, 'LOGIN', '/login', 'User berhasil login');
 
         // Create the session
         const expires = new Date(Date.now() + 60 * 60 * 2000); // 2 hours
