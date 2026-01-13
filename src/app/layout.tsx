@@ -10,6 +10,7 @@ import { ThemeProvider } from "@/components/theme-provider";
 import { prisma } from "@/lib/db";
 import { SessionPayload, UserRole } from "@/types/auth"; // import UserRole for casting if needed
 import ActivityTracker from "@/components/ActivityTracker";
+import LocationTracker from "@/components/LocationTracker";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -90,6 +91,7 @@ export default async function RootLayout({
           {currentUser ? (
             <SidebarProvider>
               <ActivityTracker userId={currentUser.userId} />
+              <LocationTracker userId={currentUser.userId} role={currentUser.role} />
               <Sidebar user={currentUser} />
               <LayoutContent user={currentUser}>
                 {children}
