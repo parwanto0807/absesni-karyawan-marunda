@@ -1,14 +1,15 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2, Calendar } from 'lucide-react';
+import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2, Calendar, ClipboardList } from 'lucide-react';
 import { toast } from 'sonner';
 import PerformanceGuideTab from '@/components/PerformanceGuideTab';
 import HolidaySettingsTab from '@/components/HolidaySettingsTab';
+import DutySettingsTab from '@/components/DutySettingsTab';
 import { getSettings, updateSettings } from '@/actions/settings';
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'holidays'>('location');
+    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'holidays' | 'duty'>('location');
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [locationName, setLocationName] = useState('POS Cluster Taman Marunda');
@@ -91,17 +92,19 @@ export default function SettingsPage() {
             </div>
 
             {/* Tabs */}
-            <div className="flex gap-2 border-b border-slate-200 dark:border-slate-800">
+            <div className="flex items-center gap-1 md:gap-2 border-b border-slate-200 dark:border-slate-800 overflow-x-auto no-scrollbar scroll-smooth">
                 <button
                     onClick={() => setActiveTab('location')}
-                    className={`px-6 py-3 font-bold text-sm transition-all relative ${activeTab === 'location'
+                    title="Lokasi Absensi"
+                    className={`px-4 md:px-6 py-3 font-bold text-xs md:text-sm transition-all relative whitespace-nowrap ${activeTab === 'location'
                         ? 'text-indigo-600 dark:text-indigo-400'
                         : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                         }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <MapPin size={18} />
-                        <span>Lokasi Absensi</span>
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <MapPin size={18} className="w-4.5 h-4.5 md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Lokasi Absensi</span>
+                        <span className="md:hidden text-[10px] uppercase">{activeTab === 'location' && 'Lokasi'}</span>
                     </div>
                     {activeTab === 'location' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
@@ -109,14 +112,16 @@ export default function SettingsPage() {
                 </button>
                 <button
                     onClick={() => setActiveTab('performance')}
-                    className={`px-6 py-3 font-bold text-sm transition-all relative ${activeTab === 'performance'
+                    title="Panduan Performance"
+                    className={`px-4 md:px-6 py-3 font-bold text-xs md:text-sm transition-all relative whitespace-nowrap ${activeTab === 'performance'
                         ? 'text-indigo-600 dark:text-indigo-400'
                         : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                         }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <BookOpen size={18} />
-                        <span>Panduan Performance</span>
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <BookOpen size={18} className="w-4.5 h-4.5 md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Panduan Performance</span>
+                        <span className="md:hidden text-[10px] uppercase">{activeTab === 'performance' && 'Performance'}</span>
                     </div>
                     {activeTab === 'performance' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
@@ -124,16 +129,35 @@ export default function SettingsPage() {
                 </button>
                 <button
                     onClick={() => setActiveTab('holidays')}
-                    className={`px-6 py-3 font-bold text-sm transition-all relative ${activeTab === 'holidays'
+                    title="Hari Libur"
+                    className={`px-4 md:px-6 py-3 font-bold text-xs md:text-sm transition-all relative whitespace-nowrap ${activeTab === 'holidays'
                         ? 'text-indigo-600 dark:text-indigo-400'
                         : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
                         }`}
                 >
-                    <div className="flex items-center gap-2">
-                        <Calendar size={18} />
-                        <span>Hari Libur</span>
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <Calendar size={18} className="w-4.5 h-4.5 md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Hari Libur</span>
+                        <span className="md:hidden text-[10px] uppercase">{activeTab === 'holidays' && 'Libur'}</span>
                     </div>
                     {activeTab === 'holidays' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('duty')}
+                    title="Tugas & Kewajiban"
+                    className={`px-4 md:px-6 py-3 font-bold text-xs md:text-sm transition-all relative whitespace-nowrap ${activeTab === 'duty'
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                        }`}
+                >
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <ClipboardList size={18} className="w-4.5 h-4.5 md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Tugas & Kewajiban</span>
+                        <span className="md:hidden text-[10px] uppercase">{activeTab === 'duty' && 'Tugas'}</span>
+                    </div>
+                    {activeTab === 'duty' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
                     )}
                 </button>
@@ -299,6 +323,9 @@ export default function SettingsPage() {
             ) : activeTab === 'performance' ? (
                 // Performance Guide Tab
                 <PerformanceGuideTab />
+            ) : activeTab === 'duty' ? (
+                // Duty Settings Tab
+                <DutySettingsTab />
             ) : (
                 // Holiday Settings Tab
                 <HolidaySettingsTab />

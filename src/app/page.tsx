@@ -15,7 +15,8 @@ import {
   ArrowRight,
   Activity,
   CheckCircle2,
-  XCircle
+  XCircle,
+  ClipboardList
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
@@ -131,6 +132,20 @@ export default async function Home() {
     })
   };
 
+  // 4. Ambil Tugas & Kewajiban (SOP)
+  const settings = await prisma.setting.findMany();
+  const settingsMap: Record<string, string> = {};
+  settings.forEach(s => settingsMap[s.key] = s.value);
+
+  const getDutyForRole = (role: string) => {
+    if (role === 'SECURITY') return settingsMap.DUTY_SECURITY;
+    if (role === 'KEBERSIHAN') return settingsMap.DUTY_KEBERSIHAN;
+    if (role === 'LINGKUNGAN') return settingsMap.DUTY_LINGKUNGAN;
+    return null;
+  };
+
+  const myDuty = getDutyForRole(session.role);
+
   return (
     <div className="space-y-6 md:space-y-8 pb-24 md:pb-8 font-sans animate-in fade-in duration-700">
       {/* --- TOP BAR --- */}
@@ -175,6 +190,8 @@ export default async function Home() {
           </Link>
         ))}
       </div>
+
+
 
       {/* --- DESKTOP DASHBOARD LAYOUT --- */}
       <div className="grid grid-cols-1 lg:grid-cols-4 gap-8 grid-flow-row-dense">
@@ -275,6 +292,95 @@ export default async function Home() {
           </div>
 
         </div>
+
+        {/* --- 2. TASK & DUTIES (SOP) --- */}
+        {myDuty && (
+          <div className="lg:col-span-3 space-y-4 md:space-y-6 mt-4">
+            <div className="flex flex-col md:flex-row md:items-end justify-between gap-2 px-2">
+              <div>
+                <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 text-[10px] font-black uppercase tracking-widest mb-2 border border-indigo-100 dark:border-indigo-800">
+                  <ClipboardList size={12} />
+                  <span>Standar Operasional Prosedur</span>
+                </div>
+                <h2 className="text-2xl md:text-3xl font-black text-slate-900 dark:text-white uppercase tracking-tighter">
+                  Tugas & <span className="text-indigo-600">Kewajiban</span>
+                </h2>
+                <p className="text-[10px] md:text-xs font-bold text-slate-400 uppercase tracking-widest mt-1">
+                  Panduan kerja resmi divisi {session.role}
+                </p>
+              </div>
+              <div className="flex items-center gap-2">
+                <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                <span className="text-[10px] font-black text-emerald-600 dark:text-emerald-400 uppercase tracking-widest">Update Terakhir: {new Date().toLocaleDateString('id-ID', { month: 'short', year: 'numeric' })}</span>
+              </div>
+            </div>
+
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+              {myDuty.split(/(?=\d+\.)/).filter(t => t.trim()).map((section, sIdx) => {
+                const lines = section.trim().split('\n');
+                const title = lines[0].replace(/^\d+\.\s*/, '');
+                const items = lines.slice(1).filter(l => l.trim().startsWith('-'));
+
+                const getThemeColor = () => {
+                  const role = session.role;
+                  if (role === 'SECURITY') return 'indigo';
+                  if (role === 'KEBERSIHAN') return 'emerald';
+                  if (role === 'LINGKUNGAN') return 'orange';
+                  return 'slate';
+                };
+                const theme = getThemeColor();
+
+                return (
+                  <div key={sIdx} className="group relative bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm hover:shadow-xl hover:shadow-slate-200/50 dark:hover:shadow-none transition-all duration-500 overflow-hidden flex flex-col">
+                    {/* Card Header & Number */}
+                    <div className={cn(
+                      "p-6 pb-2 flex items-start justify-between",
+                      `text-${theme}-600 dark:text-${theme}-400`
+                    )}>
+                      <div className="space-y-1">
+                        <div className="text-[10px] font-black opacity-50 uppercase tracking-widest">Materi 0{sIdx + 1}</div>
+                        <h4 className="text-sm md:text-base font-black uppercase tracking-tight text-slate-900 dark:text-white leading-tight">
+                          {title}
+                        </h4>
+                      </div>
+                      <div className={cn(
+                        "h-10 w-10 md:h-12 md:w-12 rounded-2xl flex items-center justify-center font-black text-lg border transition-transform group-hover:rotate-12 group-hover:scale-110",
+                        theme === 'indigo' ? "bg-indigo-50 border-indigo-100 dark:bg-indigo-500/10 dark:border-indigo-500/20" :
+                          theme === 'emerald' ? "bg-emerald-50 border-emerald-100 dark:bg-emerald-500/10 dark:border-emerald-500/20" :
+                            "bg-orange-50 border-orange-100 dark:bg-orange-500/10 dark:border-orange-500/20"
+                      )}>
+                        {sIdx + 1}
+                      </div>
+                    </div>
+
+                    {/* Card Body */}
+                    <div className="p-6 pt-2 flex-grow">
+                      <div className="space-y-3">
+                        {items.map((item, iIdx) => (
+                          <div key={iIdx} className="flex gap-3 group/item">
+                            <div className={cn(
+                              "mt-1.5 h-1.5 w-1.5 rounded-full shrink-0 transition-all group-hover/item:scale-150",
+                              `bg-${theme}-500 shadow-[0_0_8px] shadow-${theme}-500/50`
+                            )} />
+                            <p className="text-xs md:text-sm text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                              {item.replace(/^-\s*/, '')}
+                            </p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+
+                    {/* Card Footer Decoration */}
+                    <div className={cn(
+                      "h-1 w-full mt-auto opacity-20",
+                      `bg-gradient-to-r from-transparent via-${theme}-500 to-transparent`
+                    )} />
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* --- 3. HISTORY SECTION (Main Col, Below Stats) --- */}
         <div className="lg:col-span-3 mt-10">
