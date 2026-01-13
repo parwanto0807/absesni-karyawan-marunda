@@ -12,28 +12,33 @@ export default function LocationTracker({
     role: UserRole;
 }) {
     useEffect(() => {
-        const rolesToTrack = ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'];
-        if (!rolesToTrack.includes(role)) return;
+        const track = async () => {
+            // Re-check roles from settings might be needed, but for now we follow the hardcoded + Server Side check
+            const rolesToTrack = ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'];
+            if (!rolesToTrack.includes(role)) {
+                return;
+            }
 
-        const track = () => {
             if ("geolocation" in navigator) {
                 navigator.geolocation.getCurrentPosition(
                     async (position) => {
                         const { latitude, longitude } = position.coords;
-                        console.log(`[Tracking] Logging location: ${latitude}, ${longitude}`);
-                        await logLocation(latitude, longitude);
+
+                        try {
+                            await logLocation(latitude, longitude);
+                        } catch (err) {
+                            // Silent fail
+                        }
                     },
                     (error) => {
-                        console.error("[Tracking] Error getting location:", error);
+                        // Silent fail
                     },
                     {
                         enableHighAccuracy: true,
-                        timeout: 10000,
+                        timeout: 15000,
                         maximumAge: 0
                     }
                 );
-            } else {
-                console.warn("[Tracking] Geolocation is not supported by this browser.");
             }
         };
 
