@@ -7,6 +7,13 @@ import { createManualSchedule, deleteManualSchedule } from '@/actions/employees'
 import { Loader2, RotateCcw } from 'lucide-react';
 import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
+import { getHoliday } from '@/lib/holiday-utils';
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip"
 
 interface ScheduleGridProps {
     users: any[];
@@ -15,9 +22,10 @@ interface ScheduleGridProps {
     currentYear: number;
     manualSchedules: any[];
     canEdit: boolean;
+    holidays?: any[];
 }
 
-export default function ScheduleGrid({ users, days, currentMonth, currentYear, manualSchedules, canEdit }: ScheduleGridProps) {
+export default function ScheduleGrid({ users, days, currentMonth, currentYear, manualSchedules, canEdit, holidays }: ScheduleGridProps) {
     const [isUpdating, setIsUpdating] = useState<string | null>(null);
     const [selectedCell, setSelectedCell] = useState<{ userId: string; day: number } | null>(null);
 
@@ -67,8 +75,16 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                 <div className="text-center space-y-1 mb-4">
                     <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">
                         {/* Use Jakarta timezone for display formatting */}
-                        Ubah Shift: {constructDate(currentYear, currentMonth, day).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', timeZone: TIMEZONE })}
+                        {constructDate(currentYear, currentMonth, day).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', timeZone: TIMEZONE })}
                     </h3>
+                    {(() => {
+                        const holiday = getHoliday(constructDate(currentYear, currentMonth, day));
+                        return holiday ? (
+                            <div className="text-[10px] font-bold text-rose-500 bg-rose-50 dark:bg-rose-900/20 py-1 px-2 rounded-lg inline-block">
+                                🏮 {holiday.name}
+                            </div>
+                        ) : null;
+                    })()}
                     <p className="text-xs font-medium text-slate-500">{user.name}</p>
                 </div>
 
@@ -116,7 +132,7 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
     const filteredDays = days.filter(day => day >= startDay);
 
     return (
-        <>
+        <TooltipProvider>
             {/* Mobile/Tablet View (List of Cards) */}
             <div className="block lg:hidden space-y-4">
                 {users.map(user => (
@@ -157,14 +173,18 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                             if (canEdit) setSelectedCell({ userId: user.id, day });
                                         }}
                                         className={cn(
-                                            "flex-shrink-0 flex flex-col items-center space-y-1.5 p-1.5 rounded-xl min-w-[44px] border transition-all",
+                                            "flex-shrink-0 flex flex-col items-center space-y-1.5 p-1.5 rounded-xl min-w-[44px] border transition-all relative",
                                             canEdit && "active:scale-95",
-                                            isWeekend ? "bg-rose-50/50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/20" : "bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-800"
+                                            isWeekend ? "bg-rose-50/50 border-rose-100 dark:bg-rose-900/10 dark:border-rose-900/20" : "bg-slate-50 border-slate-100 dark:bg-slate-800/50 dark:border-slate-800",
+                                            getHoliday(date, holidays) && "border-rose-400 bg-rose-50 dark:bg-rose-900/30"
                                         )}
                                     >
-                                        <div className="text-center space-y-0.5">
-                                            <span className={cn("text-[8px] font-black uppercase", isWeekend ? "text-rose-400" : "text-slate-400")}>{dayName}</span>
-                                            <span className={cn("text-[10px] font-black", isWeekend ? "text-rose-600" : "text-slate-600 dark:text-slate-300")}>{day}</span>
+                                        <div className="text-center space-y-0.5 relative">
+                                            <span className={cn("text-[8px] font-black uppercase", (isWeekend || getHoliday(date, holidays)) ? "text-rose-400" : "text-slate-400")}>{dayName}</span>
+                                            <span className={cn("text-[10px] font-black", (isWeekend || getHoliday(date, holidays)) ? "text-rose-600" : "text-slate-600 dark:text-slate-300")}>{day}</span>
+                                            {getHoliday(date, holidays) && (
+                                                <div className="absolute -top-1 -right-2 h-2 w-2 rounded-full bg-rose-500 border border-white dark:border-slate-900 shadow-sm animate-pulse" />
+                                            )}
                                         </div>
 
                                         <div className={cn(
@@ -206,20 +226,52 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
                                     const isWeekend = date.getDay() === 0 || date.getDay() === 6;
                                     const dayName = date.toLocaleString('id-ID', { weekday: 'short', timeZone: TIMEZONE }).charAt(0);
 
+                                    const holiday = getHoliday(date, holidays);
                                     return (
-                                        <th key={day} className={cn(
-                                            "px-1 py-3 text-center border-l border-slate-100 dark:border-slate-800/50 min-w-[40px]",
-                                            isWeekend && "bg-rose-50/50 dark:bg-rose-900/10"
-                                        )}>
-                                            <div className="flex flex-col items-center justify-center space-y-1">
-                                                <div className={cn("text-[9px] font-black uppercase", isWeekend ? "text-rose-600" : "text-slate-400")}>
-                                                    {dayName}
-                                                </div>
-                                                <div className={cn("h-7 w-7 rounded-full flex items-center justify-center text-[10px] font-black",
-                                                    isWeekend ? "bg-rose-100 text-rose-700 dark:bg-rose-900/40 dark:text-rose-300" : "text-slate-700 dark:text-slate-300"
-                                                )}>
-                                                    {day}
-                                                </div>
+                                        <th key={day}
+                                            className={cn(
+                                                "px-1 py-4 text-center border-l border-slate-100 dark:border-slate-800/50 min-w-[44px] relative transition-all align-bottom",
+                                                isWeekend && "bg-rose-50/50 dark:bg-rose-900/10",
+                                                holiday && "bg-rose-100/40 dark:bg-rose-900/10"
+                                            )}
+                                        >
+                                            <div className="flex flex-col items-center justify-end space-y-1.5 h-full relative">
+                                                <Tooltip>
+                                                    <TooltipTrigger asChild>
+                                                        <div className="flex flex-col items-center justify-end space-y-1.5 cursor-help group">
+                                                            <div className={cn("text-[9px] font-black uppercase tracking-widest transition-colors", (isWeekend || holiday) ? "text-rose-600" : "text-slate-400 group-hover:text-indigo-600")}>
+                                                                {dayName}
+                                                            </div>
+                                                            <div className={cn("h-8 w-8 rounded-xl flex items-center justify-center text-[11px] font-black relative shadow-sm border transition-all duration-200",
+                                                                (isWeekend || holiday)
+                                                                    ? "bg-rose-100 text-rose-700 border-rose-200 dark:bg-rose-900/40 dark:text-rose-300 dark:border-rose-800"
+                                                                    : "bg-white text-slate-700 border-slate-200 dark:bg-slate-800 dark:text-slate-300 dark:border-slate-700 group-hover:border-indigo-500 group-hover:text-indigo-600"
+                                                            )}>
+                                                                {day}
+                                                                {holiday && (
+                                                                    <div className="absolute -top-1.5 -right-1.5 flex h-4 w-4 items-center justify-center">
+                                                                        <span className="absolute inline-flex h-full w-full animate-ping rounded-full bg-rose-400 opacity-20"></span>
+                                                                        <span className="relative flex h-3 w-3 items-center justify-center rounded-full bg-rose-500 text-[9px] text-white shadow-sm border border-white dark:border-slate-900 leading-none">
+                                                                            🏮
+                                                                        </span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    </TooltipTrigger>
+                                                    {holiday && (
+                                                        <TooltipContent
+                                                            side="top"
+                                                            sideOffset={10}
+                                                            className="bg-slate-900 text-white dark:bg-white dark:text-slate-900 border border-slate-700 dark:border-slate-200 font-black text-xs px-4 py-2 z-[100] shadow-2xl"
+                                                        >
+                                                            <div className="flex items-center gap-2">
+                                                                <span className="text-lg">🏮</span>
+                                                                <span className="uppercase tracking-tight">{holiday.name}</span>
+                                                            </div>
+                                                        </TooltipContent>
+                                                    )}
+                                                </Tooltip>
                                             </div>
                                         </th>
                                     );
@@ -315,6 +367,6 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
 
                 return <ShiftPopover user={user} day={selectedCell.day} shift={shift} manual={manual} />;
             })()}
-        </>
+        </TooltipProvider>
     );
 }

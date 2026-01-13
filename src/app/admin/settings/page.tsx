@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2 } from 'lucide-react';
+import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2, Calendar } from 'lucide-react';
 import { toast } from 'sonner';
 import PerformanceGuideTab from '@/components/PerformanceGuideTab';
+import HolidaySettingsTab from '@/components/HolidaySettingsTab';
 import { getSettings, updateSettings } from '@/actions/settings';
 
 export default function SettingsPage() {
-    const [activeTab, setActiveTab] = useState<'location' | 'performance'>('location');
+    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'holidays'>('location');
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [locationName, setLocationName] = useState('POS Cluster Taman Marunda');
@@ -118,6 +119,21 @@ export default function SettingsPage() {
                         <span>Panduan Performance</span>
                     </div>
                     {activeTab === 'performance' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('holidays')}
+                    className={`px-6 py-3 font-bold text-sm transition-all relative ${activeTab === 'holidays'
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                        }`}
+                >
+                    <div className="flex items-center gap-2">
+                        <Calendar size={18} />
+                        <span>Hari Libur</span>
+                    </div>
+                    {activeTab === 'holidays' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
                     )}
                 </button>
@@ -280,9 +296,12 @@ export default function SettingsPage() {
                         </div>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'performance' ? (
                 // Performance Guide Tab
                 <PerformanceGuideTab />
+            ) : (
+                // Holiday Settings Tab
+                <HolidaySettingsTab />
             )}
         </div>
     );

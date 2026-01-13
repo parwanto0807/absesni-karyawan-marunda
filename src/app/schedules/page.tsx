@@ -68,6 +68,16 @@ export default async function SchedulesPage({
         }
     });
 
+    // Ambil hari libur dari database
+    const holidays = await prisma.holiday.findMany({
+        where: {
+            date: {
+                gte: new Date(currentYear, 0, 1),
+                lte: new Date(currentYear, 11, 31)
+            }
+        }
+    });
+
     const monthName = new Date(currentYear, currentMonth).toLocaleString('id-ID', { month: 'long' });
 
     return (
@@ -121,6 +131,7 @@ export default async function SchedulesPage({
                     currentYear={currentYear}
                     manualSchedules={manualSchedules}
                     canEdit={canEdit}
+                    holidays={holidays}
                 />
             </div>
 
@@ -138,6 +149,7 @@ export default async function SchedulesPage({
                         currentYear={currentYear}
                         manualSchedules={manualSchedules}
                         canEdit={canEdit}
+                        holidays={holidays}
                     />
                 </div>
             )}
@@ -156,6 +168,7 @@ export default async function SchedulesPage({
                         currentYear={currentYear}
                         manualSchedules={manualSchedules}
                         canEdit={canEdit}
+                        holidays={holidays}
                     />
                 </div>
             )}

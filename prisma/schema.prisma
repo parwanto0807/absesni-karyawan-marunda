@@ -130,3 +130,12 @@ model Notification {
   isRead    Boolean  @default(false)
   createdAt DateTime @default(now())
 }
+
+model Holiday {
+  id            String   @id @default(cuid())
+  date          DateTime @unique
+  name          String
+  isCutiBersama Boolean  @default(false)
+  createdAt     DateTime @default(now())
+  updatedAt     DateTime @updatedAt
+}
