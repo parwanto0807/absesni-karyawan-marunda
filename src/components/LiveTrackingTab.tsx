@@ -187,7 +187,7 @@ export default function LiveTrackingTab() {
             {logs.length > 0 ? (
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                     {/* Log List */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden flex flex-col h-[600px]">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg overflow-hidden flex flex-col h-[400px] md:h-[600px] order-2 lg:order-1">
                         <div className="p-4 md:p-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <div className="flex items-center gap-3">
                                 <div className="p-2 rounded-lg bg-indigo-50 dark:bg-indigo-900/20">
@@ -247,7 +247,7 @@ export default function LiveTrackingTab() {
                     </div>
 
                     {/* Timeline Preview (Simple Map Mockup or visualization) */}
-                    <div className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-4 md:p-6 flex flex-col space-y-4">
+                    <div className="bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border border-slate-200 dark:border-slate-800 shadow-lg p-4 md:p-6 flex flex-col space-y-4 h-[500px] md:h-[600px] order-1 lg:order-2">
                         <div className="flex items-center gap-3">
                             <div className="p-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20">
                                 <MapIcon className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
@@ -266,16 +266,16 @@ export default function LiveTrackingTab() {
                                 src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${previewLog?.latitude},${previewLog?.longitude}&zoom=17`}
                             />
 
-                            <div className="absolute bottom-4 left-4 right-4 p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 text-left">
-                                <h3 className="text-xs font-black uppercase text-indigo-600 mb-2">Statistik Pergerakan</h3>
-                                <div className="grid grid-cols-2 gap-4">
+                            <div className="absolute bottom-2 left-2 right-2 md:bottom-4 md:left-4 md:right-4 p-3 md:p-4 bg-white/95 dark:bg-slate-900/95 backdrop-blur-md rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 text-left">
+                                <h3 className="text-[10px] md:text-xs font-black uppercase text-indigo-600 mb-1 md:mb-2">Statistik Pergerakan</h3>
+                                <div className="grid grid-cols-2 gap-2 md:gap-4">
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Titik Terpilih</p>
-                                        <p className="text-sm font-black text-slate-900 dark:text-white">Ke-{logs.findIndex(l => l.id === previewLog?.id) + 1} dari {logs.length}</p>
+                                        <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Titik Terpilih</p>
+                                        <p className="text-xs md:text-sm font-black text-slate-900 dark:text-white">Ke-{logs.findIndex(l => l.id === previewLog?.id) + 1} dari {logs.length}</p>
                                     </div>
                                     <div>
-                                        <p className="text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Waktu Titik</p>
-                                        <p className="text-sm font-black text-slate-900 dark:text-white">
+                                        <p className="text-[8px] md:text-[9px] font-bold text-slate-400 uppercase leading-none mb-1">Waktu Titik</p>
+                                        <p className="text-xs md:text-sm font-black text-slate-900 dark:text-white">
                                             {previewLog && format(new Date(previewLog.createdAt), 'HH:mm', { locale: id })} WIB
                                         </p>
                                     </div>
@@ -285,10 +285,10 @@ export default function LiveTrackingTab() {
                                         const waypoints = logs.map(l => `${l.latitude},${l.longitude}`).join('/');
                                         window.open(`https://www.google.com/maps/dir/${waypoints}`, '_blank');
                                     }}
-                                    className="mt-4 w-full h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-xs font-bold flex items-center justify-center gap-2 transition-all"
+                                    className="mt-3 md:mt-4 w-full h-9 md:h-10 rounded-lg bg-indigo-600 hover:bg-indigo-700 text-white text-[10px] md:text-xs font-bold flex items-center justify-center gap-2 transition-all"
                                 >
-                                    <ExternalLink size={14} />
-                                    Lihat Jalur Pergerakan Lengkap
+                                    <ExternalLink size={12} className="md:w-3.5 md:h-3.5" />
+                                    Lihat Jalur Pergerakan
                                 </button>
                             </div>
                         </div>
