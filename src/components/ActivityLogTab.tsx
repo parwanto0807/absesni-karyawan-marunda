@@ -1,8 +1,9 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { getActivityLogs, getUsers } from '@/actions/activity';
-import { Loader2, History as HistoryIcon, User, Clock, Monitor } from 'lucide-react';
+import { getActivityLogs, getUsers, deleteActivityLogs } from '@/actions/activity';
+import { Loader2, History as HistoryIcon, User, Clock, Monitor, Trash2, CheckSquare, Square } from 'lucide-react';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Image from 'next/image';
@@ -11,7 +12,9 @@ export default function ActivityLogTab() {
     const [logs, setLogs] = useState<any[]>([]);
     const [users, setUsers] = useState<any[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
+    const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
+    const [deleting, setDeleting] = useState(false);
 
     const loadData = async () => {
         setLoading(true);
@@ -38,8 +41,47 @@ export default function ActivityLogTab() {
     useEffect(() => {
         if (!loading) {
             loadLogsOnly();
+            setSelectedIds([]); // Reset selection when user filter changes
         }
     }, [selectedUserId]);
+
+    const handleSelectAll = () => {
+        if (selectedIds.length === logs.length) {
+            setSelectedIds([]);
+        } else {
+            setSelectedIds(logs.map(log => log.id));
+        }
+    };
+
+    const toggleSelect = (id: string) => {
+        setSelectedIds(prev =>
+            prev.includes(id) ? prev.filter(i => i !== id) : [...prev, id]
+        );
+    };
+
+    const handleDelete = async () => {
+        if (selectedIds.length === 0) return;
+
+        if (!confirm(`Hapus ${selectedIds.length} data log terpilih?`)) return;
+
+        setDeleting(true);
+        try {
+            const result = await deleteActivityLogs(selectedIds);
+            if (result.success) {
+                toast.success('Data Berhasil Dihapus', {
+                    description: `${selectedIds.length} log aktivitas telah dihapus.`
+                });
+                setSelectedIds([]);
+                loadLogsOnly();
+            } else {
+                toast.error(result.message || 'Gagal menghapus data');
+            }
+        } catch (error) {
+            toast.error('Terjadi kesalahan saat menghapus data');
+        } finally {
+            setDeleting(false);
+        }
+    };
 
     if (loading) {
         return (
@@ -71,13 +113,24 @@ export default function ActivityLogTab() {
                             </option>
                         ))}
                     </select>
-
                     <button
                         onClick={loadLogsOnly}
                         className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors border border-slate-200 dark:border-slate-700"
                     >
                         <HistoryIcon size={16} className="text-slate-600 dark:text-slate-400" />
                     </button>
+
+                    {selectedIds.length > 0 && (
+                        <button
+                            onClick={handleDelete}
+                            disabled={deleting}
+                            className="flex items-center gap-2 px-4 h-10 rounded-xl bg-red-500 hover:bg-red-600 text-white text-[10px] font-black uppercase tracking-widest transition-all shadow-lg shadow-red-500/20 active:scale-95 disabled:opacity-50"
+                        >
+                            {deleting ? <Loader2 size={14} className="animate-spin" /> : <Trash2 size={14} />}
+                            <span className="hidden sm:inline">Hapus ({selectedIds.length})</span>
+                            <span className="sm:hidden">{selectedIds.length}</span>
+                        </button>
+                    )}
                 </div>
             </div>
 
@@ -87,6 +140,18 @@ export default function ActivityLogTab() {
                     <table className="w-full text-left border-collapse">
                         <thead>
                             <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                                <th className="px-4 py-4 w-10">
+                                    <button
+                                        onClick={handleSelectAll}
+                                        className="p-1 rounded bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-indigo-600 transition-colors"
+                                    >
+                                        {selectedIds.length === logs.length && logs.length > 0 ? (
+                                            <CheckSquare size={16} />
+                                        ) : (
+                                            <Square size={16} className="text-slate-300" />
+                                        )}
+                                    </button>
+                                </th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">User</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Aksi</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Target</th>
@@ -102,7 +167,21 @@ export default function ActivityLogTab() {
                                 </tr>
                             ) : (
                                 logs.map((log) => (
-                                    <tr key={log.id} className="hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <tr
+                                        key={log.id}
+                                        className={`hover:bg-slate-50 dark:hover:bg-slate-800/30 transition-colors cursor-pointer ${selectedIds.includes(log.id) ? 'bg-indigo-50/50 dark:bg-indigo-900/10' : ''
+                                            }`}
+                                        onClick={() => toggleSelect(log.id)}
+                                    >
+                                        <td className="px-4 py-4">
+                                            <button className="text-indigo-600">
+                                                {selectedIds.includes(log.id) ? (
+                                                    <CheckSquare size={16} />
+                                                ) : (
+                                                    <Square size={16} className="text-slate-300" />
+                                                )}
+                                            </button>
+                                        </td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <div className="relative w-8 h-8 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
@@ -155,9 +234,21 @@ export default function ActivityLogTab() {
                     </div>
                 ) : (
                     logs.map((log) => (
-                        <div key={log.id} className="bg-white dark:bg-slate-900 rounded-xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98]">
+                        <div
+                            key={log.id}
+                            onClick={() => toggleSelect(log.id)}
+                            className={`bg-white dark:bg-slate-900 rounded-xl border-2 p-4 shadow-sm hover:shadow-md transition-all active:scale-[0.98] cursor-pointer ${selectedIds.includes(log.id) ? 'border-indigo-500 bg-indigo-50/10' : 'border-slate-200 dark:border-slate-800'
+                                }`}
+                        >
                             <div className="flex items-start justify-between mb-3">
                                 <div className="flex items-center gap-2.5">
+                                    <div className="text-indigo-600">
+                                        {selectedIds.includes(log.id) ? (
+                                            <CheckSquare size={18} />
+                                        ) : (
+                                            <Square size={18} className="text-slate-300" />
+                                        )}
+                                    </div>
                                     <div className="relative w-9 h-9 rounded-full overflow-hidden bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
                                         {log.user.image ? (
                                             <Image src={log.user.image} alt={log.user.name} fill className="object-cover" />

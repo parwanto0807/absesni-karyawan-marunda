@@ -97,3 +97,23 @@ export async function getUsers() {
         return [];
     }
 }
+
+/**
+ * Delete specific activity logs by IDs
+ */
+export async function deleteActivityLogs(logIds: string[]) {
+    try {
+        await prisma.activityLog.deleteMany({
+            where: {
+                id: {
+                    in: logIds
+                }
+            }
+        });
+        revalidatePath('/admin/settings');
+        return { success: true };
+    } catch (error) {
+        console.error('Failed to delete activity logs:', error);
+        return { success: false, message: 'Gagal menghapus data.' };
+    }
+}
