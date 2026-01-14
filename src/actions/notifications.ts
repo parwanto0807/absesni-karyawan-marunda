@@ -7,7 +7,7 @@ export async function createNotification(data: {
     userId: string;
     title: string;
     message: string;
-    type: 'ATTENDANCE' | 'PERMIT' | 'SYSTEM';
+    type: 'ATTENDANCE' | 'PERMIT' | 'SYSTEM' | 'INCIDENT';
     link?: string;
 }) {
     try {

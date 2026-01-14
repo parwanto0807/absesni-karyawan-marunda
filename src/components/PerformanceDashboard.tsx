@@ -16,7 +16,7 @@ export default async function PerformanceDashboard() {
         select: {
             id: true, name: true, role: true, image: true, employeeId: true,
             attendances: {
-                where: { clockIn: { gte: startOfMonth, lte: endOfMonth }, status: 'PRESENT' },
+                where: { clockIn: { gte: startOfMonth, lte: endOfMonth }, status: { in: ['PRESENT', 'LATE'] } },
                 select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
             }
         }

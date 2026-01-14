@@ -13,7 +13,8 @@ import {
     CalendarCheck,
     ChevronLeft,
     Menu,
-    Settings
+    Settings,
+    AlertTriangle
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/hooks/use-sidebar';
@@ -41,6 +42,7 @@ export default function Sidebar({ user }: { user: any }) {
         { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC'] },
+        { icon: AlertTriangle, label: 'Laporan Kejadian', href: '/admin/incidents', roles: ['ADMIN', 'PIC'] },
         { icon: ShieldCheck, label: 'Jadwal Kerja', href: '/schedules', roles: ['ADMIN', 'PIC', 'STAFF', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
         { icon: CalendarCheck, label: 'Ijin & Pergantian Shift', href: '/permits', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Settings, label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC'] },

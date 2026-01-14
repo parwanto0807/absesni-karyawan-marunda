@@ -24,6 +24,7 @@ import { cn } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import { getAttendances } from '@/actions/attendance';
+import { getIncidentReports, getMyRecentIncidents } from '@/actions/incident';
 import { prisma } from '@/lib/db';
 import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
@@ -31,6 +32,9 @@ import { ImageModal } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta } from '@/lib/date-utils';
 import DigitalClock from '@/components/DigitalClock';
+import IncidentReportDialog from '@/components/IncidentReportDialog';
+import ReviewIncidents from '@/components/ReviewIncidents';
+import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 
 export default async function Home() {
   const session = await getSession();
@@ -39,7 +43,7 @@ export default async function Home() {
   }
 
   const isPowerful = session.role === 'ADMIN' || session.role === 'PIC';
-  const isFieldRole = session.role === 'SECURITY' || session.role === 'LINGKUNGAN';
+  const isFieldRole = ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'].includes(session.role);
 
   // Date for 7 days ago (Jakarta Time)
   const sevenDaysAgo = getStartOfDayJakarta();
@@ -96,6 +100,16 @@ export default async function Home() {
 
   const securityEmployees = presentSecurity.map(a => a.user);
 
+  // 2.1 Cek apakah user saat ini sedang bertugas (Clock In & Belum Clock Out)
+  const currentAttendance = await prisma.attendance.findFirst({
+    where: {
+      userId: session.userId,
+      clockIn: { gte: activeWindow },
+      clockOut: null
+    }
+  });
+  const isOnDuty = !!currentAttendance;
+
   // 3. Aktifitas Pengajuan
   const allPermitActivity = await prisma.permit.findMany({
     where: {
@@ -107,6 +121,10 @@ export default async function Home() {
     },
     orderBy: { createdAt: 'desc' }
   });
+
+  // 4. Ambil Laporan Kejadian Saya (untuk Security/Field)
+  const incidentsResult = isFieldRole ? await getMyRecentIncidents(session.userId) : { success: false, data: [] };
+  const myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data : [];
 
   const stats = {
     totalEmployees: await prisma.user.count({
@@ -121,6 +139,7 @@ export default async function Home() {
       }
     }),
     pendingPermits: await prisma.permit.count({ where: { finalStatus: 'PENDING' } }),
+    pendingIncidents: await prisma.incidentReport.count({ where: { status: 'PENDING' } }),
     onDutyToday: await prisma.attendance.count({
       where: {
         clockIn: { gte: activeWindow },
@@ -173,7 +192,7 @@ export default async function Home() {
       </div>
 
       {/* --- MOBILE SHORTCUTS (Hidden on Desktop) --- */}
-      <div className="grid grid-cols-4 gap-4 md:hidden">
+      <div className="grid grid-cols-5 gap-4 md:hidden">
         {[
           { icon: UserCheck, label: 'Absen', color: 'from-blue-500 to-blue-600', href: '/attendance', shadow: 'shadow-blue-200' },
           { icon: Calendar, label: 'Izin', color: 'from-orange-500 to-orange-600', href: '/permits', shadow: 'shadow-orange-200' },
@@ -192,7 +211,19 @@ export default async function Home() {
             <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-indigo-600 transition-colors text-center">{item.label}</span>
           </Link>
         ))}
+
+        {/* Floating Action for Field Roles (Security, Kebersihan, Lingkungan) */}
+        {isFieldRole && (
+          <IncidentReportDialog userId={session.userId} variant="shortcut" disabled={!isOnDuty} />
+        )}
       </div>
+
+      {/* --- RECENT INCIDENTS CAROUSEL (Mobile) --- */}
+      {isFieldRole && myRecentIncidents.length > 0 && (
+        <div className="md:hidden">
+          <ReviewIncidents incidents={myRecentIncidents} userId={session.userId} />
+        </div>
+      )}
 
 
 
@@ -206,7 +237,18 @@ export default async function Home() {
             <StatCard title="Karyawan" value={stats.totalEmployees.toString()} icon={Users} color="indigo" />
             <StatCard title="Total Hadir (SCR,KBR,LNK)" value={stats.presentToday.toString()} icon={UserCheck} color="emerald" />
             <StatCard title="Izin (Menunggu)" value={stats.pendingPermits.toString()} icon={Activity} color="rose" />
-            <StatCard title="Security Bertugas" value={stats.onDutyToday.toString()} icon={ShieldCheck} color="amber" />
+            {isPowerful ? (
+              <Link href="/admin/incidents" className="group">
+                <StatCard
+                  title="Laporan Kejadian"
+                  value={stats.pendingIncidents.toString()}
+                  icon={AlertTriangleIcon}
+                  color={stats.pendingIncidents > 0 ? "rose" : "amber"}
+                />
+              </Link>
+            ) : (
+              <StatCard title="Security Bertugas" value={stats.onDutyToday.toString()} icon={ShieldCheck} color="amber" />
+            )}
           </div>
         </div>
 
@@ -293,6 +335,13 @@ export default async function Home() {
               <PatroliButton />
             </div>
           </div>
+
+          {/* E. LAPOR KEJADIAN (Desktop View) */}
+          {isFieldRole && (
+            <div className="hidden md:block">
+              <IncidentReportDialog userId={session.userId} disabled={!isOnDuty} />
+            </div>
+          )}
 
         </div>
 

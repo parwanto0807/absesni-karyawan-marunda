@@ -27,24 +27,26 @@ enum AttendanceStatus {
 }
 
 model User {
-  id             String         @id @default(cuid())
-  username       String         @unique
-  password       String
-  name           String
-  role           Role           @default(PIC)
-  employeeId     String         @unique
-  image          String?
-  rotationOffset Int            @default(0)
-  createdAt      DateTime       @default(now())
-  updatedAt      DateTime       @updatedAt
-  lastLogin      DateTime?
-  lastActive     DateTime?
-  attendances    Attendance[]
-  schedules      Schedule[]
-  permits        Permit[]       @relation("UserPermits")
-  notifications  Notification[]
-  activityLogs   ActivityLog[]
-  locationLogs   LocationLog[]
+  id               String            @id @default(cuid())
+  username         String            @unique
+  password         String
+  name             String
+  role             Role              @default(PIC)
+  employeeId       String            @unique
+  image            String?
+  rotationOffset   Int               @default(0)
+  createdAt        DateTime          @default(now())
+  updatedAt        DateTime          @updatedAt
+  lastLogin        DateTime?
+  lastActive       DateTime?
+  attendances      Attendance[]
+  schedules        Schedule[]
+  permits          Permit[]          @relation("UserPermits")
+  notifications    Notification[]
+  activityLogs     ActivityLog[]
+  locationLogs     LocationLog[]
+  incidentReports  IncidentReport[]  @relation("UserIncidents")
+  incidentComments IncidentComment[]
 }
 
 model ActivityLog {
@@ -167,4 +169,37 @@ model LocationLog {
 
   @@index([userId])
   @@index([createdAt])
+}
+
+model IncidentReport {
+  id          String            @id @default(cuid())
+  userId      String
+  user        User              @relation("UserIncidents", fields: [userId], references: [id])
+  category    String // Pencurian, Kerusakan Fasilitas, Orang Mencurigakan, Kecelakaan, Lainnya
+  description String            @db.Text
+  latitude    Float
+  longitude   Float
+  address     String?
+  evidenceImg String?           @db.Text // Base64 Foto
+  status      String            @default("PENDING") // PENDING, ON_PROGRESS, RESOLVED
+  adminId     String? // Admin yang menangani terakhir (opsional)
+  comments    IncidentComment[]
+  createdAt   DateTime          @default(now())
+  updatedAt   DateTime          @updatedAt
+
+  @@index([userId])
+  @@index([createdAt])
+}
+
+model IncidentComment {
+  id         String         @id @default(cuid())
+  incidentId String
+  incident   IncidentReport @relation(fields: [incidentId], references: [id], onDelete: Cascade)
+  userId     String
+  user       User           @relation(fields: [userId], references: [id])
+  content    String         @db.Text
+  createdAt  DateTime       @default(now())
+
+  @@index([incidentId])
+  @@index([userId])
 }
