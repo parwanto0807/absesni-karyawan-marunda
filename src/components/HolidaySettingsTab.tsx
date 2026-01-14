@@ -158,85 +158,115 @@ export default function HolidaySettingsTab() {
                     </div>
                 </div>
 
-                {/* List Table */}
+                {/* List Table/Cards */}
                 <div className="lg:col-span-2 space-y-4">
-                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 rounded-2xl border border-slate-200 dark:border-slate-800">
+                    <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-4 md:p-5 rounded-2xl border border-slate-200 dark:border-slate-800">
                         <div>
-                            <h2 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2">
+                            <h2 className="font-black text-slate-900 dark:text-white uppercase tracking-tight flex items-center gap-2 text-sm md:text-base">
                                 <Calendar className="text-indigo-600" size={18} />
                                 Daftar Hari Libur
                             </h2>
-                            <p className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tahun {currentYear} & Mendatang</p>
+                            <p className="text-[9px] md:text-[10px] font-bold text-slate-400 uppercase tracking-widest">Tahun {currentYear} & Mendatang</p>
                         </div>
                         <button
                             onClick={handleSeedData}
                             disabled={isSeeding}
-                            className="flex items-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors border border-emerald-100 dark:border-emerald-800"
+                            className="flex items-center justify-center gap-2 px-4 py-2 bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 rounded-xl text-[9px] md:text-[10px] font-black uppercase tracking-widest hover:bg-emerald-100 transition-colors border border-emerald-100 dark:border-emerald-800 w-full sm:w-auto"
                         >
                             {isSeeding ? <Loader2 className="animate-spin" size={14} /> : <RefreshCw size={14} />}
                             Sinkron SKB 2026
                         </button>
                     </div>
 
-                    <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
-                        <div className="overflow-x-auto">
-                            <table className="w-full text-left">
-                                <thead>
-                                    <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Keterangan</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jenis</th>
-                                        <th className="px-6 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Aksi</th>
-                                    </tr>
-                                </thead>
-                                <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                                    {loading ? (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">
-                                                <Loader2 className="animate-spin mx-auto mb-2" />
-                                                Memuat data...
-                                            </td>
-                                        </tr>
-                                    ) : holidays.length === 0 ? (
-                                        <tr>
-                                            <td colSpan={4} className="px-6 py-12 text-center">
-                                                <AlertCircle className="mx-auto mb-2 text-slate-300" size={32} />
-                                                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Belum ada hari libur di database</p>
-                                                <p className="text-[10px] text-slate-400 mt-1">Klik "Sinkron SKB 2026" untuk mengisi cepat.</p>
-                                            </td>
-                                        </tr>
-                                    ) : (
-                                        holidays.map((h) => (
-                                            <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
-                                                <td className="px-6 py-4">
-                                                    <span className="text-sm font-black text-slate-700 dark:text-slate-200">
-                                                        {new Date(h.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
-                                                    </span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    <span className="text-sm font-bold text-slate-900 dark:text-white uppercase">{h.name}</span>
-                                                </td>
-                                                <td className="px-6 py-4">
-                                                    {h.isCutiBersama ? (
-                                                        <span className="px-2 py-1 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded-md text-[9px] font-black uppercase tracking-tighter border border-amber-100 dark:border-amber-800">Cuti Bersama</span>
-                                                    ) : (
-                                                        <span className="px-2 py-1 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded-md text-[9px] font-black uppercase tracking-tighter border border-rose-100 dark:border-rose-800">Libur Nasional</span>
-                                                    )}
-                                                </td>
-                                                <td className="px-6 py-4 text-right">
-                                                    <button
-                                                        onClick={() => handleDelete(h.id)}
-                                                        className="p-2 text-slate-400 hover:text-rose-600 transition-colors"
-                                                    >
-                                                        <Trash2 size={16} />
-                                                    </button>
-                                                </td>
-                                            </tr>
-                                        ))
-                                    )}
-                                </tbody>
-                            </table>
-                        </div>
+                    <div className="space-y-3">
+                        {loading ? (
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center text-slate-400 font-bold text-xs uppercase tracking-widest">
+                                <Loader2 className="animate-spin mx-auto mb-2" />
+                                Memuat data...
+                            </div>
+                        ) : holidays.length === 0 ? (
+                            <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center">
+                                <AlertCircle className="mx-auto mb-2 text-slate-300" size={32} />
+                                <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Belum ada hari libur</p>
+                                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tighter italic">Klik "Sinkron SKB 2026" untuk mengisi cepat.</p>
+                            </div>
+                        ) : (
+                            <>
+                                {/* Desktop View (Table) */}
+                                <div className="hidden sm:block bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 overflow-hidden shadow-sm">
+                                    <div className="overflow-x-auto">
+                                        <table className="w-full text-left">
+                                            <thead>
+                                                <tr className="bg-slate-50 dark:bg-slate-800/50 border-b border-slate-200 dark:border-slate-800">
+                                                    <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Tanggal</th>
+                                                    <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Keterangan</th>
+                                                    <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest">Jenis</th>
+                                                    <th className="px-5 py-4 text-[10px] font-black text-slate-400 uppercase tracking-widest text-right">Aksi</th>
+                                                </tr>
+                                            </thead>
+                                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800 font-bold">
+                                                {holidays.map((h) => (
+                                                    <tr key={h.id} className="hover:bg-slate-50 dark:hover:bg-white/5 transition-colors">
+                                                        <td className="px-5 py-4">
+                                                            <span className="text-xs font-black text-slate-700 dark:text-slate-200">
+                                                                {new Date(h.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'long', year: 'numeric' })}
+                                                            </span>
+                                                        </td>
+                                                        <td className="px-5 py-4">
+                                                            <span className="text-xs font-black text-indigo-600 dark:text-indigo-400 uppercase">{h.name}</span>
+                                                        </td>
+                                                        <td className="px-5 py-4">
+                                                            {h.isCutiBersama ? (
+                                                                <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded text-[8px] font-black uppercase tracking-tighter border border-amber-100 dark:border-amber-800">Cuti Bersama</span>
+                                                            ) : (
+                                                                <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded text-[8px] font-black uppercase tracking-tighter border border-rose-100 dark:border-rose-800">Libur Nasional</span>
+                                                            )}
+                                                        </td>
+                                                        <td className="px-5 py-4 text-right">
+                                                            <button
+                                                                onClick={() => handleDelete(h.id)}
+                                                                className="p-2 text-slate-300 hover:text-rose-600 transition-colors"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    </tr>
+                                                ))}
+                                            </tbody>
+                                        </table>
+                                    </div>
+                                </div>
+
+                                {/* Mobile View (Cards) */}
+                                <div className="sm:hidden space-y-3">
+                                    {holidays.map((h) => (
+                                        <div key={h.id} className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-4 shadow-sm relative group active:scale-[0.98] transition-all">
+                                            <div className="flex justify-between items-start mb-2">
+                                                <div className="space-y-0.5">
+                                                    <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">
+                                                        {new Date(h.date).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}
+                                                    </p>
+                                                    <h4 className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight">{h.name}</h4>
+                                                </div>
+                                                <button
+                                                    onClick={() => handleDelete(h.id)}
+                                                    className="p-1.5 text-slate-300 active:text-rose-600 transition-colors"
+                                                >
+                                                    <Trash2 size={15} />
+                                                </button>
+                                            </div>
+                                            <div className="mt-2 text-right">
+                                                {h.isCutiBersama ? (
+                                                    <span className="px-2 py-0.5 bg-amber-50 dark:bg-amber-900/20 text-amber-600 rounded text-[8px] font-black uppercase tracking-tighter border border-amber-100 dark:border-amber-800">Cuti Bersama</span>
+                                                ) : (
+                                                    <span className="px-2 py-0.5 bg-rose-50 dark:bg-rose-900/20 text-rose-600 rounded text-[8px] font-black uppercase tracking-tighter border border-rose-100 dark:border-rose-800">Libur Nasional</span>
+                                                )}
+                                            </div>
+                                        </div>
+                                    ))}
+                                </div>
+                            </>
+                        )}
                     </div>
                 </div>
             </div>
