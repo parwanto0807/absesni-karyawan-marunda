@@ -124,12 +124,9 @@ export default async function Home() {
 
   // 4. Ambil Laporan Kejadian (All for Admin/PIC, My for Field)
   let myRecentIncidents: any[] = [];
-  if (isPowerful) {
+  if (isPowerful || isFieldRole) {
     const incidentsResult = await getIncidentReports(true);
     myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data.slice(0, 10) : [];
-  } else if (isFieldRole) {
-    const incidentsResult = await getMyRecentIncidents(session.userId, true);
-    myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data : [];
   }
 
   const stats = {

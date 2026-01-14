@@ -306,7 +306,9 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
                                     <div className="p-4 rounded-3xl rounded-tl-none bg-slate-100 dark:bg-slate-900 text-xs font-bold leading-relaxed">
                                         Laporan: {selectedIncident.description}
                                     </div>
-                                    <span className="text-[8px] font-bold text-slate-400 uppercase ml-1">Saya • {format(new Date(selectedIncident.createdAt), 'HH:mm', { locale: id })}</span>
+                                    <span className="text-[8px] font-bold text-slate-400 uppercase ml-1">
+                                        {selectedIncident.userId === userId ? 'Saya' : selectedIncident.user?.name} • {format(new Date(selectedIncident.createdAt), 'HH:mm', { locale: id })}
+                                    </span>
                                 </div>
 
                                 {selectedIncident.comments?.map((comment: any) => {
