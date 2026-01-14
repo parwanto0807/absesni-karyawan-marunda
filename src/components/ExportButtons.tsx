@@ -283,10 +283,10 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                     stats.totalEarlyMinutes += att.earlyLeaveMinutes;
                 }
 
-                // Calculate daily performance
+                // Calculate daily performance matching Dashboard logic (1% per minute, no cap)
                 let performance = 100;
-                if (att.isLate) performance -= Math.min(att.lateMinutes * 0.5, 30);
-                if (att.isEarlyLeave) performance -= Math.min(att.earlyLeaveMinutes * 0.5, 30);
+                if (att.isLate) performance -= att.lateMinutes;
+                if (att.isEarlyLeave) performance -= att.earlyLeaveMinutes;
                 stats.performances.push(Math.max(0, performance));
             });
 
