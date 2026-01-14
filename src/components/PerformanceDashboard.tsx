@@ -27,8 +27,10 @@ export default async function PerformanceDashboard() {
             return { ...emp, averageScore: 0, totalAttendance: 0 };
         }
         const totalScore = emp.attendances.reduce((sum: number, att: any) => sum + calculateDailyPerformance(att), 0);
-        const averageScore = Math.round(totalScore / emp.attendances.length);
-        return { ...emp, averageScore, totalAttendance: emp.attendances.length };
+        const averageScore = emp.attendances.length > 0
+            ? (totalScore / emp.attendances.length).toFixed(2)
+            : "0.00";
+        return { ...emp, averageScore: parseFloat(averageScore), totalAttendance: emp.attendances.length };
     }).sort((a: any, b: any) => (b.averageScore - a.averageScore) || (b.totalAttendance - a.totalAttendance));
 
     return (
@@ -83,7 +85,7 @@ export default async function PerformanceDashboard() {
                                             <div className="flex-1 h-1.5 bg-slate-100 dark:bg-slate-800 rounded-full overflow-hidden">
                                                 <div className={cn("h-full rounded-full", getPerformanceBarColor(emp.averageScore))} style={{ width: `${emp.averageScore}%` }} />
                                             </div>
-                                            <span className={cn("text-[9px] font-black w-6 text-right", getPerformanceColor(emp.averageScore).split(' ')[0])}>{emp.averageScore}%</span>
+                                            <span className={cn("text-[9px] font-black w-8 text-right", getPerformanceColor(emp.averageScore).split(' ')[0])}>{emp.averageScore}%</span>
                                         </div>
                                     </td>
                                 </tr>

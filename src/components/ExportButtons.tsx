@@ -283,11 +283,21 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                     stats.totalEarlyMinutes += att.earlyLeaveMinutes;
                 }
 
-                // Calculate daily performance matching Dashboard logic (1% per minute, no cap)
-                let performance = 100;
-                if (att.isLate) performance -= att.lateMinutes;
-                if (att.isEarlyLeave) performance -= att.earlyLeaveMinutes;
-                stats.performances.push(Math.max(0, performance));
+                // Calculate & Record Performance ONLY for Present/Late
+                if (att.status === 'PRESENT' || att.status === 'LATE') {
+                    let performance = 100; // Start perfect
+                    if (att.isLate) performance -= att.lateMinutes; // Deduct 1% per minute
+                    if (att.isEarlyLeave) performance -= att.earlyLeaveMinutes; // Deduct 1% per minute
+                    stats.performances.push(Math.max(0, performance));
+                } else {
+                    // For ABSENT/SICK/etc, do we count performance?
+                    // Currently: Don't count them in "Average Performance of Attendance"
+                    // If we want to penalize Absentism in performance score, we'd push 0 here.
+                    // But usually performance score is "Quality of Attendance".
+                    // The dashboard shows 0% if no attendance.
+                    // If we don't push, stats.performances might be empty -> returns '0.0' in summary.
+                    // This seems correct for Trio (0 Present).
+                }
             });
 
             // Performance Summary Section
