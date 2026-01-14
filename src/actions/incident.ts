@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { createNotification } from './notifications';
+import { triggerPusher } from '@/lib/pusher-server';
 
 export async function createIncidentReport(data: {
     userId: string;
@@ -30,7 +31,7 @@ export async function createIncidentReport(data: {
 
         // Notify Admins
         const admins = await prisma.user.findMany({
-            where: { role: { in: ['ADMIN', 'PIC'] } }
+            where: { role: { in: ['ADMIN', 'PIC', 'RT'] } }
         });
 
         for (const admin of admins) {
@@ -43,8 +44,13 @@ export async function createIncidentReport(data: {
             });
         }
 
+        // Trigger Realtime - Send a "clean" version without heavy Base64 image
+        const pusherReport = { ...report, evidenceImg: report.evidenceImg ? 'HAS_IMAGE' : null };
+        await triggerPusher('incidents', 'new-incident', pusherReport);
+
         revalidatePath('/');
         revalidatePath('/admin/incidents');
+
         return { success: true, data: report };
     } catch (error) {
         console.error('Create Incident Error:', error);
@@ -52,9 +58,15 @@ export async function createIncidentReport(data: {
     }
 }
 
-export async function getIncidentReports() {
+export async function getIncidentReports(excludeResolved: boolean = false) {
     try {
+        const whereClause: any = {};
+        if (excludeResolved) {
+            whereClause.status = { not: 'RESOLVED' };
+        }
+
         const reports = await prisma.incidentReport.findMany({
+            where: whereClause,
             include: {
                 user: true,
                 comments: {
@@ -71,10 +83,15 @@ export async function getIncidentReports() {
     }
 }
 
-export async function getMyRecentIncidents(userId: string) {
+export async function getMyRecentIncidents(userId: string, excludeResolved: boolean = false) {
     try {
+        const whereClause: any = { userId: userId };
+        if (excludeResolved) {
+            whereClause.status = { not: 'RESOLVED' };
+        }
+
         const reports = await prisma.incidentReport.findMany({
-            where: { userId: userId },
+            where: whereClause,
             include: {
                 user: true,
                 comments: {
@@ -120,13 +137,13 @@ export async function addIncidentComment(reportId: string, userId: string, conte
                 where: { id: reportId },
                 data: {
                     status: newStatus,
-                    adminId: ['ADMIN', 'PIC'].includes(user.role) ? userId : undefined
+                    adminId: ['ADMIN', 'PIC', 'RT'].includes(user.role) ? userId : undefined
                 }
             });
         }
 
         // Logic for notifications
-        if (['ADMIN', 'PIC'].includes(user.role)) {
+        if (['ADMIN', 'PIC', 'RT'].includes(user.role)) {
             // Admin commenting -> Notify Reporter
             await createNotification({
                 userId: comment.incident.userId,
@@ -138,7 +155,7 @@ export async function addIncidentComment(reportId: string, userId: string, conte
         } else {
             // User commenting -> Notify Admins/PICs
             const admins = await prisma.user.findMany({
-                where: { role: { in: ['ADMIN', 'PIC'] } }
+                where: { role: { in: ['ADMIN', 'PIC', 'RT'] } }
             });
 
             for (const admin of admins) {
@@ -152,11 +169,67 @@ export async function addIncidentComment(reportId: string, userId: string, conte
             }
         }
 
+        // Trigger Realtime - Strip incident details for minimal size
+        const pusherComment = {
+            ...comment,
+            incident: { id: comment.incidentId, status: newStatus || comment.incident.status },
+            newStatus: newStatus
+        };
+
+        await triggerPusher(`incident-${reportId}`, 'new-comment', pusherComment);
+
+        // Trigger Global Update for the list (Status change)
+        // Strip sensitive/heavy data to ensure it's under 10KB
+        await triggerPusher('incident-globals', 'update', {
+            incidentId: reportId,
+            newStatus: newStatus,
+            lastMessage: content.substring(0, 30),
+            senderId: userId,
+            senderName: user.name,
+            fullComment: {
+                id: comment.id,
+                content: comment.content,
+                createdAt: comment.createdAt,
+                userId: comment.userId,
+                incidentId: comment.incidentId,
+                user: {
+                    id: user.id,
+                    name: user.name,
+                    role: user.role,
+                    image: user.image
+                }
+            }
+        });
+
         revalidatePath('/');
         revalidatePath('/admin/incidents');
+
         return { success: true, data: comment };
     } catch (error) {
         console.error('Add Comment Error:', error);
         return { success: false, message: 'Gagal mengirim komentar.' };
+    }
+}
+
+export async function updateIncidentAdminNotes(reportId: string, data: {
+    actionDetail?: string;
+    analysis?: string;
+    improvement?: string;
+}) {
+    try {
+        const report = await prisma.incidentReport.update({
+            where: { id: reportId },
+            data: {
+                actionDetail: data.actionDetail,
+                analysis: data.analysis,
+                improvement: data.improvement
+            }
+        });
+
+        revalidatePath('/admin/incidents');
+        return { success: true, data: report };
+    } catch (error) {
+        console.error('Update Admin Notes Error:', error);
+        return { success: false, message: 'Gagal memperbarui catatan admin.' };
     }
 }

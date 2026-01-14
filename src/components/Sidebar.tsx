@@ -38,14 +38,14 @@ export default function Sidebar({ user }: { user: any }) {
     };
 
     const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
-        { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
-        { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
-        { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC'] },
-        { icon: AlertTriangle, label: 'Laporan Kejadian', href: '/admin/incidents', roles: ['ADMIN', 'PIC'] },
-        { icon: ShieldCheck, label: 'Jadwal Kerja', href: '/schedules', roles: ['ADMIN', 'PIC', 'STAFF', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
-        { icon: CalendarCheck, label: 'Ijin & Pergantian Shift', href: '/permits', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
-        { icon: Settings, label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC'] },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
+        { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
+        { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
+        { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },
+        { icon: AlertTriangle, label: 'Laporan Kejadian', href: '/admin/incidents', roles: ['ADMIN', 'PIC', 'RT'] },
+        { icon: ShieldCheck, label: 'Jadwal Kerja', href: '/schedules', roles: ['ADMIN', 'PIC', 'RT', 'STAFF', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
+        { icon: CalendarCheck, label: 'Ijin & Pergantian Shift', href: '/permits', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
+        { icon: Settings, label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC', 'RT'] },
     ];
 
     // Filter menu based on user role

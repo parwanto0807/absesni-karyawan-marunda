@@ -126,7 +126,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
         // 🔔 Notify Admins & PICs
         if (user) {
             const admins = await prisma.user.findMany({
-                where: { role: { in: ['ADMIN', 'PIC'] } }
+                where: { role: { in: ['ADMIN', 'PIC', 'RT'] } }
             });
             for (const admin of admins) {
                 if (admin.id === userId) continue; // Don't notify self if admin is clocking in
@@ -148,8 +148,8 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                     `*Nama:* ${user.name}\n` +
                     `*Divisi:* ${user.role}\n` +
                     `*Shift:* ${shiftCode}\n` +
-                    `*Jadwal In:* ${scheduledStart ? format(scheduledStart, 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
-                    `*Waktu Absen:* ${format(now, 'HH:mm', { locale: id })} WIB\n` +
+                    `*Jadwal In:* ${scheduledStart ? format(toZonedTime(scheduledStart, TIMEZONE), 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
+                    `*Waktu Absen:* ${format(toZonedTime(now, TIMEZONE), 'HH:mm', { locale: id })} WIB\n` +
                     `*Durasi Telat:* ${lateMinutes} Menit\n\n` +
                     `_Mohon untuk menjadi perhatian admin._`;
 
@@ -231,7 +231,7 @@ export async function clockOut(attendanceId: string) {
 
             // 🔔 Notify Admins & PICs
             const admins = await prisma.user.findMany({
-                where: { role: { in: ['ADMIN', 'PIC'] } }
+                where: { role: { in: ['ADMIN', 'PIC', 'RT'] } }
             });
             for (const admin of admins) {
                 if (admin.id === user.id) continue;
@@ -265,8 +265,8 @@ export async function clockOut(attendanceId: string) {
                         `*Nama:* ${user.name}\n` +
                         `*Divisi:* ${user.role}\n` +
                         `*Shift:* ${existingAttendance?.shiftType || '--'}\n` +
-                        `*Jadwal Out:* ${existingAttendance?.scheduledClockOut ? format(new Date(existingAttendance.scheduledClockOut), 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
-                        `*Waktu Absen:* ${format(now, 'HH:mm', { locale: id })} WIB\n` +
+                        `*Jadwal Out:* ${existingAttendance?.scheduledClockOut ? format(toZonedTime(new Date(existingAttendance.scheduledClockOut), TIMEZONE), 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
+                        `*Waktu Absen:* ${format(toZonedTime(now, TIMEZONE), 'HH:mm', { locale: id })} WIB\n` +
                         `*Pulang Awal:* ${earlyLeaveMinutes} Menit\n\n` +
                         `_Mohon untuk menjadi perhatian admin._`;
 

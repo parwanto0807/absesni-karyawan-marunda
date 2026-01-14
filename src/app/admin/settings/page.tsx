@@ -10,7 +10,7 @@ export default async function SettingsPage() {
         redirect("/login");
     }
 
-    if (session.role !== 'ADMIN' && session.role !== 'PIC') {
+    if (session.role !== 'ADMIN' && session.role !== 'PIC' && session.role !== 'RT') {
         redirect("/");
     }
 

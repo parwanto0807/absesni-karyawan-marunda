@@ -14,7 +14,8 @@ import {
     Briefcase,
     Users,
     Leaf,
-    Sparkles
+    Sparkles,
+    Home
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 
@@ -22,7 +23,7 @@ export default function LoginPage() {
     const [isLoading, setIsLoading] = useState(false);
     const [showPassword, setShowPassword] = useState(false);
     const [error, setError] = useState<string | null>(null);
-    const [selectedRole, setSelectedRole] = useState<string>('ADMIN');
+    const [selectedRole, setSelectedRole] = useState<string>('SECURITY');
 
     async function handleSubmit(event: React.FormEvent<HTMLFormElement>) {
         event.preventDefault();
@@ -39,7 +40,8 @@ export default function LoginPage() {
     }
 
     const roles = [
-        { id: 'ADMIN', label: 'Admin', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { id: 'ADMIN', label: 'Admin BPL', icon: Shield, color: 'text-indigo-600', bg: 'bg-indigo-50' },
+        { id: 'RT', label: 'RT', icon: Home, color: 'text-rose-600', bg: 'bg-rose-50' },
         { id: 'KEBERSIHAN', label: 'Kebersihan', icon: Sparkles, color: 'text-teal-600', bg: 'bg-teal-50' },
         { id: 'SECURITY', label: 'Security', icon: ShieldCheck, color: 'text-amber-600', bg: 'bg-amber-50' },
         { id: 'LINGKUNGAN', label: 'Lingkungan', icon: Leaf, color: 'text-emerald-600', bg: 'bg-emerald-50' },
@@ -61,25 +63,50 @@ export default function LoginPage() {
                 </div>
 
                 {/* Role Selection */}
-                <div className="grid grid-cols-4 gap-2">
-                    {roles.map((role) => (
-                        <button
-                            key={role.id}
-                            type="button"
-                            onClick={() => setSelectedRole(role.id)}
-                            className={cn(
-                                "flex flex-col items-center p-3 rounded-2xl border-2 transition-all duration-200 active:scale-95",
-                                selectedRole === role.id
-                                    ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20"
-                                    : "border-transparent bg-slate-50 dark:bg-slate-800 grayscale opacity-60 hover:grayscale-0 hover:opacity-100"
-                            )}
-                        >
-                            <role.icon className={cn("h-6 w-6 mb-1", selectedRole === role.id ? "text-indigo-600" : "text-slate-400")} />
-                            <span className={cn("text-[9px] font-bold uppercase truncate w-full text-center px-0.5", selectedRole === role.id ? "text-indigo-700" : "text-slate-500")}>
-                                {role.label}
-                            </span>
-                        </button>
-                    ))}
+                <div className="space-y-2">
+                    {/* Row 1: Admin & RT */}
+                    <div className="grid grid-cols-2 gap-2">
+                        {roles.filter(r => ['ADMIN', 'RT'].includes(r.id)).map((role) => (
+                            <button
+                                key={role.id}
+                                type="button"
+                                onClick={() => setSelectedRole(role.id)}
+                                className={cn(
+                                    "flex flex-col items-center p-3 rounded-2xl border-2 transition-all duration-300 active:scale-95 group",
+                                    selectedRole === role.id
+                                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 shadow-sm"
+                                        : "border-transparent bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                                )}
+                            >
+                                <role.icon className={cn("h-6 w-6 mb-1 transition-all", role.color, selectedRole !== role.id && "opacity-70 group-hover:opacity-100")} />
+                                <span className={cn("text-[9px] font-bold uppercase truncate w-full text-center px-0.5", selectedRole === role.id ? "text-indigo-700" : "text-slate-500")}>
+                                    {role.label}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
+
+                    {/* Row 2: Security, Kebersihan, Lingkungan */}
+                    <div className="grid grid-cols-3 gap-2">
+                        {roles.filter(r => ['SECURITY', 'KEBERSIHAN', 'LINGKUNGAN'].includes(r.id)).map((role) => (
+                            <button
+                                key={role.id}
+                                type="button"
+                                onClick={() => setSelectedRole(role.id)}
+                                className={cn(
+                                    "flex flex-col items-center p-3 rounded-2xl border-2 transition-all duration-300 active:scale-95 group",
+                                    selectedRole === role.id
+                                        ? "border-indigo-600 bg-indigo-50 dark:bg-indigo-900/20 shadow-sm"
+                                        : "border-transparent bg-slate-50 dark:bg-slate-800 hover:bg-slate-100 dark:hover:bg-slate-700/50"
+                                )}
+                            >
+                                <role.icon className={cn("h-6 w-6 mb-1 transition-all", role.color, selectedRole !== role.id && "opacity-70 group-hover:opacity-100")} />
+                                <span className={cn("text-[9px] font-bold uppercase truncate w-full text-center px-0.5", selectedRole === role.id ? "text-indigo-700" : "text-slate-500")}>
+                                    {role.label}
+                                </span>
+                            </button>
+                        ))}
+                    </div>
                 </div>
 
                 <form onSubmit={handleSubmit} className="space-y-5">

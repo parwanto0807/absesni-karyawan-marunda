@@ -51,8 +51,8 @@ export async function createPermit(formData: FormData) {
                 endDate,
                 reason,
                 image: imageUrl,
-                securityStatus: 'PENDING',
-                lingkunganStatus: 'PENDING',
+                adminStatus: 'PENDING',
+                rtStatus: 'PENDING',
                 finalStatus: 'PENDING',
             }
         });
@@ -66,7 +66,7 @@ export async function createPermit(formData: FormData) {
         });
 
         // 🎉 Notify Admins
-        const admins = await prisma.user.findMany({ where: { role: 'ADMIN' } });
+        const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'PIC', 'RT'] } } });
         for (const admin of admins) {
             await createNotification({
                 userId: admin.id,
@@ -87,33 +87,70 @@ export async function createPermit(formData: FormData) {
 
 export async function approvePermit(permitId: string, role: string, status: 'APPROVED' | 'REJECTED', approverId: string) {
     try {
-        if (role !== 'ADMIN' && role !== 'PIC') {
-            return { success: false, message: 'Hanya PIC atau ADMIN yang dapat memberikan persetujuan.' };
+        if (role !== 'ADMIN' && role !== 'PIC' && role !== 'RT') {
+            return { success: false, message: 'Hanya PIC, RT, atau ADMIN yang dapat memberikan persetujuan.' };
         }
 
         const now = new Date();
-        await prisma.permit.update({
+        const updateData: any = {};
+        if (role === 'ADMIN' || role === 'PIC') {
+            updateData.adminStatus = status;
+            updateData.adminId = approverId;
+            updateData.adminAt = now;
+        } else if (role === 'RT') {
+            updateData.rtStatus = status;
+            updateData.rtId = approverId;
+            updateData.rtAt = now;
+        }
+
+        const updatedPermit = await prisma.permit.update({
             where: { id: permitId },
-            data: {
-                finalStatus: status,
-                adminId: approverId,
-                adminAt: now,
-                // Automatically set secondary statuses for data consistency if needed, 
-                // but finalStatus is the source of truth now.
-                securityStatus: status,
-                lingkunganStatus: status,
-            }
+            data: updateData
         });
 
-        // 🎉 Notify User of Approval/Rejection
+        // Determine finalStatus
+        let finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED' = 'PENDING';
+        if (updatedPermit.adminStatus === 'APPROVED' && updatedPermit.rtStatus === 'APPROVED') {
+            finalStatus = 'APPROVED';
+        } else if (updatedPermit.adminStatus === 'REJECTED' || updatedPermit.rtStatus === 'REJECTED') {
+            finalStatus = 'REJECTED';
+        }
+
+        if (finalStatus !== 'PENDING') {
+            await prisma.permit.update({
+                where: { id: permitId },
+                data: { finalStatus }
+            });
+        }
+
+        // 🎉 Notify User of Progress/Final Status
         const permit = await prisma.permit.findUnique({ where: { id: permitId } });
         if (permit) {
-            await createNotification({
-                userId: permit.userId,
-                title: status === 'APPROVED' ? 'Izin Disetujui' : 'Izin Ditolak',
-                message: `Pengajuan izin ${permit.type} Anda telah ${status === 'APPROVED' ? 'disetujui' : 'ditolak'}.`,
-                type: 'PERMIT',
-            });
+            // 1. Progress Notifications (Indivdual Approval)
+            if (status === 'APPROVED' && finalStatus === 'PENDING') {
+                const isByAdmin = role === 'ADMIN' || role === 'PIC';
+                const approverLabel = isByAdmin ? 'Admin BPL' : 'Ketua RT';
+                const nextStep = isByAdmin ? 'Ketua RT' : 'Admin BPL/Koordinator Security';
+
+                await createNotification({
+                    userId: permit.userId,
+                    title: `Izin Disetujui ${approverLabel}`,
+                    message: `Pengajuan izin ${permit.type} Anda telah disetujui oleh ${approverLabel}. Menunggu Persetujuan ${nextStep}.`,
+                    type: 'PERMIT',
+                });
+            }
+
+            // 2. Final Status Notifications
+            if (finalStatus !== 'PENDING') {
+                await createNotification({
+                    userId: permit.userId,
+                    title: finalStatus === 'APPROVED' ? 'Izin DISETUJUI (Final)' : 'Izin DITOLAK',
+                    message: finalStatus === 'APPROVED'
+                        ? `Selamat! Pengajuan izin ${permit.type} Anda telah disetujui sepenuhnya oleh Admin & RT.`
+                        : `Pengajuan izin ${permit.type} Anda ditolak.`,
+                    type: 'PERMIT',
+                });
+            }
         }
 
         revalidatePath('/permits');
@@ -126,26 +163,46 @@ export async function approvePermit(permitId: string, role: string, status: 'APP
 
 export async function resetPermit(permitId: string, role: string) {
     try {
-        if (role !== 'ADMIN' && role !== 'PIC') {
-            return { success: false, message: 'Hanya PIC atau ADMIN yang dapat mereset status.' };
+        if (role !== 'ADMIN' && role !== 'PIC' && role !== 'RT') {
+            return { success: false, message: 'Hanya PIC, RT, atau ADMIN yang dapat mereset status.' };
+        }
+
+        const updateData: any = {
+            finalStatus: 'PENDING' // Always back to pending if anyone resets
+        };
+
+        if (role === 'ADMIN' || role === 'PIC') {
+            updateData.adminStatus = 'PENDING';
+            updateData.adminId = null;
+            updateData.adminAt = null;
+        } else if (role === 'RT') {
+            updateData.rtStatus = 'PENDING';
+            updateData.rtId = null;
+            updateData.rtAt = null;
         }
 
         await prisma.permit.update({
             where: { id: permitId },
-            data: {
-                finalStatus: 'PENDING',
-                securityStatus: 'PENDING',
-                lingkunganStatus: 'PENDING',
-                adminId: null,
-                adminAt: null,
-            }
+            data: updateData
         });
 
+        // 🎉 Notify User of Reset
+        const permit = await prisma.permit.findUnique({ where: { id: permitId } });
+        if (permit) {
+            const resetBy = (role === 'ADMIN' || role === 'PIC') ? 'Admin BPL' : 'Ketua RT';
+            await createNotification({
+                userId: permit.userId,
+                title: 'Pengajuan Izin Di-pending',
+                message: `Status pengajuan izin ${permit.type} Anda telah di-pending oleh ${resetBy} ke status PENDING untuk pengecekan ulang.`,
+                type: 'PERMIT',
+            });
+        }
+
         revalidatePath('/permits');
-        return { success: true, message: 'Status pengajuan izin telah direset ke PENDING.' };
+        return { success: true, message: 'Status pengajuan izin telah di-pending ke PENDING.' };
     } catch (error) {
         console.error('Reset Permit Error:', error);
-        return { success: false, message: 'Gagal mereset status izin.' };
+        return { success: false, message: 'Gagal mem-pending status izin.' };
     }
 }
 

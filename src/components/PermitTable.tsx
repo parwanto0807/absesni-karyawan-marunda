@@ -133,42 +133,86 @@ export default function PermitTable({ permits, currentUser }: { permits: any[], 
                                 </div>
 
                                 {/* Actions */}
-                                {(currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && permit.finalStatus === 'PENDING' ? (
-                                    <div className="flex justify-end space-x-2 pt-1">
-                                        <button
-                                            onClick={() => handleAction(permit.id, 'APPROVED')}
-                                            disabled={!!loading}
-                                            className="flex-1 h-8 flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 text-[9px] font-black uppercase tracking-widest space-x-1"
-                                        >
-                                            {loading === `${permit.id}-APPROVED` ? <Loader2 className="animate-spin h-3 w-3" /> : <><Check size={12} /><span>Setujui</span></>}
-                                        </button>
-                                        <button
-                                            onClick={() => handleAction(permit.id, 'REJECTED')}
-                                            disabled={!!loading}
-                                            className="flex-1 h-8 flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 text-[9px] font-black uppercase tracking-widest space-x-1"
-                                        >
-                                            {loading === `${permit.id}-REJECTED` ? <Loader2 className="animate-spin h-3 w-3" /> : <><X size={12} /><span>Tolak</span></>}
-                                        </button>
-                                    </div>
-                                ) : (currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && (permit.finalStatus === 'APPROVED' || permit.finalStatus === 'REJECTED') && !isPermitExpired(permit.endDate) ? (
-                                    <div className="flex justify-end pt-1">
-                                        <button
-                                            onClick={() => handleReset(permit.id)}
-                                            disabled={!!loading}
-                                            className="h-8 px-4 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 text-[9px] font-black uppercase tracking-widest space-x-1"
-                                        >
-                                            {loading === `${permit.id}-RESET` ? <Loader2 className="animate-spin h-3 w-3" /> : <><RotateCcw size={12} /><span>Reset</span></>}
-                                        </button>
-                                    </div>
-                                ) : (
-                                    permit.finalStatus === 'PENDING' && (
-                                        <div className="pt-1">
-                                            <div className="w-full h-7 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-900/30 flex items-center justify-center animate-pulse">
-                                                Menunggu Approval
+                                {/* Dual Approval Progress */}
+                                <div className="grid grid-cols-2 gap-2 pt-1">
+                                    {/* Admin/PIC Column */}
+                                    <div className="flex flex-col space-y-1">
+                                        <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest pl-1">Admin BPL</div>
+                                        {(currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && permit.adminStatus === 'PENDING' ? (
+                                            <div className="flex items-center space-x-1">
+                                                <button
+                                                    onClick={() => handleAction(permit.id, 'APPROVED')}
+                                                    disabled={!!loading}
+                                                    className="flex-1 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                                                >
+                                                    {loading === `${permit.id}-APPROVED` ? <Loader2 className="animate-spin h-3 w-3" /> : <Check size={12} />}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleAction(permit.id, 'REJECTED')}
+                                                    disabled={!!loading}
+                                                    className="flex-1 h-7 rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                                                >
+                                                    {loading === `${permit.id}-REJECTED` ? <Loader2 className="animate-spin h-3 w-3" /> : <X size={12} />}
+                                                </button>
                                             </div>
+                                        ) : (
+                                            <div className={cn(
+                                                "h-7 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center justify-center border",
+                                                permit.adminStatus === 'APPROVED' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                                    permit.adminStatus === 'REJECTED' ? "bg-rose-50 border-rose-100 text-rose-600" :
+                                                        "bg-slate-50 border-slate-100 text-slate-400"
+                                            )}>
+                                                {permit.adminStatus === 'APPROVED' ? "Menyetujui" : permit.adminStatus === 'REJECTED' ? "Ditolak" : "Belum Menyetujui"}
+                                            </div>
+                                        )}
+                                    </div>
+
+                                    {/* RT Column */}
+                                    <div className="flex flex-col space-y-1">
+                                        <div className="text-[7px] font-black text-slate-400 uppercase tracking-widest pl-1">Ketua RT</div>
+                                        {currentUser.role === 'RT' && permit.rtStatus === 'PENDING' ? (
+                                            <div className="flex items-center space-x-1">
+                                                <button
+                                                    onClick={() => handleAction(permit.id, 'APPROVED')}
+                                                    disabled={!!loading}
+                                                    className="flex-1 h-7 rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                                                >
+                                                    {loading === `${permit.id}-APPROVED` ? <Loader2 className="animate-spin h-3 w-3" /> : <Check size={12} />}
+                                                </button>
+                                                <button
+                                                    onClick={() => handleAction(permit.id, 'REJECTED')}
+                                                    disabled={!!loading}
+                                                    className="flex-1 h-7 rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 flex items-center justify-center"
+                                                >
+                                                    {loading === `${permit.id}-REJECTED` ? <Loader2 className="animate-spin h-3 w-3" /> : <X size={12} />}
+                                                </button>
+                                            </div>
+                                        ) : (
+                                            <div className={cn(
+                                                "h-7 rounded-lg text-[8px] font-black uppercase tracking-widest flex items-center justify-center border",
+                                                permit.rtStatus === 'APPROVED' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                                    permit.rtStatus === 'REJECTED' ? "bg-rose-50 border-rose-100 text-rose-600" :
+                                                        "bg-slate-50 border-slate-100 text-slate-400"
+                                            )}>
+                                                {permit.rtStatus === 'APPROVED' ? "Menyetujui" : permit.rtStatus === 'REJECTED' ? "Ditolak" : "Belum Menyetujui"}
+                                            </div>
+                                        )}
+                                    </div>
+                                </div>
+
+                                {/* Reset Button (Only for the role that has already made a decision) */}
+                                {((((currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && permit.adminStatus !== 'PENDING') ||
+                                    (currentUser.role === 'RT' && permit.rtStatus !== 'PENDING'))) && (
+                                        <div className="pt-2">
+                                            <button
+                                                onClick={() => handleReset(permit.id)}
+                                                disabled={!!loading}
+                                                className="w-full h-8 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-sm transition-all active:scale-95 disabled:opacity-50 text-[9px] font-black uppercase tracking-widest space-x-1"
+                                            >
+                                                {loading === `${permit.id}-RESET` ? <Loader2 className="animate-spin h-3 w-3" /> : <><RotateCcw size={12} /><span>Reset Approval {(currentUser.role === 'RT' ? 'RT' : 'Admin')}</span></>}
+                                            </button>
                                         </div>
-                                    )
-                                )}
+                                    )}
                             </div>
                         ))}
                     </div>
@@ -243,20 +287,39 @@ export default function PermitTable({ permits, currentUser }: { permits: any[], 
                                             <span className="text-[9px] md:text-sm font-bold text-slate-500 dark:text-slate-400 text-wrap max-w-[440px]" title={permit.reason}>{permit.reason}</span>
                                         </div>
                                     </td>
-                                    <td className="px-5 py-3 text-center">
-                                        <span className={cn("px-2.5 py-1 rounded-md text-[8px] md:text-xs font-black uppercase tracking-widest", getStatusStyles(permit.finalStatus))}>
-                                            {getStatusLabel(permit.finalStatus)}
-                                        </span>
+                                    <td className="px-5 py-3 text-center min-w-[150px]">
+                                        <div className="flex flex-col items-center space-y-1.5">
+                                            <span className={cn("px-2.5 py-1 rounded-md text-[8px] md:text-[11px] font-black uppercase tracking-widest border whitespace-nowrap w-full",
+                                                permit.adminStatus === 'APPROVED' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                                    permit.adminStatus === 'REJECTED' ? "bg-rose-50 border-rose-100 text-rose-600" :
+                                                        "bg-slate-50 border-slate-100 text-slate-400"
+                                            )}>
+                                                Admin: {permit.adminStatus === 'APPROVED' ? "Setuju" : permit.adminStatus === 'REJECTED' ? "Tolak" : "..."}
+                                            </span>
+                                            <span className={cn("px-2.5 py-1 rounded-md text-[8px] md:text-[11px] font-black uppercase tracking-widest border whitespace-nowrap w-full",
+                                                permit.rtStatus === 'APPROVED' ? "bg-emerald-50 border-emerald-100 text-emerald-600" :
+                                                    permit.rtStatus === 'REJECTED' ? "bg-rose-50 border-rose-100 text-rose-600" :
+                                                        "bg-slate-50 border-slate-100 text-slate-400"
+                                            )}>
+                                                RT: {permit.rtStatus === 'APPROVED' ? "Setuju" : permit.rtStatus === 'REJECTED' ? "Tolak" : "..."}
+                                            </span>
+                                            <div className="pt-0.5">
+                                                <span className={cn("px-3 py-1 rounded-full text-[9px] md:text-[12px] font-black uppercase tracking-widest shadow-sm", getStatusStyles(permit.finalStatus))}>
+                                                    {getStatusLabel(permit.finalStatus)}
+                                                </span>
+                                            </div>
+                                        </div>
                                     </td>
                                     <td className="px-5 py-3 text-right">
-                                        <div className="flex justify-end space-x-1.5">
-                                            {(currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && permit.finalStatus === 'PENDING' ? (
-                                                <>
+                                        <div className="flex flex-col space-y-2">
+                                            {/* Action for Admin/PIC */}
+                                            {(currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && permit.adminStatus === 'PENDING' && (
+                                                <div className="flex space-x-1">
                                                     <button
                                                         onClick={() => handleAction(permit.id, 'APPROVED')}
                                                         disabled={!!loading}
                                                         className="h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200/50 dark:shadow-none transition-all active:scale-90 disabled:opacity-50"
-                                                        title="Setujui"
+                                                        title="Setujui (Admin BPL)"
                                                     >
                                                         {loading === `${permit.id}-APPROVED` ? <Loader2 className="animate-spin h-3 w-3" /> : <Check size={14} />}
                                                     </button>
@@ -264,33 +327,47 @@ export default function PermitTable({ permits, currentUser }: { permits: any[], 
                                                         onClick={() => handleAction(permit.id, 'REJECTED')}
                                                         disabled={!!loading}
                                                         className="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200/50 dark:shadow-none transition-all active:scale-90 disabled:opacity-50"
-                                                        title="Tolak"
+                                                        title="Tolak (Admin BPL)"
                                                     >
                                                         {loading === `${permit.id}-REJECTED` ? <Loader2 className="animate-spin h-3 w-3" /> : <X size={14} />}
                                                     </button>
-                                                </>
-                                            ) : (currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && (permit.finalStatus === 'APPROVED' || permit.finalStatus === 'REJECTED') && !isPermitExpired(permit.endDate) ? (
-                                                <button
-                                                    onClick={() => handleReset(permit.id)}
-                                                    disabled={!!loading}
-                                                    className="h-8 w-8 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white shadow-lg shadow-amber-200/50 dark:shadow-none transition-all active:scale-90 disabled:opacity-50"
-                                                    title="Reset ke Pending"
-                                                >
-                                                    {loading === `${permit.id}-RESET` ? <Loader2 className="animate-spin h-3 w-3" /> : <RotateCcw size={14} />}
-                                                </button>
-                                            ) : (
-                                                <div className="flex items-center">
-                                                    {permit.finalStatus === 'PENDING' ? (
-                                                        <span className="px-2 py-1 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 text-[8px] font-black uppercase tracking-widest border border-amber-100 dark:border-amber-900/30 animate-pulse">
-                                                            Pending
-                                                        </span>
-                                                    ) : (
-                                                        <span className="px-2 py-1 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 text-[8px] font-black uppercase tracking-widest border border-slate-100 dark:border-slate-800">
-                                                            Selesai
-                                                        </span>
-                                                    )}
                                                 </div>
                                             )}
+
+                                            {/* Action for RT */}
+                                            {currentUser.role === 'RT' && permit.rtStatus === 'PENDING' && (
+                                                <div className="flex space-x-1">
+                                                    <button
+                                                        onClick={() => handleAction(permit.id, 'APPROVED')}
+                                                        disabled={!!loading}
+                                                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-emerald-500 hover:bg-emerald-600 text-white shadow-lg shadow-emerald-200/50 dark:shadow-none transition-all active:scale-90 disabled:opacity-50"
+                                                        title="Setujui (Ketua RT)"
+                                                    >
+                                                        {loading === `${permit.id}-APPROVED` ? <Loader2 className="animate-spin h-3 w-3" /> : <Check size={14} />}
+                                                    </button>
+                                                    <button
+                                                        onClick={() => handleAction(permit.id, 'REJECTED')}
+                                                        disabled={!!loading}
+                                                        className="h-8 w-8 flex items-center justify-center rounded-lg bg-rose-500 hover:bg-rose-600 text-white shadow-lg shadow-rose-200/50 dark:shadow-none transition-all active:scale-90 disabled:opacity-50"
+                                                        title="Tolak (Ketua RT)"
+                                                    >
+                                                        {loading === `${permit.id}-REJECTED` ? <Loader2 className="animate-spin h-3 w-3" /> : <X size={14} />}
+                                                    </button>
+                                                </div>
+                                            )}
+
+                                            {/* Reset Action (Only for the role that has already made a decision) */}
+                                            {((((currentUser.role === 'ADMIN' || currentUser.role === 'PIC') && permit.adminStatus !== 'PENDING') ||
+                                                (currentUser.role === 'RT' && permit.rtStatus !== 'PENDING'))) && !isPermitExpired(permit.endDate) && (
+                                                    <button
+                                                        onClick={() => handleReset(permit.id)}
+                                                        disabled={!!loading}
+                                                        className="h-8 flex items-center justify-center rounded-lg bg-amber-500 hover:bg-amber-600 text-white px-3 shadow-lg shadow-amber-200/50 dark:shadow-none transition-all active:scale-90 disabled:opacity-50 text-[9px] font-black uppercase tracking-widest"
+                                                        title={`Reset Approval ${(currentUser.role === 'RT' ? 'RT' : 'Admin')}`}
+                                                    >
+                                                        {loading === `${permit.id}-RESET` ? <Loader2 className="animate-spin h-3 w-3" /> : <div className="flex items-center space-x-1"><RotateCcw size={14} /><span>Reset {(currentUser.role === 'RT' ? 'RT' : 'Admin')}</span></div>}
+                                                    </button>
+                                                )}
                                         </div>
                                     </td>
                                 </tr>

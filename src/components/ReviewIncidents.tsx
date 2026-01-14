@@ -20,17 +20,27 @@ import { cn } from '@/lib/utils';
 import { motion, AnimatePresence } from 'framer-motion';
 import { addIncidentComment } from '@/actions/incident';
 import { toast } from 'sonner';
+import { getPusherClient } from '@/lib/pusher-client';
 
 interface ReviewIncidentsProps {
     incidents: any[];
     userId: string;
 }
 
-export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsProps) {
+export default function ReviewIncidents({ incidents: initialIncidents, userId }: ReviewIncidentsProps) {
+    const [incidents, setIncidents] = useState<any[]>(initialIncidents);
     const [currentIndex, setCurrentIndex] = useState(0);
-    const [selectedIncident, setSelectedIncident] = useState<any | null>(null);
+
+    // Sync state with props when data is refreshed from server
+    useEffect(() => {
+        setIncidents(initialIncidents);
+    }, [initialIncidents]);
+    const [selectedIncidentId, setSelectedIncidentId] = useState<string | null>(null);
     const [userResponse, setUserResponse] = useState('');
     const [isSending, setIsSending] = useState(false);
+
+    // Single Source of Truth: Find selected incident from the shared list
+    const selectedIncident = incidents.find(i => i.id === selectedIncidentId);
     const [isListening, setIsListening] = useState(false);
     const scrollRef = useRef<HTMLDivElement>(null);
 
@@ -73,7 +83,7 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
 
     // Auto-cycle incidents every 5 seconds
     useEffect(() => {
-        if (!incidents || incidents.length <= 1 || selectedIncident) return;
+        if (!incidents || incidents.length <= 1 || selectedIncidentId) return;
 
         const interval = setInterval(() => {
             setCurrentIndex((prev) => {
@@ -83,7 +93,7 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [incidents?.length, !!selectedIncident]);
+    }, [incidents?.length, !!selectedIncidentId]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -106,9 +116,10 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
             if (result.success) {
                 toast.success('Tanggapan terkirim.');
                 setUserResponse('');
-                // Ideally refresh the specific incident's comments
-                // For now, we close it to force a refresh on next open since parent data changed
-                setSelectedIncident(null);
+                // If Pusher is working, we don't need to do anything, 
+                // but as a fallback, we could fetch updated data here.
+                // For now, let's NOT close the modal for better UX.
+                // setSelectedIncident(null);
             } else {
                 toast.error(result.message);
             }
@@ -143,6 +154,27 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                 </div>
             </div>
 
+            {/* Realtime: Background Notifications (Global) */}
+            <GlobalNotificationListener
+                incidents={incidents}
+                setIncidents={setIncidents}
+                userId={userId}
+                setSelectedIncidentId={setSelectedIncidentId}
+                selectedIncidentId={selectedIncidentId}
+            />
+
+            {/* Realtime: Listen for new incidents */}
+            <RealtimeIncidentListener
+                setIncidents={setIncidents}
+            />
+
+            {/* Realtime Messages Listener (Active when dialog is open) */}
+            <RealtimeCommentListener
+                selectedIncidentId={selectedIncidentId}
+                setIncidents={setIncidents}
+                userId={userId}
+            />
+
             {/* Compact Motion Carousel with Manual Swipe */}
             <div className="relative h-24 overflow-hidden touch-none">
                 <AnimatePresence mode="wait" initial={false}>
@@ -171,7 +203,7 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                         onClick={(e) => {
                             // Only open if it wasn't a significant drag
                             if (Math.abs((e as any).movementX || 0) < 5) {
-                                setSelectedIncident(current);
+                                setSelectedIncidentId(current.id);
                             }
                         }}
                         className="absolute inset-0 cursor-grab active:cursor-grabbing"
@@ -226,7 +258,7 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                             initial={{ opacity: 0 }}
                             animate={{ opacity: 1 }}
                             exit={{ opacity: 0 }}
-                            onClick={() => setSelectedIncident(null)}
+                            onClick={() => setSelectedIncidentId(null)}
                             className="absolute inset-0 bg-black/80 backdrop-blur-md"
                         />
                         <motion.div
@@ -245,7 +277,7 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                                     </div>
                                 )}
                                 <button
-                                    onClick={() => setSelectedIncident(null)}
+                                    onClick={() => setSelectedIncidentId(null)}
                                     className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center"
                                 >
                                     <X size={20} />
@@ -258,9 +290,12 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
 
                             {/* Thread Title */}
                             <div className="p-6 pb-0">
-                                <div className="flex items-center gap-2 mb-4 text-[10px] font-black text-indigo-600 uppercase tracking-widest">
-                                    <MessageSquare size={14} />
-                                    <span>Percakapan Insiden</span>
+                                <div className="flex items-center justify-between mb-4">
+                                    <div className="flex items-center gap-2 text-[10px] font-black text-indigo-600 uppercase tracking-widest">
+                                        <MessageSquare size={14} />
+                                        <span>Percakapan Insiden</span>
+                                    </div>
+                                    <RealtimeStatusBadge selectedIncident={selectedIncident} />
                                 </div>
                             </div>
 
@@ -275,22 +310,24 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                                 </div>
 
                                 {selectedIncident.comments?.map((comment: any) => {
-                                    const isAdmin = ['ADMIN', 'PIC'].includes(comment.user.role);
+                                    const isMe = comment.userId === userId;
+                                    const isAdmin = ['ADMIN', 'PIC', 'RT'].includes(comment.user.role);
+
                                     return (
                                         <div key={comment.id} className={cn(
                                             "flex flex-col space-y-1",
-                                            isAdmin ? "items-start" : "items-end"
+                                            isMe ? "items-end" : "items-start"
                                         )}>
                                             <div className={cn(
                                                 "max-w-[85%] p-4 rounded-3xl text-xs font-bold leading-relaxed",
-                                                isAdmin
-                                                    ? "rounded-tl-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50"
-                                                    : "rounded-tr-none bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300"
+                                                isMe
+                                                    ? "rounded-tr-none bg-rose-50 dark:bg-rose-900/20 text-rose-800 dark:text-rose-300"
+                                                    : "rounded-tl-none bg-indigo-50 dark:bg-indigo-900/30 text-indigo-800 dark:text-indigo-300 border border-indigo-100 dark:border-indigo-800/50"
                                             )}>
                                                 {comment.content}
                                             </div>
                                             <span className="text-[8px] font-bold text-slate-400 uppercase mx-1">
-                                                {isAdmin ? 'Admin' : 'Saya'} • {format(new Date(comment.createdAt), 'HH:mm', { locale: id })}
+                                                {isMe ? 'Saya' : (comment.user.name || 'User')} • {format(new Date(comment.createdAt), 'HH:mm', { locale: id })}
                                             </span>
                                         </div>
                                     );
@@ -311,7 +348,7 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                                         <input
                                             value={userResponse}
                                             onChange={(e) => setUserResponse(e.target.value)}
-                                            placeholder="Balas instruksi admin..."
+                                            placeholder="Balas Percakapan Insiden..."
                                             className="w-full h-12 px-5 rounded-2xl bg-slate-50 dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold focus:border-rose-500 outline-none transition-all pr-12"
                                         />
                                         <button
@@ -343,8 +380,166 @@ export default function ReviewIncidents({ incidents, userId }: ReviewIncidentsPr
                             </div>
                         </motion.div>
                     </div>
-                )}
-            </AnimatePresence>
+                )
+                }
+            </AnimatePresence >
+        </div >
+    );
+}
+
+function RealtimeIncidentListener({ setIncidents }: { setIncidents: (fn: (prev: any[]) => any[]) => void }) {
+    useEffect(() => {
+        let channel: any;
+        const initPusher = async () => {
+            const pusher = await getPusherClient();
+            if (pusher) {
+                channel = pusher.subscribe('incidents');
+                channel.bind('new-incident', (newReport: any) => {
+                    setIncidents(prev => {
+                        if (prev.some(r => r.id === newReport.id)) return prev;
+                        return [newReport, ...prev];
+                    });
+                    toast.info('Ada Laporan Kejadian Baru!');
+                });
+            }
+        };
+        initPusher();
+        return () => {
+            if (channel) channel.unbind_all().unsubscribe();
+        };
+    }, []);
+
+    return null;
+}
+
+function GlobalNotificationListener({ incidents, setIncidents, userId, setSelectedIncidentId, selectedIncidentId }: { incidents: any[], setIncidents: any, userId: string, setSelectedIncidentId: any, selectedIncidentId?: string | null }) {
+    const incidentsRef = useRef(incidents);
+    const selectedIdRef = useRef(selectedIncidentId);
+
+    // Sync refs
+    useEffect(() => { incidentsRef.current = incidents; }, [incidents]);
+    useEffect(() => { selectedIdRef.current = selectedIncidentId; }, [selectedIncidentId]);
+
+    useEffect(() => {
+        let channel: any;
+        const init = async () => {
+            const pusher = await getPusherClient();
+            if (pusher) {
+                channel = pusher.subscribe('incident-globals');
+                console.log('[Global Listener] PERSISTENT Channel Active');
+
+                channel.bind('update', (data: any) => {
+                    const currentIncidents = incidentsRef.current;
+                    const activeId = selectedIdRef.current;
+                    const exists = currentIncidents.some(r => r.id === data.incidentId);
+
+                    if (exists) {
+                        // 1. Show notification ONLY if chat is closed OR focused on DIFFERENT incident
+                        // AND sender is NOT me
+                        if (data.senderId !== userId && data.incidentId !== activeId) {
+                            toast.message(`Instruksi Baru: ${data.senderName}`, {
+                                description: data.lastMessage + (data.lastMessage.length >= 30 ? '...' : ''),
+                                action: {
+                                    label: "Lihat",
+                                    onClick: () => setSelectedIncidentId(data.incidentId)
+                                }
+                            });
+                        }
+
+                        // 2. Continuous Sync to state
+                        setIncidents((prev: any[]) => prev.map(r => {
+                            if (r.id === data.incidentId) {
+                                const currentComments = r.comments || [];
+                                const commentExists = currentComments.some((c: any) => c.id === data.fullComment?.id);
+                                return {
+                                    ...r,
+                                    status: data.newStatus || r.status,
+                                    comments: commentExists ? currentComments : [...currentComments, data.fullComment]
+                                };
+                            }
+                            return r;
+                        }));
+                    }
+                });
+            }
+        };
+        init();
+        return () => { if (channel) channel.unbind_all().unsubscribe(); };
+    }, [userId, setIncidents]); // Removed selectedIncidentId from dependency for persistency
+
+    return null;
+}
+
+function RealtimeStatusBadge({ selectedIncident }: { selectedIncident: any }) {
+    const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+
+    useEffect(() => {
+        let isMounted = true;
+        const init = async () => {
+            const pusher = await getPusherClient();
+            if (pusher && isMounted) {
+                setStatus(pusher.connection.state as any);
+                pusher.connection.bind('state_change', (states: any) => {
+                    if (isMounted) setStatus(states.current);
+                });
+            } else {
+                if (isMounted) setStatus('disconnected');
+            }
+        };
+        init();
+        return () => { isMounted = false; };
+    }, [selectedIncident?.id]);
+
+    return (
+        <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-slate-50 dark:bg-slate-900 border border-slate-100 dark:border-slate-800">
+            <div className={cn(
+                "h-1 w-1 rounded-full",
+                status === 'connected' ? "bg-emerald-500 shadow-[0_0_4px] shadow-emerald-500" :
+                    status === 'connecting' ? "bg-amber-500 animate-pulse" : "bg-slate-400"
+            )} />
+            <span className="text-[7px] font-black text-slate-400 uppercase tracking-tighter">
+                {status === 'connected' ? 'Live' : status === 'connecting' ? 'Hold' : 'Off'}
+            </span>
         </div>
     );
 }
+
+function RealtimeCommentListener({ selectedIncidentId, setIncidents, userId }: { selectedIncidentId: string | null, setIncidents: any, userId: string }) {
+    useEffect(() => {
+        if (!selectedIncidentId) return;
+        let channel: any;
+        const initPusher = async () => {
+            const pusher = await getPusherClient();
+            if (pusher) {
+                channel = pusher.subscribe(`incident-${selectedIncidentId}`);
+                channel.bind('new-comment', (data: any) => {
+                    setIncidents((prevList: any[]) => prevList.map(r => {
+                        if (r.id === selectedIncidentId) {
+                            const comments = r.comments || [];
+                            if (comments.some((c: any) => c.id === data.id)) return r;
+
+                            // Show toast if from someone else
+                            if (data.userId !== userId) {
+                                toast.message(`Pesan Baru dari ${data.user.name}`, {
+                                    description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+                                });
+                            }
+
+                            return {
+                                ...r,
+                                status: data.newStatus || r.status,
+                                comments: [...comments, data]
+                            };
+                        }
+                        return r;
+                    }));
+                });
+            }
+        };
+        initPusher();
+        return () => { if (channel) channel.unbind_all().unsubscribe(); };
+    }, [selectedIncidentId]);
+
+    return null;
+}
+

@@ -214,7 +214,7 @@ export default function AttendanceClient({ user }: { user: any }) {
     };
 
     const handleAction = async () => {
-        if (user.role === 'ADMIN' || user.role === 'PIC') {
+        if (user.role === 'ADMIN' || user.role === 'PIC' || user.role === 'RT') {
             toast.error("Emang situ Karyawan Mau Absen Juga ? 😀", {
                 description: "Absen hanya untuk Security, Kebersihan, dan Lingkungan."
             });

@@ -13,6 +13,7 @@ datasource db {
 enum Role {
   ADMIN
   PIC
+  RT
   SECURITY
   LINGKUNGAN
   KEBERSIHAN
@@ -116,17 +117,15 @@ model Permit {
   image     String? // Lampiran surat dokter/dokumen
 
   // Multi-level approval status
-  securityStatus PermitStatus @default(PENDING)
-  securityId     String?
-  securityAt     DateTime?
-
-  lingkunganStatus PermitStatus @default(PENDING)
-  lingkunganId     String?
-  lingkunganAt     DateTime?
-
-  finalStatus PermitStatus @default(PENDING)
+  adminStatus PermitStatus @default(PENDING)
   adminId     String?
   adminAt     DateTime?
+
+  rtStatus PermitStatus @default(PENDING)
+  rtId     String?
+  rtAt     DateTime?
+
+  finalStatus PermitStatus @default(PENDING)
 
   createdAt DateTime @default(now())
   updatedAt DateTime @updatedAt
@@ -172,20 +171,26 @@ model LocationLog {
 }
 
 model IncidentReport {
-  id          String            @id @default(cuid())
+  id          String  @id @default(cuid())
   userId      String
-  user        User              @relation("UserIncidents", fields: [userId], references: [id])
+  user        User    @relation("UserIncidents", fields: [userId], references: [id])
   category    String // Pencurian, Kerusakan Fasilitas, Orang Mencurigakan, Kecelakaan, Lainnya
-  description String            @db.Text
+  description String  @db.Text
   latitude    Float
   longitude   Float
   address     String?
-  evidenceImg String?           @db.Text // Base64 Foto
-  status      String            @default("PENDING") // PENDING, ON_PROGRESS, RESOLVED
+  evidenceImg String? @db.Text // Base64 Foto
+  status      String  @default("PENDING") // PENDING, ON_PROGRESS, RESOLVED
   adminId     String? // Admin yang menangani terakhir (opsional)
-  comments    IncidentComment[]
-  createdAt   DateTime          @default(now())
-  updatedAt   DateTime          @updatedAt
+
+  // New Admin fields
+  actionDetail String? @db.Text // Tindakan yang diambil
+  analysis     String? @db.Text // Analisa kejadian
+  improvement  String? @db.Text // Rekomendasi perbaikan
+
+  comments  IncidentComment[]
+  createdAt DateTime          @default(now())
+  updatedAt DateTime          @updatedAt
 
   @@index([userId])
   @@index([createdAt])

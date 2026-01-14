@@ -48,13 +48,13 @@ export default function Header({ user }: HeaderProps) {
     };
 
     const menuItems = [
-        { label: 'Dashboard', href: '/', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
-        { label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
-        { label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
-        { label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC'] },
-        { label: 'Jadwal Security', href: '/schedules', roles: ['ADMIN', 'PIC', 'STAFF', 'SECURITY', 'LINGKUNGAN'] },
-        { label: 'Izin & Cuti', href: '/permits', roles: ['ADMIN', 'PIC', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
-        { label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC'] },
+        { label: 'Dashboard', href: '/', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
+        { label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
+        { label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
+        { label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },
+        { label: 'Jadwal Security', href: '/schedules', roles: ['ADMIN', 'PIC', 'RT', 'STAFF', 'SECURITY', 'LINGKUNGAN'] },
+        { label: 'Izin & Cuti', href: '/permits', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
+        { label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC', 'RT'] },
     ];
 
     const handleSearch = (e: React.ChangeEvent<HTMLInputElement>) => {

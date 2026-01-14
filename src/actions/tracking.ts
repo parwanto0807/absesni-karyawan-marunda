@@ -169,7 +169,7 @@ export async function getAllPICSAndAdmins() {
     try {
         const users = await prisma.user.findMany({
             where: {
-                role: { in: ['ADMIN', 'PIC'] },
+                role: { in: ['ADMIN', 'PIC', 'RT'] },
                 username: { not: 'adminit' }
             },
             select: {

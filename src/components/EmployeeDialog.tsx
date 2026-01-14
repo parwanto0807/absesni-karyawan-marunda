@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Leaf, Sparkles } from 'lucide-react';
+import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Leaf, Sparkles, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { User, UserRole } from '@/types/attendance';
 import { createUser, updateUser } from '@/actions/employees';
@@ -120,6 +120,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
 
     const roleOptions = [
         { id: 'ADMIN', label: 'Admin', icon: Shield },
+        { id: 'RT', label: 'RT', icon: Home },
         { id: 'SECURITY', label: 'Security', icon: Shield },
         { id: 'PIC', label: 'PIC', icon: Briefcase },
         { id: 'LINGKUNGAN', label: 'Lingkungan', icon: Leaf },

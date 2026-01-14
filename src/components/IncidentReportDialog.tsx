@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
+import { getPusherClient } from '@/lib/pusher-client';
 import {
     AlertTriangle,
     Camera,
@@ -12,7 +13,8 @@ import {
     RefreshCw,
     AlertCircle,
     Mic,
-    MicOff
+    MicOff,
+    Image as ImageIcon
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createIncidentReport } from '@/actions/incident';
@@ -45,6 +47,8 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
     const [isCameraActive, setIsCameraActive] = useState(false);
     const [isListening, setIsListening] = useState(false);
+    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
+    const [locationError, setLocationError] = useState(false);
 
     const toggleListening = () => {
         if (isListening) {
@@ -87,6 +91,19 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
         recognition.start();
     };
 
+    const fileInputRef = useRef<HTMLInputElement>(null);
+
+    const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (file) {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                setCapturedImage(reader.result as string);
+            };
+            reader.readAsDataURL(file);
+        }
+    };
+
     const handleOpen = () => {
         if (disabled) {
             toast.error('Tombol Laporan Terkunci. Anda harus melakukan Clock In terlebih dahulu.');
@@ -101,13 +118,38 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     // Get location automatically when dialog opens
     useEffect(() => {
         if (isOpen) {
+            setLocationError(false);
             if (navigator.geolocation) {
                 navigator.geolocation.getCurrentPosition(
                     (pos) => setLocation({ lat: pos.coords.latitude, lng: pos.coords.longitude }),
-                    () => toast.error('Gagal mendapatkan lokasi GPS otomatis.')
+                    (err) => {
+                        console.error('GPS Error:', err);
+                        setLocationError(true);
+                        toast.error('Gagal mendapatkan lokasi GPS. Pastikan GPS aktif.');
+                    },
+                    { enableHighAccuracy: true, timeout: 10000 }
                 );
             }
         }
+    }, [isOpen]);
+
+    // Realtime: Listen for status
+    useEffect(() => {
+        if (!isOpen) return;
+        let isMounted = true;
+        const init = async () => {
+            const pusher = await getPusherClient();
+            if (pusher && isMounted) {
+                setRealtimeStatus(pusher.connection.state as any);
+                pusher.connection.bind('state_change', (states: any) => {
+                    if (isMounted) setRealtimeStatus(states.current);
+                });
+            } else if (isMounted) {
+                setRealtimeStatus('disconnected');
+            }
+        };
+        init();
+        return () => { isMounted = false; };
     }, [isOpen]);
 
     const startCamera = async () => {
@@ -230,15 +272,27 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
             <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
                 {/* Header */}
-                <div className="p-6 md:p-8 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex items-center justify-between">
+                <div className="p-4 md:p-8 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex items-center justify-center md:justify-between">
                     <div className="flex items-center gap-3">
                         <AlertTriangle className="w-6 h-6" />
                         <div>
                             <h2 className="text-lg font-black uppercase tracking-tight">Laporan Kejadian</h2>
-                            <p className="text-[10px] opacity-80 uppercase tracking-widest font-bold">Darurat & Insiden Lapangan</p>
+                            <div className="flex items-center gap-2">
+                                <p className="text-[10px] opacity-80 uppercase tracking-widest font-bold">Darurat & Insiden Lapangan</p>
+                                <div className="flex items-center gap-1 px-1.5 py-0.5 rounded-full bg-black/20 backdrop-blur-md">
+                                    <div className={cn(
+                                        "h-1 w-1 rounded-full",
+                                        realtimeStatus === 'connected' ? "bg-emerald-400 shadow-[0_0_4px] shadow-emerald-400" :
+                                            realtimeStatus === 'connecting' ? "bg-amber-400 animate-pulse" : "bg-slate-400"
+                                    )} />
+                                    <span className="text-[7px] font-black uppercase tracking-tighter text-white/90">
+                                        {realtimeStatus === 'connected' ? 'Live' : realtimeStatus === 'connecting' ? 'Hold' : 'Off'}
+                                    </span>
+                                </div>
+                            </div>
                         </div>
                     </div>
                     <button onClick={reset} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
@@ -246,7 +300,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                     </button>
                 </div>
 
-                <div className="p-6 md:p-8">
+                <div className="p-4 md:p-8">
                     {step === 1 && (
                         <div className="space-y-6">
                             <div className="space-y-2">
@@ -286,34 +340,72 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                                 />
                             </div>
 
-                            <div className="flex gap-4">
-                                <button
-                                    onClick={() => { setStep(2); startCamera(); }}
-                                    className={cn(
-                                        "flex-1 h-14 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 group transition-all",
-                                        capturedImage ? "border-emerald-500 bg-emerald-50 text-emerald-600" : "border-slate-200 hover:border-rose-500 text-slate-400 hover:text-rose-600"
-                                    )}
-                                >
-                                    {capturedImage ? <img src={capturedImage} className="w-10 h-10 object-cover rounded-lg" /> : <Camera size={20} />}
-                                    <span className="text-xs font-black uppercase tracking-widest">{capturedImage ? 'Ganti Foto' : 'Ambil Foto Bukti'}</span>
-                                </button>
+                            <div className="space-y-4">
+                                <div className="flex gap-3">
+                                    <button
+                                        onClick={() => { setStep(2); startCamera(); }}
+                                        className={cn(
+                                            "flex-1 h-14 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 group transition-all",
+                                            "border-slate-200 hover:border-rose-500 text-slate-400 hover:text-rose-600"
+                                        )}
+                                    >
+                                        <Camera size={20} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest hidden md:inline">Kamera</span>
+                                        <span className="text-[10px] font-black uppercase tracking-widest md:hidden">Foto</span>
+                                    </button>
 
-                                <div className={cn(
-                                    "px-4 rounded-2xl flex items-center justify-center",
-                                    location ? "bg-emerald-50 text-emerald-600" : "bg-slate-50 text-slate-400"
-                                )}>
-                                    <MapPin size={20} className={location ? "animate-bounce" : ""} />
-                                    {location && <CheckCircle2 size={12} className="ml-1" />}
+                                    <button
+                                        onClick={() => fileInputRef.current?.click()}
+                                        className={cn(
+                                            "flex-1 h-14 rounded-2xl border-2 border-dashed flex items-center justify-center gap-2 group transition-all",
+                                            "border-slate-200 hover:border-indigo-500 text-slate-400 hover:text-indigo-600"
+                                        )}
+                                    >
+                                        <ImageIcon size={20} />
+                                        <span className="text-[10px] font-black uppercase tracking-widest">Galeri</span>
+                                        <input
+                                            type="file"
+                                            ref={fileInputRef}
+                                            className="hidden"
+                                            accept="image/*"
+                                            onChange={handleFileChange}
+                                        />
+                                    </button>
+
+                                    <div className={cn(
+                                        "w-14 h-14 rounded-2xl flex items-center justify-center shrink-0 transition-all relative border-2",
+                                        location ? "bg-emerald-50 text-emerald-600 border-emerald-100" :
+                                            locationError ? "bg-rose-50 text-rose-600 border-rose-100" : "bg-slate-50 text-slate-300 border-slate-100 animate-pulse"
+                                    )}>
+                                        {location ? <MapPin size={22} className="animate-bounce" /> : <MapPin size={22} />}
+                                        {location && <CheckCircle2 size={10} className="absolute top-1 right-1 text-emerald-600 bg-white rounded-full" />}
+                                        {!location && !locationError && <div className="absolute -bottom-1 text-[7px] font-black uppercase whitespace-nowrap">Mencari...</div>}
+                                    </div>
                                 </div>
+
+                                {capturedImage && (
+                                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 group border border-slate-200 dark:border-slate-800">
+                                        <img src={capturedImage} className="w-full h-full object-contain" alt="Bukti Kejadian" />
+                                        <button
+                                            onClick={() => setCapturedImage(null)}
+                                            className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors backdrop-blur-sm"
+                                        >
+                                            <X size={16} />
+                                        </button>
+                                        <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/50 rounded-full backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-widest">
+                                            Bukti Terlampir
+                                        </div>
+                                    </div>
+                                )}
                             </div>
 
                             <button
                                 onClick={handleSubmit}
                                 disabled={loading || !category || !description || !location}
-                                className="w-full h-14 rounded-2xl bg-rose-600 hover:bg-rose-700 disabled:bg-slate-200 text-white font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-rose-200 dark:shadow-none flex items-center justify-center gap-2 transition-all active:scale-95"
+                                className="w-full h-14 rounded-2xl bg-rose-600 hover:bg-rose-700 disabled:bg-slate-100 dark:disabled:bg-slate-800 disabled:text-slate-400 font-black text-xs uppercase tracking-[0.2em] shadow-xl shadow-rose-200 dark:shadow-none flex items-center justify-center gap-2 transition-all active:scale-95 border-b-4 border-rose-800 active:border-b-0"
                             >
-                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
-                                <span>Kirim Laporan</span>
+                                {loading ? <Loader2 className="w-5 h-5 animate-spin" /> : !location && !locationError ? <Loader2 className="w-5 h-5 animate-spin" /> : <Save size={20} />}
+                                <span>{!location && !locationError && !loading ? 'Mencari Lokasi...' : 'Kirim Laporan'}</span>
                             </button>
                         </div>
                     )}
@@ -366,7 +458,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
 
                 {/* Footer Warnings */}
                 {step !== 3 && (
-                    <div className="px-8 pb-8">
+                    <div className="px-4 pb-4 md:px-8 md:pb-8">
                         <div className="p-4 rounded-2xl bg-amber-50 dark:bg-amber-900/10 border border-amber-100 dark:border-amber-900/30 flex gap-3">
                             <AlertCircle className="w-5 h-5 text-amber-600 shrink-0" />
                             <p className="text-[10px] text-amber-700 dark:text-amber-300 font-bold leading-relaxed">

@@ -29,6 +29,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
     const sortedEmployees = [...employees].sort((a, b) => {
         const roleOrder: Record<string, number> = {
             'ADMIN': 0,
+            'RT': 0,
             'PIC': 1,
             'SECURITY': 2,
             'LINGKUNGAN': 3,
@@ -86,7 +87,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                 <td className="px-6 py-4">
                                     <span className={`inline-flex items-center rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-wider ${emp.role === 'SECURITY'
                                         ? 'bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-400'
-                                        : emp.role === 'ADMIN'
+                                        : emp.role === 'ADMIN' || emp.role === 'RT'
                                             ? 'bg-purple-50 text-purple-700 dark:bg-purple-400/10 dark:text-purple-400'
                                             : emp.role === 'PIC'
                                                 ? 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-400'
@@ -189,7 +190,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                 </div>
                                 <span className={`inline-flex items-center rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider ${emp.role === 'SECURITY'
                                     ? 'bg-blue-50 text-blue-700 dark:bg-blue-400/10 dark:text-blue-400'
-                                    : emp.role === 'ADMIN'
+                                    : emp.role === 'ADMIN' || emp.role === 'RT'
                                         ? 'bg-purple-50 text-purple-700 dark:bg-purple-400/10 dark:text-purple-400'
                                         : emp.role === 'PIC'
                                             ? 'bg-amber-50 text-amber-700 dark:bg-amber-400/10 dark:text-amber-400'

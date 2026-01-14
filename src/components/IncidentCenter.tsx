@@ -16,15 +16,16 @@ import {
     History,
     UserCircle2,
     FileText,
-    Download
+    Download,
+    Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
-import { getIncidentReports, addIncidentComment } from '@/actions/incident';
+import { getIncidentReports, addIncidentComment, updateIncidentAdminNotes } from '@/actions/incident';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { jsPDF } from 'jspdf';
-import autoTable from 'jspdf-autotable';
+import { generateIncidentPDF } from '@/lib/incident-pdf';
+import { getPusherClient } from '@/lib/pusher-client';
 
 export default function IncidentCenter({ adminId }: { adminId: string }) {
     const [reports, setReports] = useState<any[]>([]);
@@ -33,17 +34,149 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
     const [reply, setReply] = useState('');
     const [replyLoading, setReplyLoading] = useState(false);
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'RESOLVED'>('ALL');
+    const [actionDetail, setActionDetail] = useState('');
+    const [analysis, setAnalysis] = useState('');
+    const [improvement, setImprovement] = useState('');
+    const [notesLoading, setNotesLoading] = useState(false);
+    const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const scrollRef = useRef<HTMLDivElement>(null);
+
+    useEffect(() => {
+        if (selectedReport) {
+            setActionDetail(selectedReport.actionDetail || '');
+            setAnalysis(selectedReport.analysis || '');
+            setImprovement(selectedReport.improvement || '');
+        }
+    }, [selectedReport?.id]);
 
     useEffect(() => {
         fetchReports();
     }, []);
 
+    // Realtime: Connection Status & Global Listeners
     useEffect(() => {
-        if (scrollRef.current) {
-            scrollRef.current.scrollTop = scrollRef.current.scrollHeight;
-        }
-    }, [selectedReport?.comments]);
+        let channel: any;
+        let commentChannel: any;
+        const initPusher = async () => {
+            const pusher = await getPusherClient();
+            if (pusher) {
+                setRealtimeStatus(pusher.connection.state as any);
+                pusher.connection.bind('state_change', (states: any) => {
+                    setRealtimeStatus(states.current);
+                });
+
+                // Listen for new incidents (global)
+                channel = pusher.subscribe('incidents');
+                console.log('[Pusher] Subscribed to: incidents');
+
+                channel.bind('new-incident', (newReport: any) => {
+                    console.log('[Pusher] New Incident received:', newReport.id);
+                    setReports(prev => {
+                        if (prev.some(r => r.id === newReport.id)) return prev;
+                        return [newReport, ...prev];
+                    });
+                    toast.info('Laporan Kejadian Baru!', {
+                        description: `${newReport.category}: ${newReport.description.substring(0, 30)}...`
+                    });
+                });
+
+                // Global Updates for List (Status changes & New comments everywhere)
+                const globalChannel = pusher.subscribe('incident-globals');
+                console.log('[Pusher] Subscribed to: incident-globals');
+                globalChannel.bind('update', (data: any) => {
+                    console.log('[Pusher] Global update received for:', data.incidentId);
+                    setReports(prev => prev.map(r => {
+                        if (r.id === data.incidentId) {
+                            return {
+                                ...r,
+                                status: data.newStatus || r.status,
+                                updatedAt: new Date().toISOString()
+                            };
+                        }
+                        return r;
+                    }));
+                });
+            } else {
+                setRealtimeStatus('disconnected');
+            }
+        };
+        initPusher();
+        return () => {
+            if (channel) channel.unbind_all().unsubscribe();
+            // Also unsubscribe globals
+        };
+    }, []);
+
+    // Realtime: Listen for new comments on selected report
+    useEffect(() => {
+        if (!selectedReport) return;
+        let channel: any;
+        const initPusher = async () => {
+            const pusher = await getPusherClient();
+            if (pusher) {
+                const channelName = `incident-${selectedReport.id}`;
+                channel = pusher.subscribe(channelName);
+                console.log(`[Pusher] Subscribed to detail: ${channelName}`);
+
+                channel.bind('new-comment', (data: any) => {
+                    console.log('[Pusher] New Comment received on detail:', data.id);
+
+                    // 1. Update the main reports list (sidebar)
+                    setReports(prevList => {
+                        return prevList.map(r => {
+                            if (r.id === selectedReport.id) {
+                                const currentComments = r.comments || [];
+                                if (currentComments.some((c: any) => c.id === data.id)) return r;
+                                return {
+                                    ...r,
+                                    status: data.newStatus || r.status,
+                                    updatedAt: new Date().toISOString(),
+                                    comments: [...currentComments, data]
+                                };
+                            }
+                            return r;
+                        });
+                    });
+
+                    // 2. Update the currently selected report (chat area)
+                    setSelectedReport((prev: any) => {
+                        if (!prev || prev.id !== selectedReport.id) return prev;
+
+                        const exists = prev.comments.some((c: any) => c.id === data.id);
+                        if (exists) {
+                            // If it exists but status changed, update status
+                            if (data.newStatus && data.newStatus !== prev.status) {
+                                return { ...prev, status: data.newStatus };
+                            }
+                            return prev;
+                        }
+
+                        // Add toast notification if message is from someone else
+                        if (data.userId !== adminId) {
+                            toast.message(`Pesan Baru dari ${data.user?.name || 'Petugas'}`, {
+                                description: data.content.substring(0, 50) + (data.content.length > 50 ? '...' : ''),
+                            });
+                        }
+
+                        // Return a NEW object to force re-render
+                        return {
+                            ...prev,
+                            status: data.newStatus || prev.status,
+                            updatedAt: new Date().toISOString(),
+                            comments: [...(prev.comments || []), data]
+                        };
+                    });
+                });
+            }
+        };
+        initPusher();
+        return () => {
+            if (channel) {
+                console.log(`[Pusher] Unsubscribing from detail`);
+                channel.unbind_all().unsubscribe();
+            }
+        };
+    }, [selectedReport?.id]);
 
     const fetchReports = async () => {
         setLoading(true);
@@ -59,120 +192,23 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
         setLoading(false);
     };
 
-    const generatePDF = async (report: any) => {
-        const doc = new jsPDF() as any;
-        const pageWidth = doc.internal.pageSize.getWidth();
 
-        // 1. Header (Logo Text Style)
-        doc.setFillColor(15, 23, 42); // slate-900
-        doc.rect(0, 0, pageWidth, 40, 'F');
-
-        doc.setTextColor(255, 255, 255);
-        doc.setFontSize(18);
-        doc.setFont('helvetica', 'bold');
-        doc.text('BADAN PENGELOLA LINGKUNGAN (BPL) MARUNDA', 20, 20);
-
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'normal');
-        doc.text('Pusat Komando & Respon Insiden Keamanan', 20, 28);
-        doc.text(`ID Laporan: ${report.id}`, pageWidth - 20, 28, { align: 'right' });
-
-        // 2. Report Title
-        doc.setTextColor(15, 23, 42);
-        doc.setFontSize(14);
-        doc.setFont('helvetica', 'bold');
-        doc.text('LAPORAN RESMI KEJADIAN / PERISTIWA', 20, 55);
-
-        doc.setDrawColor(226, 232, 240); // slate-200
-        doc.line(20, 60, pageWidth - 20, 60);
-
-        // 3. Information Table
-        const infoData = [
-            ['Kategori', report.category],
-            ['Status Akhir', report.status],
-            ['Waktu Lapor', format(new Date(report.createdAt), 'dd MMMM yyyy, HH:mm', { locale: id }) + ' WIB'],
-            ['Pelapor', `${report.user.name} (${report.user.role})`],
-            ['Lokasi', report.address || 'Koordinat tercatat (lihat detail GPS)'],
-            ['Koordinat', `${report.latitude}, ${report.longitude}`]
-        ];
-
-        autoTable(doc, {
-            startY: 65,
-            head: [['Informasi Dasar', 'Keterangan']],
-            body: infoData,
-            theme: 'striped',
-            headStyles: { fillColor: [248, 250, 252], textColor: [100, 116, 139], fontSize: 8, fontStyle: 'bold' },
-            styles: { fontSize: 10, cellPadding: 3 },
-            columnStyles: { 0: { fontStyle: 'bold', cellWidth: 40 } }
-        });
-
-        // 4. Incident Description
-        let finalY = (doc as any).lastAutoTable.finalY + 10;
-        doc.setFontSize(10);
-        doc.setFont('helvetica', 'bold');
-        doc.text('NARASI KEJADIAN:', 20, finalY);
-
-        doc.setFont('helvetica', 'normal');
-        const splitDescription = doc.splitTextToSize(report.description, pageWidth - 40);
-        doc.text(splitDescription, 20, finalY + 7);
-        finalY += 7 + (splitDescription.length * 5) + 10;
-
-        // 5. Evidence Photo
-        if (report.evidenceImg) {
-            try {
-                doc.setFont('helvetica', 'bold');
-                doc.text('BUKTI VISUAL:', 20, finalY);
-                doc.addImage(report.evidenceImg, 'JPEG', 20, finalY + 5, 80, 60);
-                finalY += 70;
-            } catch (e) {
-                console.error('PDF Image Error:', e);
-            }
-        }
-
-        // 6. Communication Thread
-        if (report.comments && report.comments.length > 0) {
-            finalY += 5;
-            doc.setFont('helvetica', 'bold');
-            doc.text('ALUR KOMUNIKASI & INSTRUKSI:', 20, finalY);
-
-            const commentData = report.comments.map((c: any) => [
-                format(new Date(c.createdAt), 'HH:mm', { locale: id }),
-                c.user.role === 'ADMIN' || c.user.role === 'PIC' ? 'ADMIN' : 'PETUGAS',
-                c.content
-            ]);
-
-            autoTable(doc, {
-                startY: finalY + 5,
-                head: [['Waktu', 'Pihak', 'Pesan / Instruksi']],
-                body: commentData,
-                theme: 'grid',
-                headStyles: { fillColor: [79, 70, 229] }, // indigo-600
-                styles: { fontSize: 9 },
-                columnStyles: { 0: { cellWidth: 20 }, 1: { cellWidth: 30, fontStyle: 'bold' } }
-            });
-            finalY = (doc as any).lastAutoTable.finalY + 15;
-        }
-
-        // 7. Footer / Verification
-        doc.setFontSize(8);
-        doc.setTextColor(150, 150, 150);
-        doc.text(`Dicetak pada: ${format(new Date(), 'dd/MM/yyyy HH:mm:ss', { locale: id })}`, 20, doc.internal.pageSize.getHeight() - 10);
-        doc.text('Dokumen ini dihasilkan secara otomatis oleh Marunda Integrated System.', pageWidth / 2, doc.internal.pageSize.getHeight() - 10, { align: 'center' });
-
-        doc.save(`Laporan_Kejadian_${report.id.substring(0, 8)}_${format(new Date(), 'yyyyMMdd')}.pdf`);
-        toast.success('File PDF berhasil dibuat.');
-    };
 
     const handleReply = async (status: string) => {
-        if (!reply.trim()) {
+        let finalMessage = reply.trim();
+
+        // Allow empty message for RESOLVED status (Close Case)
+        if (status === 'RESOLVED' && !finalMessage) {
+            finalMessage = "Laporan ditandai SELESAI (CLOSED) oleh Admin.";
+        } else if (!finalMessage) {
             toast.error('Harap isi pesan atau instruksi.');
             return;
         }
 
         setReplyLoading(true);
-        const result = await addIncidentComment(selectedReport.id, adminId, reply, status);
+        const result = await addIncidentComment(selectedReport.id, adminId, finalMessage, status);
         if (result.success) {
-            toast.success('Komentar Terkirim!');
+            toast.success(status === 'RESOLVED' ? 'Laporan Berhasil Ditutup!' : 'Komentar Terkirim!');
             setReply('');
             // Optimistic update or just refetch
             fetchReports();
@@ -180,6 +216,23 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
             toast.error(result.message);
         }
         setReplyLoading(false);
+    };
+
+    const handleUpdateNotes = async () => {
+        if (!selectedReport) return;
+        setNotesLoading(true);
+        const result = await updateIncidentAdminNotes(selectedReport.id, {
+            actionDetail,
+            analysis,
+            improvement
+        });
+        if (result.success) {
+            toast.success('Catatan admin berhasil disimpan');
+            fetchReports();
+        } else {
+            toast.error(result.message);
+        }
+        setNotesLoading(false);
     };
 
     const filteredReports = reports.filter(r => {
@@ -200,9 +253,12 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
     return (
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 animate-in fade-in slide-in-from-bottom-4 duration-500">
             {/* List Reports */}
-            <div className="lg:col-span-1 space-y-6">
+            <div className={cn(
+                "lg:col-span-1 space-y-6",
+                selectedReport ? "hidden lg:block" : "block"
+            )}>
                 <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden flex flex-col h-[700px]">
-                    <div className="p-6 border-b border-slate-50 dark:border-slate-800 space-y-4">
+                    <div className="p-5 md:p-6 border-b border-slate-50 dark:border-slate-800 space-y-4">
                         <div className="flex items-center justify-between">
                             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Antrean Laporan</h3>
                             <button onClick={fetchReports} className="p-2 hover:bg-slate-50 dark:hover:bg-slate-800 rounded-xl transition-all">
@@ -279,19 +335,22 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
             </div>
 
             {/* Content Detail & Multi-Comment Thread */}
-            <div className="lg:col-span-2 space-y-6">
+            <div className={cn(
+                "lg:col-span-2 space-y-6",
+                !selectedReport ? "hidden lg:block" : "block"
+            )}>
                 {selectedReport ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[700px] flex flex-col">
                         {/* Header */}
-                        <div className="p-8 bg-slate-900 text-white relative">
-                            <div className="flex items-center justify-between gap-4">
+                        <div className="p-5 md:p-8 bg-slate-900 text-white relative">
+                            <div className="flex flex-col md:flex-row md:items-center justify-between gap-4">
                                 <div className="flex items-center gap-4">
                                     <div className="p-3 rounded-2xl bg-white/10 backdrop-blur-md">
                                         <AlertTriangle className="w-6 h-6 text-rose-400" />
                                     </div>
                                     <div>
                                         <div className="flex items-center gap-2">
-                                            <h2 className="text-xl font-black uppercase tracking-tight">{selectedReport.category}</h2>
+                                            <h2 className="text-lg md:text-2xl font-black uppercase tracking-tight">{selectedReport.category}</h2>
                                             <span className={cn(
                                                 "px-2 py-0.5 rounded-full text-[9px] font-black uppercase tracking-widest",
                                                 selectedReport.status === 'PENDING' ? "bg-rose-500" :
@@ -303,13 +362,13 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                                         <p className="text-[10px] text-slate-400 font-bold uppercase tracking-widest">{selectedReport.user.name} • {format(new Date(selectedReport.createdAt), 'dd MMMM yyyy, HH:mm', { locale: id })} WIB</p>
                                     </div>
                                 </div>
-                                <div className="flex items-center gap-2">
+                                <div className="flex items-center gap-2 mt-4 md:mt-0 ml-auto md:ml-0">
                                     <button
-                                        onClick={() => generatePDF(selectedReport)}
+                                        onClick={() => generateIncidentPDF(selectedReport)}
                                         className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 text-rose-400 border border-rose-400/20"
                                     >
-                                        <Download size={14} />
-                                        <span className="hidden sm:inline">Cetak PDF</span>
+                                        <Printer size={14} />
+                                        <span className="hidden sm:inline">Print PDF</span>
                                     </button>
                                     <button
                                         onClick={() => window.open(`https://www.google.com/maps?q=${selectedReport.latitude},${selectedReport.longitude}`, '_blank')}
@@ -323,7 +382,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                         </div>
 
                         {/* Thread & Comments */}
-                        <div ref={scrollRef} className="flex-1 p-8 space-y-8 overflow-y-auto custom-scrollbar">
+                        <div ref={scrollRef} className="flex-1 p-5 md:p-8 space-y-8 overflow-y-auto custom-scrollbar">
                             <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                                 <div className="space-y-2">
                                     <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Keterangan Kejadian</label>
@@ -344,6 +403,54 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                                 )}
                             </div>
 
+                            {/* Admin Post-Incident Form */}
+                            <div className="pt-6 border-t border-slate-100 dark:border-slate-800 space-y-6">
+                                <div className="flex items-center gap-2">
+                                    <FileText size={16} className="text-rose-600" />
+                                    <h3 className="text-[10px] font-black text-rose-600 uppercase tracking-widest">Catatan & Analisa Admin (Pasca Kejadian)</h3>
+                                </div>
+
+                                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Tindakan Diambil (Action)</label>
+                                        <textarea
+                                            value={actionDetail}
+                                            onChange={(e) => setActionDetail(e.target.value)}
+                                            placeholder="Tindakan yang dilakukan..."
+                                            className="w-full h-24 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs font-bold outline-none focus:border-rose-400 transition-all resize-none shadow-sm placeholder:text-slate-300"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Analisa (Analysis)</label>
+                                        <textarea
+                                            value={analysis}
+                                            onChange={(e) => setAnalysis(e.target.value)}
+                                            placeholder="Analisa penyebab..."
+                                            className="w-full h-24 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs font-bold outline-none focus:border-rose-400 transition-all resize-none shadow-sm placeholder:text-slate-300"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[9px] font-black text-slate-400 uppercase tracking-widest ml-1">Perbaikan (Improvement)</label>
+                                        <textarea
+                                            value={improvement}
+                                            onChange={(e) => setImprovement(e.target.value)}
+                                            placeholder="Rekomendasi perbaikan..."
+                                            className="w-full h-24 p-4 rounded-2xl bg-slate-50 dark:bg-slate-800/50 border border-slate-100 dark:border-slate-800 text-xs font-bold outline-none focus:border-rose-400 transition-all resize-none shadow-sm placeholder:text-slate-300"
+                                        />
+                                    </div>
+                                </div>
+                                <div className="flex justify-end">
+                                    <button
+                                        onClick={handleUpdateNotes}
+                                        disabled={notesLoading}
+                                        className="h-10 px-6 rounded-xl bg-rose-600 hover:bg-rose-700 text-white font-black text-[9px] uppercase tracking-widest flex items-center gap-2 transition-all disabled:opacity-50 shadow-lg shadow-rose-100 dark:shadow-none"
+                                    >
+                                        {notesLoading ? <Loader2 className="animate-spin" size={12} /> : <CheckCircle2 size={12} />}
+                                        Simpan Catatan Admin
+                                    </button>
+                                </div>
+                            </div>
+
                             <div className="space-y-6 pt-4 border-t border-slate-50 dark:border-slate-800">
                                 <div className="flex items-center gap-2">
                                     <MessageSquare size={16} className="text-indigo-600" />
@@ -360,7 +467,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
 
                                 {/* Iterating Comments */}
                                 {selectedReport.comments?.map((comment: any) => {
-                                    const isAdmin = ['ADMIN', 'PIC'].includes(comment.user.role);
+                                    const isAdmin = ['ADMIN', 'PIC', 'RT'].includes(comment.user.role);
                                     return (
                                         <div key={comment.id} className={cn(
                                             "flex flex-col space-y-1 animate-in slide-in-from-bottom-2 duration-300",
@@ -384,58 +491,96 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                         </div>
 
                         {/* Input */}
-                        <div className="p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
-                            <div className="space-y-4">
-                                <div className="flex gap-3">
-                                    <div className="flex-1 relative">
-                                        <textarea
-                                            value={reply}
-                                            onChange={(e) => setReply(e.target.value)}
-                                            placeholder="Tulis instruksi tambahan pesan di sini..."
-                                            className="w-full h-20 p-5 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold focus:border-indigo-500 outline-none transition-all resize-none shadow-sm"
-                                        />
+                        <div className="p-5 md:p-8 border-t border-slate-50 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900">
+                            {selectedReport.status !== 'RESOLVED' ? (
+                                <div className="space-y-4">
+                                    <div className="space-y-3">
+                                        <div className="relative">
+                                            <textarea
+                                                value={reply}
+                                                onChange={(e) => setReply(e.target.value)}
+                                                placeholder="Tulis instruksi tambahan pesan di sini..."
+                                                className="w-full h-24 p-5 rounded-3xl bg-white dark:bg-slate-800 border border-slate-200 dark:border-slate-700 text-xs font-bold focus:border-indigo-500 outline-none transition-all resize-none shadow-sm"
+                                            />
+                                        </div>
+                                        <div className="flex justify-end">
+                                            <button
+                                                onClick={() => handleReply('ON_PROGRESS')}
+                                                disabled={replyLoading || !reply.trim()}
+                                                className="h-10 px-6 rounded-xl bg-slate-900 dark:bg-indigo-600 text-white font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50 shadow-lg"
+                                            >
+                                                {replyLoading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
+                                                Balas
+                                            </button>
+                                        </div>
                                     </div>
-                                    <div className="flex flex-col gap-2">
-                                        <button
-                                            onClick={() => handleReply('ON_PROGRESS')}
-                                            disabled={replyLoading || !reply.trim()}
-                                            className="h-10 px-5 rounded-2xl bg-slate-900 dark:bg-indigo-600 text-white font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-slate-800 transition-all disabled:opacity-50"
-                                        >
-                                            {replyLoading ? <Loader2 className="animate-spin" size={14} /> : <Send size={14} />}
-                                            Balas
-                                        </button>
-                                        <button
-                                            onClick={() => handleReply('RESOLVED')}
-                                            disabled={replyLoading || !reply.trim()}
-                                            className="h-10 px-5 rounded-2xl bg-emerald-600 text-white font-black text-[9px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-700 transition-all disabled:opacity-50"
-                                        >
-                                            <CheckCircle2 size={14} />
-                                            Selesai
-                                        </button>
+                                    <div className="flex flex-wrap gap-2">
+                                        {['Segera meluncur', 'Amankan lokasi', 'Harap lapor koordinator', 'Dokumentasikan kerusakan'].map(t => (
+                                            <button
+                                                key={t}
+                                                onClick={() => setReply(t)}
+                                                className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-[9px] font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-500 transition-all"
+                                            >
+                                                + {t}
+                                            </button>
+                                        ))}
                                     </div>
                                 </div>
-                                <div className="flex flex-wrap gap-2">
-                                    {['Segera meluncur', 'Amankan lokasi', 'Harap lapor koordinator', 'Dokumentasikan kerusakan'].map(t => (
-                                        <button
-                                            key={t}
-                                            onClick={() => setReply(t)}
-                                            className="px-3 py-1.5 rounded-xl bg-white dark:bg-slate-800 border border-slate-100 dark:border-slate-700 text-[9px] font-bold text-slate-500 hover:text-indigo-600 hover:border-indigo-500 transition-all"
-                                        >
-                                            + {t}
-                                        </button>
-                                    ))}
+                            ) : (
+                                <div className="flex flex-col items-center justify-center py-8 space-y-3 text-emerald-600/50 dark:text-emerald-400/50">
+                                    <CheckCircle2 size={48} />
+                                    <p className="text-xs font-black uppercase tracking-widest">Laporan Telah Diselesaikan</p>
+                                </div>
+                            )}
+
+                            <div className="pt-4 mt-2 border-t border-slate-100 dark:border-slate-800">
+                                {selectedReport.status !== 'RESOLVED' && (
+                                    <button
+                                        onClick={() => handleReply('RESOLVED')}
+                                        disabled={replyLoading}
+                                        className="w-full h-12 rounded-2xl bg-emerald-50 dark:bg-emerald-900/10 border border-emerald-100 dark:border-emerald-900/30 text-emerald-600 dark:text-emerald-400 font-black text-[10px] uppercase tracking-widest flex items-center justify-center gap-2 hover:bg-emerald-100 dark:hover:bg-emerald-900/30 transition-all disabled:opacity-50"
+                                    >
+                                        <CheckCircle2 size={16} />
+                                        Tandai Selesai (Close Case)
+                                    </button>
+                                )}
+
+                                {/* Mobile Back Button (Bottom Right) */}
+                                <div className="lg:hidden flex justify-end mt-4">
+                                    <button
+                                        onClick={() => setSelectedReport(null)}
+                                        className="h-10 px-6 rounded-xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-black text-[10px] uppercase tracking-widest hover:bg-slate-800 dark:hover:bg-slate-200 transition-all shadow-xl"
+                                    >
+                                        Kembali
+                                    </button>
                                 </div>
                             </div>
                         </div>
                     </div>
                 ) : (
                     <div className="h-[700px] flex flex-col items-center justify-center bg-white dark:bg-slate-900 rounded-[2.5rem] border border-slate-200 dark:border-slate-800 text-slate-400">
-                        <ShieldAlert size={64} className="opacity-10 mb-6" />
+                        <div className="flex items-center gap-3 mb-6">
+                            <div className="flex items-center gap-1.5 px-3 py-1 rounded-full bg-rose-50 dark:bg-rose-900/20 text-rose-600 dark:text-rose-400 border border-rose-100 dark:border-rose-800">
+                                <ShieldAlert size={14} className="animate-pulse" />
+                                <span className="text-[10px] font-black uppercase tracking-widest">Live Monitor</span>
+                            </div>
+                            {/* Connection Status Dot */}
+                            <div className="flex items-center gap-1.5 px-2 py-1 rounded-lg bg-slate-100 dark:bg-slate-800 border border-slate-200 dark:border-slate-700">
+                                <div className={cn(
+                                    "h-1.5 w-1.5 rounded-full transition-all duration-500",
+                                    realtimeStatus === 'connected' ? "bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500" :
+                                        realtimeStatus === 'connecting' ? "bg-amber-500 animate-pulse" : "bg-slate-400"
+                                )} />
+                                <span className="text-[8px] font-black text-slate-500 uppercase tracking-widest">
+                                    {realtimeStatus === 'connected' ? 'Online' : realtimeStatus === 'connecting' ? 'Connecting' : 'Offline'}
+                                </span>
+                            </div>
+                        </div>
                         <h3 className="text-sm font-black uppercase tracking-widest text-slate-900 dark:text-white mb-2">Pilih Laporan</h3>
                         <p className="text-xs font-bold text-slate-400 uppercase tracking-widest max-w-[200px] text-center">Silakan pilih laporan di sisi kiri untuk melihat detail.</p>
                     </div>
                 )}
             </div>
-        </div>
+        </div >
     );
 }

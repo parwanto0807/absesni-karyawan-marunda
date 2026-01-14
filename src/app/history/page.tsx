@@ -24,7 +24,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
 
     // Fetch users for filter (Admin/PIC only)
     let filterUsers;
-    if (session.role === 'ADMIN' || session.role === 'PIC') {
+    if (session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT') {
         filterUsers = await prisma.user.findMany({
             select: { id: true, name: true },
             orderBy: { name: 'asc' }
@@ -33,7 +33,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
 
     // Determine filter parameters
     let targetUserId: string | undefined = session.userId;
-    if (session.role === 'ADMIN' || session.role === 'PIC') {
+    if (session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT') {
         const pUserId = searchParams.userId;
         const pUserIdStr = Array.isArray(pUserId) ? pUserId[0] : pUserId;
         targetUserId = pUserIdStr || undefined;
@@ -194,7 +194,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                         Riwayat <span className="text-indigo-600">Absensi</span>
                     </h1>
                     <p className="text-[10px] md:text-sm text-slate-500 dark:text-slate-400 font-medium">
-                        {session.role === 'ADMIN' || session.role === 'PIC'
+                        {session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT'
                             ? 'Memantau seluruh data absensi karyawan Cluster Taman Marunda .'
                             : 'Melihat catatan kehadiran pribadi Anda.'}
                     </p>

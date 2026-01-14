@@ -42,7 +42,7 @@ export default async function Home() {
     redirect('/login');
   }
 
-  const isPowerful = session.role === 'ADMIN' || session.role === 'PIC';
+  const isPowerful = session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT';
   const isFieldRole = ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'].includes(session.role);
 
   // Date for 7 days ago (Jakarta Time)
@@ -122,9 +122,15 @@ export default async function Home() {
     orderBy: { createdAt: 'desc' }
   });
 
-  // 4. Ambil Laporan Kejadian Saya (untuk Security/Field)
-  const incidentsResult = isFieldRole ? await getMyRecentIncidents(session.userId) : { success: false, data: [] };
-  const myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data : [];
+  // 4. Ambil Laporan Kejadian (All for Admin/PIC, My for Field)
+  let myRecentIncidents: any[] = [];
+  if (isPowerful) {
+    const incidentsResult = await getIncidentReports(true);
+    myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data.slice(0, 10) : [];
+  } else if (isFieldRole) {
+    const incidentsResult = await getMyRecentIncidents(session.userId, true);
+    myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data : [];
+  }
 
   const stats = {
     totalEmployees: await prisma.user.count({
@@ -165,7 +171,7 @@ export default async function Home() {
   const myDuty = getDutyForRole(session.role);
 
   return (
-    <div className="space-y-6 md:space-y-8 pb-24 md:pb-8 font-sans animate-in fade-in duration-700">
+    <div className="space-y-6 md:space-y-8 pb-24 md:pb-8 font-sans">
       {/* --- TOP BAR --- */}
       <div className="flex items-center justify-between gap-4">
         <div className="flex flex-row items-center justify-between w-full md:w-auto md:justify-start gap-4 md:gap-8">
@@ -212,15 +218,19 @@ export default async function Home() {
           </Link>
         ))}
 
-        {/* Floating Action for Field Roles (Security, Kebersihan, Lingkungan) */}
-        {isFieldRole && (
-          <IncidentReportDialog userId={session.userId} variant="shortcut" disabled={!isOnDuty} />
+        {/* Floating Action for Field Roles (Security, Kebersihan, Lingkungan) & Admin */}
+        {(isFieldRole || isPowerful) && (
+          <IncidentReportDialog userId={session.userId} variant="shortcut" disabled={isFieldRole && !isOnDuty} />
         )}
       </div>
 
-      {/* --- RECENT INCIDENTS CAROUSEL (Mobile) --- */}
-      {isFieldRole && myRecentIncidents.length > 0 && (
-        <div className="md:hidden">
+      {/* --- RECENT INCIDENTS CAROUSEL --- */}
+      {/* Visible for Admin/PIC (All Devices) and Field (Mobile) */}
+      {myRecentIncidents.length > 0 && (
+        <div className={cn(
+          "w-[calc(100%+2rem)] -mx-4 px-4 md:mx-0 md:w-full md:px-0",
+          isPowerful ? "" : "md:hidden"
+        )}>
           <ReviewIncidents incidents={myRecentIncidents} userId={session.userId} />
         </div>
       )}
@@ -337,9 +347,10 @@ export default async function Home() {
           </div>
 
           {/* E. LAPOR KEJADIAN (Desktop View) */}
-          {isFieldRole && (
+          {/* E. LAPOR KEJADIAN (Desktop View) */}
+          {(isFieldRole || isPowerful) && (
             <div className="hidden md:block">
-              <IncidentReportDialog userId={session.userId} disabled={!isOnDuty} />
+              <IncidentReportDialog userId={session.userId} disabled={isFieldRole && !isOnDuty} />
             </div>
           )}
 

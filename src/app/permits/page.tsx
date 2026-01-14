@@ -14,7 +14,7 @@ export default async function PermitsPage() {
     }
 
     // Filter permits based on role
-    const permits = (session.role === 'ADMIN' || session.role === 'PIC')
+    const permits = (session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT')
         ? await getPermits()
         : await getPermits(session.userId);
 
