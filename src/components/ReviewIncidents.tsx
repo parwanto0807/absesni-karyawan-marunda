@@ -276,16 +276,17 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
                                         <AlertTriangle size={64} className="text-white/20" />
                                     </div>
                                 )}
-                                <button
-                                    onClick={() => setSelectedIncidentId(null)}
-                                    className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center"
-                                >
-                                    <X size={20} />
-                                </button>
                                 <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent flex flex-col justify-end p-6">
                                     <span className="px-2 py-0.5 rounded-full bg-rose-500 text-white text-[8px] font-black uppercase tracking-widest w-fit mb-1">{selectedIncident.category}</span>
                                     <h3 className="text-white font-black text-lg uppercase tracking-tight">{selectedIncident.status}</h3>
                                 </div>
+                                <button
+                                    onClick={() => setSelectedIncidentId(null)}
+                                    className="absolute top-4 right-4 h-10 w-10 rounded-full bg-black/40 backdrop-blur-md text-white flex items-center justify-center z-20 hover:bg-rose-500 transition-all active:scale-95"
+                                    type="button"
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
 
                             {/* Thread Title */}

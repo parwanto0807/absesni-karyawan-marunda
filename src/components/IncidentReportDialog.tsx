@@ -272,8 +272,13 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 bg-black/60 backdrop-blur-sm animate-in fade-in duration-300">
-            <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300">
+            {/* Backdrop click handler */}
+            <div
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={reset}
+            />
+            <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
                 {/* Header */}
                 <div className="p-4 md:p-8 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex items-center justify-center md:justify-between">
                     <div className="flex items-center gap-3">
@@ -295,7 +300,11 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                             </div>
                         </div>
                     </div>
-                    <button onClick={reset} className="p-2 hover:bg-white/20 rounded-xl transition-colors">
+                    <button
+                        onClick={reset}
+                        type="button"
+                        className="p-2 hover:bg-white/20 rounded-xl transition-colors relative z-10"
+                    >
                         <X size={24} />
                     </button>
                 </div>
