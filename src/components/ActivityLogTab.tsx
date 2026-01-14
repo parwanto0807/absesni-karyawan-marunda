@@ -2,7 +2,7 @@
 
 import React, { useState, useEffect } from 'react';
 import { getActivityLogs, getUsers, deleteActivityLogs } from '@/actions/activity';
-import { Loader2, History as HistoryIcon, User, Clock, Monitor, Trash2, CheckSquare, Square } from 'lucide-react';
+import { Loader2, History as HistoryIcon, User, Clock, Monitor, Trash2, CheckSquare, Square, Smartphone, Laptop, ShieldCheck } from 'lucide-react';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
@@ -153,6 +153,7 @@ export default function ActivityLogTab() {
                                     </button>
                                 </th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">User</th>
+                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Device</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Aksi</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Target</th>
                                 <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Waktu</th>
@@ -197,6 +198,32 @@ export default function ActivityLogTab() {
                                                     <p className="text-xs font-bold text-slate-900 dark:text-white leading-tight">{log.user.name}</p>
                                                     <p className="text-[10px] text-slate-500 font-medium">@{log.user.username}</p>
                                                 </div>
+                                            </div>
+                                        </td>
+                                        <td className="px-6 py-4">
+                                            <div className="flex justify-center">
+                                                {log.device === 'MOBILE' ? (
+                                                    <div className="flex flex-col items-center gap-1 group">
+                                                        <div className="p-1.5 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-600 dark:text-orange-400 border border-orange-100 dark:border-orange-800/50">
+                                                            <Smartphone size={14} />
+                                                        </div>
+                                                        <span className="text-[8px] font-black uppercase text-orange-500 opacity-0 group-hover:opacity-100 transition-opacity">Mobile</span>
+                                                    </div>
+                                                ) : log.device === 'WINDOWS' ? (
+                                                    <div className="flex flex-col items-center gap-1 group">
+                                                        <div className="p-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800/50">
+                                                            <Laptop size={14} />
+                                                        </div>
+                                                        <span className="text-[8px] font-black uppercase text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity">Windows</span>
+                                                    </div>
+                                                ) : (
+                                                    <div className="flex flex-col items-center gap-1 group">
+                                                        <div className="p-1.5 rounded-lg bg-slate-50 dark:bg-slate-800 text-slate-400 border border-slate-200 dark:border-slate-700">
+                                                            <Monitor size={14} />
+                                                        </div>
+                                                        <span className="text-[8px] font-black uppercase text-slate-400 opacity-0 group-hover:opacity-100 transition-opacity">{log.device || 'Unknown'}</span>
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -272,6 +299,21 @@ export default function ActivityLogTab() {
                                 <div className="flex items-center justify-between text-[10px]">
                                     <div className="flex items-center gap-1.5 text-slate-500">
                                         <Monitor size={12} />
+                                        <span>Device</span>
+                                    </div>
+                                    <div className="flex items-center gap-1 font-bold">
+                                        {log.device === 'MOBILE' ? (
+                                            <><Smartphone size={10} className="text-orange-500" /> <span className="text-orange-600">MOBILE</span></>
+                                        ) : log.device === 'WINDOWS' ? (
+                                            <><Laptop size={10} className="text-blue-500" /> <span className="text-blue-600">WINDOWS</span></>
+                                        ) : (
+                                            <><Monitor size={10} className="text-slate-400" /> <span className="text-slate-500">{log.device || 'UNKNOWN'}</span></>
+                                        )}
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between text-[10px]">
+                                    <div className="flex items-center gap-1.5 text-slate-500">
+                                        <ShieldCheck size={12} />
                                         <span>Target</span>
                                     </div>
                                     <span className="font-mono font-bold text-indigo-600 dark:text-indigo-400">{log.target || '-'}</span>

@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { MessageSquare, Save, Loader2, Info, CheckCircle2, XCircle, Send } from 'lucide-react';
+import { MessageSquare, Save, Loader2, Info, CheckCircle2, XCircle, Send, Globe } from 'lucide-react';
 import { toast } from 'sonner';
 import { getSettings, updateSettings, testWhatsAppMessage } from '@/actions/settings';
 
@@ -10,7 +10,9 @@ export default function WhatsAppSettingsTab() {
     const [testLoading, setTestLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
     const [enabled, setEnabled] = useState(false);
+    const [provider, setProvider] = useState<'fonnte' | 'watzap'>('fonnte');
     const [apiKey, setApiKey] = useState('');
+    const [numberKey, setNumberKey] = useState('');
     const [groupId, setGroupId] = useState('');
     const [testMessage, setTestMessage] = useState('Halo! Ini adalah pesan percobaan dari Sistem Absensi Marunda.');
 
@@ -19,7 +21,9 @@ export default function WhatsAppSettingsTab() {
             try {
                 const settings = await getSettings();
                 setEnabled(settings.WA_ENABLE_LATE_NOTIF === 'true');
+                setProvider((settings.WA_PROVIDER as 'fonnte' | 'watzap') || 'fonnte');
                 setApiKey(settings.WA_API_KEY || '');
+                setNumberKey(settings.WA_NUMBER_KEY || '');
                 setGroupId(settings.WA_GROUP_ID || '');
             } catch (error) {
                 console.error('Failed to load WhatsApp settings:', error);
@@ -35,7 +39,9 @@ export default function WhatsAppSettingsTab() {
         try {
             const result = await updateSettings({
                 WA_ENABLE_LATE_NOTIF: String(enabled),
+                WA_PROVIDER: provider,
                 WA_API_KEY: apiKey,
+                WA_NUMBER_KEY: numberKey,
                 WA_GROUP_ID: groupId
             });
 
@@ -52,14 +58,14 @@ export default function WhatsAppSettingsTab() {
     };
 
     const handleTestSend = async () => {
-        if (!apiKey || !groupId) {
-            toast.error('API Key dan Group ID harus diisi untuk mencoba');
+        if (!apiKey || !groupId || (provider === 'watzap' && !numberKey)) {
+            toast.error('Konfigurasi API harus lengkap untuk mencoba');
             return;
         }
 
         setTestLoading(true);
         try {
-            const result = await testWhatsAppMessage(testMessage, groupId, apiKey);
+            const result = await testWhatsAppMessage(testMessage, groupId, apiKey, provider, numberKey);
             if (result.success) {
                 toast.success('Pesan Percobaan Terkirim!');
             } else {
@@ -96,7 +102,7 @@ export default function WhatsAppSettingsTab() {
                         <h2 className="text-xl md:text-2xl font-black uppercase tracking-tight">Notifikasi WhatsApp</h2>
                     </div>
                     <p className="text-xs md:text-sm font-medium text-green-50 opacity-90 leading-relaxed max-w-lg">
-                        Kirim notifikasi otomatis ke grup WhatsApp admin saat karyawan terdeteksi terlambat melakukan absensi masuk.
+                        Kirim notifikasi otomatis ke grup WhatsApp admin saat karyawan terdeteksi terlambat atau pulang lebih awal.
                     </p>
                 </div>
             </div>
@@ -128,17 +134,52 @@ export default function WhatsAppSettingsTab() {
                                 </button>
                             </div>
 
+                            {/* Provider Selection */}
+                            <div className="space-y-2">
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WhatsApp Provider</label>
+                                <div className="grid grid-cols-2 gap-2">
+                                    <button
+                                        onClick={() => setProvider('fonnte')}
+                                        className={`h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${provider === 'fonnte' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-500'}`}
+                                    >
+                                        Fonnte
+                                    </button>
+                                    <button
+                                        onClick={() => setProvider('watzap')}
+                                        className={`h-11 rounded-xl text-[10px] font-black uppercase tracking-widest border transition-all ${provider === 'watzap' ? 'bg-indigo-600 border-indigo-600 text-white shadow-lg shadow-indigo-200 dark:shadow-none' : 'bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-800 text-slate-500'}`}
+                                    >
+                                        WatZap.id
+                                    </button>
+                                </div>
+                            </div>
+
                             {/* API Key */}
                             <div className="space-y-2">
-                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Fonnte API Key</label>
+                                <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">
+                                    {provider === 'fonnte' ? 'Fonnte API Key' : 'WatZap API Key'}
+                                </label>
                                 <input
                                     type="password"
                                     value={apiKey}
                                     onChange={(e) => setApiKey(e.target.value)}
-                                    placeholder="Masukkan API Key dari Fonnte"
+                                    placeholder={provider === 'fonnte' ? 'Masukkan API Key dari Fonnte' : 'Masukkan API Key dari WatZap.id'}
                                     className="w-full h-12 px-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
                                 />
                             </div>
+
+                            {/* Number Key (WatZap only) */}
+                            {provider === 'watzap' && (
+                                <div className="space-y-2 animate-in fade-in zoom-in-95 duration-200">
+                                    <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">WatZap Number Key</label>
+                                    <input
+                                        type="password"
+                                        value={numberKey}
+                                        onChange={(e) => setNumberKey(e.target.value)}
+                                        placeholder="Masukkan Number Key dari WatZap.id"
+                                        className="w-full h-12 px-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
+                                    />
+                                </div>
+                            )}
 
                             {/* Group ID */}
                             <div className="space-y-2">
@@ -147,7 +188,7 @@ export default function WhatsAppSettingsTab() {
                                     type="text"
                                     value={groupId}
                                     onChange={(e) => setGroupId(e.target.value)}
-                                    placeholder="Contoh: 1234567890-11223344@g.us"
+                                    placeholder={provider === 'fonnte' ? 'Contoh: 1234567890-11223344@g.us' : 'Contoh: 1234567890-11223344 (tanpa @g.us jika WatZap)'}
                                     className="w-full h-12 px-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800 text-xs font-bold focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 outline-none transition-all"
                                 />
                             </div>
@@ -175,7 +216,7 @@ export default function WhatsAppSettingsTab() {
                             />
                             <button
                                 onClick={handleTestSend}
-                                disabled={testLoading || !apiKey || !groupId}
+                                disabled={testLoading || !apiKey || !groupId || (provider === 'watzap' && !numberKey)}
                                 className="w-full h-12 rounded-2xl bg-emerald-600 hover:bg-emerald-700 disabled:bg-slate-200 dark:disabled:bg-slate-800 disabled:text-slate-400 text-white font-black text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg"
                             >
                                 {testLoading ? <Loader2 className="w-4 h-4 animate-spin" /> : <Send className="w-4 h-4" />}
@@ -192,41 +233,69 @@ export default function WhatsAppSettingsTab() {
                             <div className="p-2 rounded-xl bg-blue-50 dark:bg-blue-900/20 text-blue-600 dark:text-blue-400">
                                 <Info size={20} />
                             </div>
-                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Cara Setup</h3>
+                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Panduan {provider === 'fonnte' ? 'Fonnte' : 'WatZap.id'}</h3>
                         </div>
 
                         <div className="space-y-4">
-                            <div className="flex gap-4">
-                                <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">1</div>
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                                    Daftar akun di <a href="https://fonnte.com" target="_blank" className="text-indigo-600 font-bold hover:underline">Fonnte.com</a> dan hubungkan nomor WhatsApp Anda.
-                                </p>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">2</div>
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                                    Dapatkan **API Key** dari menu Profile/API pada dashboard Fonnte.
-                                </p>
-                            </div>
-                            <div className="flex gap-4">
-                                <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">3</div>
-                                <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                                    Undang bot Fonnte ke grup WhatsApp Anda untuk mendapatkan **Group ID**. Format biasanya: `xxxxxx-yyyyyy@g.us`.
-                                </p>
-                            </div>
+                            {provider === 'fonnte' ? (
+                                <>
+                                    <div className="flex gap-4">
+                                        <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">1</div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            Daftar akun di <a href="https://fonnte.com" target="_blank" className="text-indigo-600 font-bold hover:underline">Fonnte.com</a> dan hubungkan nomor WhatsApp Anda.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">2</div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            Dapatkan **API Key** dari menu Profile/API pada dashboard Fonnte.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">3</div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            Undang bot Fonnte ke grup WhatsApp Anda untuk mendapatkan **Group ID**. Format: `xxxxxx-yyyyyy@g.us`.
+                                        </p>
+                                    </div>
+                                </>
+                            ) : (
+                                <>
+                                    <div className="flex gap-4">
+                                        <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">1</div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            Daftar akun di <a href="https://watzap.id" target="_blank" className="text-indigo-600 font-bold hover:underline">WatZap.id</a> dan lakukan integrasi nomor.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">2</div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            Dapatkan **API Key** dan **Number Key** dari dashboard WatZap pada menu API Integration.
+                                        </p>
+                                    </div>
+                                    <div className="flex gap-4">
+                                        <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">3</div>
+                                        <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
+                                            Gunakan Group ID yang tertera pada dashboard atau aplikasi untuk target pengiriman.
+                                        </p>
+                                    </div>
+                                </>
+                            )}
                             <div className="flex gap-4">
                                 <div className="h-6 w-6 rounded-lg bg-slate-100 dark:bg-slate-800 flex items-center justify-center text-[10px] font-black shrink-0">4</div>
                                 <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                                    Simpan API Key dan Group ID di panel sebelah kiri untuk mulai menerima notifikasi.
+                                    Simpan konfigurasi dan coba kirim pesan percobaan untuk memastikan koneksi berhasil.
                                 </p>
                             </div>
                         </div>
                     </div>
 
                     <div className="bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-900/30 rounded-3xl p-6">
-                        <p className="text-[10px] text-indigo-700 dark:text-indigo-300 font-bold leading-relaxed">
-                            ⚠️ Tips: Gunakan nomor WhatsApp cadangan sebagai Bot agar tidak mengganggu penggunaan WhatsApp pribadi Anda.
-                        </p>
+                        <div className="flex gap-3 items-start">
+                            <Globe className="w-4 h-4 text-indigo-600 shrink-0 mt-0.5" />
+                            <p className="text-[10px] text-indigo-700 dark:text-indigo-300 font-bold leading-relaxed">
+                                Tips: Pastikan nomor yang digunakan sebagai bot dalam keadaan aktif dan terhubung ke internet agar pengiriman notifikasi lancar.
+                            </p>
+                        </div>
                     </div>
                 </div>
             </div>

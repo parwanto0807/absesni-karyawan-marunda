@@ -58,6 +58,8 @@ model ActivityLog {
   target    String? // The URL or resource accessed
   details   String? // Additional info
   ipAddress String?
+  userAgent String?
+  device    String? // WINDOWS, MOBILE, etc.
   createdAt DateTime @default(now())
 
   @@index([userId])

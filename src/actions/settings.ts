@@ -38,9 +38,14 @@ export async function updateSettings(settings: Record<string, string>) {
     }
 }
 
-export async function testWhatsAppMessage(message: string, target: string, apiKey: string) {
+export async function testWhatsAppMessage(message: string, target: string, apiKey: string, provider: 'fonnte' | 'watzap' = 'fonnte', numberKey?: string) {
     try {
-        const result = await sendWhatsAppMessage(message, target, apiKey);
+        const result = await sendWhatsAppMessage(message, {
+            provider,
+            apiKey,
+            target,
+            numberKey
+        });
         return result;
     } catch (error) {
         console.error('Test WA Error:', error);

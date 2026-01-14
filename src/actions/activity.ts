@@ -2,19 +2,40 @@
 
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { headers } from 'next/headers';
 
 /**
  * Log user activity and perform auto-cleanup of logs older than 3 days
  */
-export async function logActivity(userId: string, action: string, target?: string, details?: string) {
+export async function logActivity(userId: string, action: string, target?: string, details?: string, explicitDevice?: string) {
     try {
+        const headersList = await headers();
+        const userAgent = headersList.get('user-agent') || '';
+        const ip = headersList.get('x-forwarded-for')?.split(',')[0] || headersList.get('x-real-ip') || '';
+
+        let device = explicitDevice || 'UNKNOWN';
+
+        if (!explicitDevice) {
+            const ua = userAgent.toLowerCase();
+            if (ua.includes('mobi') || ua.includes('android') || ua.includes('iphone')) {
+                device = 'MOBILE';
+            } else if (ua.includes('windows')) {
+                device = 'WINDOWS';
+            } else if (ua.includes('macintosh') || ua.includes('linux')) {
+                device = 'DESKTOP';
+            }
+        }
+
         // 1. Record the activity
         await prisma.activityLog.create({
             data: {
                 userId,
                 action,
                 target,
-                details
+                details,
+                ipAddress: ip,
+                userAgent: userAgent,
+                device: device
             }
         });
 
@@ -25,7 +46,6 @@ export async function logActivity(userId: string, action: string, target?: strin
         });
 
         // 3. Auto-cleanup: Delete logs older than 3 days
-        // We do this every time to keep it simple, or we could do it occasionally
         const threeDaysAgo = new Date();
         threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 

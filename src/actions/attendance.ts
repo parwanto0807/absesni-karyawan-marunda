@@ -154,7 +154,12 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                     `_Mohon untuk menjadi perhatian admin._`;
 
                 // Fire and forget (don't await to avoid slowing down the response)
-                sendWhatsAppMessage(message, settings.WA_GROUP_ID, settings.WA_API_KEY);
+                sendWhatsAppMessage(message, {
+                    provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                    apiKey: settings.WA_API_KEY,
+                    target: settings.WA_GROUP_ID,
+                    numberKey: settings.WA_NUMBER_KEY
+                });
             }
         }
 
@@ -271,7 +276,12 @@ export async function clockOut(attendanceId: string) {
                         `_Mohon untuk menjadi perhatian admin._`;
 
                     // Fire and forget
-                    sendWhatsAppMessage(message, settings.WA_GROUP_ID, settings.WA_API_KEY);
+                    sendWhatsAppMessage(message, {
+                        provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                        apiKey: settings.WA_API_KEY,
+                        target: settings.WA_GROUP_ID,
+                        numberKey: settings.WA_NUMBER_KEY
+                    });
                 }
             }
         }
