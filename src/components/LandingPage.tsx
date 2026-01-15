@@ -151,17 +151,18 @@ export default function LandingPage({ settings = {}, activities = [], services =
                     </div>
                 </div>
 
-                <div className="hidden lg:flex items-center space-x-10">
+                <div className="hidden lg:flex items-center space-x-10 relative">
                     {[
                         { id: 'hero', label: 'Home' },
                         { id: 'info-warga', label: 'Informasi' },
                         { id: 'kegiatan', label: 'Kegiatan' },
                         { id: 'keamanan', label: 'Keamanan' }
-                    ].map((tab) => (
+                    ].map((tab, index) => (
                         <button
                             key={tab.id}
                             onClick={() => scrollToSection(tab.id)}
                             className="relative group py-2"
+                            data-tab-index={index}
                         >
                             <span className={`text-xs font-black uppercase tracking-widest transition-colors ${activeSection === tab.id ? 'text-indigo-600' : 'text-slate-500 hover:text-indigo-600'}`}>
                                 {tab.label}
@@ -170,92 +171,66 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                 const currentIndex = SECTION_ORDER.indexOf(activeSection);
                                 const prevIndex = SECTION_ORDER.indexOf(prevSection);
                                 const movingRight = currentIndex > prevIndex;
+                                const isInitial = prevSection === activeSection;
 
-                                const targetBallDelay = 0.6;
-                                const stickDelay = 1.2;
-                                const trailingBallDelay = 1.3;
-                                const rollDegrees = movingRight ? 1080 : -1080; // 3 full rotations for visibility
+                                // Timing: Stick first (0s), then target ball (0.5s), then trailing ball (0.7s)
+                                const stickDuration = 0.5;
+                                const targetBallDelay = 0.5;
+                                const trailingBallDelay = 0.7;
+                                const rollDegrees = movingRight ? 720 : -720;
 
                                 return (
                                     <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[120%] h-4 flex items-center justify-center overflow-visible">
-                                        {/* Left Ball - Rolling with visible stripe */}
+                                        {/* Left Ball */}
                                         <motion.div
-                                            key={`leftBall-${activeSection}`}
-                                            layoutId="leftBall"
-                                            initial={false}
                                             className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.8)] z-20 shrink-0 relative overflow-hidden"
-                                            animate={{ rotate: rollDegrees }}
+                                            initial={isInitial ? { rotate: 0 } : { rotate: 0 }}
+                                            animate={{ rotate: isInitial ? 0 : rollDegrees }}
                                             transition={{
                                                 rotate: {
-                                                    duration: 1,
+                                                    duration: 0.8,
                                                     ease: "easeOut",
-                                                    delay: movingRight ? trailingBallDelay : targetBallDelay
-                                                },
-                                                layout: {
-                                                    type: "spring",
-                                                    stiffness: 90,
-                                                    damping: 22,
-                                                    mass: 1.2,
                                                     delay: movingRight ? trailingBallDelay : targetBallDelay
                                                 }
                                             }}
                                         >
-                                            {/* White Stripe for visible rolling */}
                                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-full bg-white/80 rounded-full" />
                                         </motion.div>
 
-                                        {/* The Cue Stick */}
+                                        {/* The Cue Stick - Animates first */}
                                         <motion.div
-                                            layoutId="cueStick"
                                             className="h-[2px] bg-indigo-600/40 w-8 mx-1 relative flex items-center z-10 shrink-0"
-                                            style={{ scaleY: 1 }}
-                                            initial={false}
-                                            animate={{
-                                                x: [0, movingRight ? -35 : 35, 0, movingRight ? -8 : 8],
+                                            initial={isInitial ? { x: 0 } : { x: 0 }}
+                                            animate={isInitial ? { x: 0 } : {
+                                                x: [0, movingRight ? -30 : 30, 0, movingRight ? -6 : 6],
                                             }}
                                             transition={{
                                                 x: {
-                                                    duration: 0.6,
-                                                    times: [0, 0.75, 0.92, 1],
-                                                    ease: "easeOut"
-                                                },
-                                                layout: {
-                                                    type: "spring",
-                                                    stiffness: 60,
-                                                    damping: 22,
-                                                    delay: stickDelay
+                                                    duration: stickDuration,
+                                                    times: [0, 0.6, 0.85, 1],
+                                                    ease: "easeOut",
+                                                    delay: 0 // Stick moves FIRST
                                                 }
                                             }}
                                         >
-                                            {/* Cue Tip */}
                                             <div
                                                 className={`absolute w-3 h-[4px] bg-indigo-600 rounded-full ${movingRight ? '-right-1.5' : '-left-1.5'}`}
                                             />
                                         </motion.div>
 
-                                        {/* Right Ball - Rolling with visible stripe */}
+                                        {/* Right Ball */}
                                         <motion.div
-                                            key={`rightBall-${activeSection}`}
-                                            layoutId="rightBall"
-                                            initial={false}
                                             className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.8)] z-20 shrink-0 relative overflow-hidden"
-                                            animate={{ rotate: rollDegrees }}
+                                            initial={isInitial ? { rotate: 0 } : { rotate: 0 }}
+                                            animate={{ rotate: isInitial ? 0 : rollDegrees }}
                                             transition={{
                                                 rotate: {
-                                                    duration: 1,
+                                                    duration: 0.8,
                                                     ease: "easeOut",
-                                                    delay: movingRight ? targetBallDelay : trailingBallDelay
-                                                },
-                                                layout: {
-                                                    type: "spring",
-                                                    stiffness: 90,
-                                                    damping: 22,
-                                                    mass: 1.2,
                                                     delay: movingRight ? targetBallDelay : trailingBallDelay
                                                 }
                                             }}
                                         >
-                                            {/* White Stripe for visible rolling */}
                                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-full bg-white/80 rounded-full" />
                                         </motion.div>
                                     </div>
