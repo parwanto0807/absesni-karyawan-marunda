@@ -123,9 +123,13 @@ model Permit {
   adminId     String?
   adminAt     DateTime?
 
-  rtStatus PermitStatus @default(PENDING)
-  rtId     String?
-  rtAt     DateTime?
+  rt03Status PermitStatus @default(PENDING)
+  rt03Id     String?
+  rt03At     DateTime?
+
+  rt04Status PermitStatus @default(PENDING)
+  rt04Id     String?
+  rt04At     DateTime?
 
   finalStatus PermitStatus @default(PENDING)
 
