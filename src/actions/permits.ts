@@ -4,6 +4,11 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { createNotification } from './notifications';
 import { TIMEZONE } from '@/lib/date-utils';
+import { getSettings } from './settings';
+import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
 
 export async function createPermit(formData: FormData) {
     try {
@@ -78,6 +83,29 @@ export async function createPermit(formData: FormData) {
         }
 
         revalidatePath('/permits');
+
+        // 📢 WhatsApp Notification for Permit
+        const user = await prisma.user.findUnique({ where: { id: userId } });
+        const settings = await getSettings();
+        if (user && settings.WA_ENABLE_LATE_NOTIF === 'true' && settings.WA_API_KEY && settings.WA_GROUP_ID) {
+            const message = `📝 *PENGAJUAN IZIN BARU* 📝\n\n` +
+                `*Nama:* ${user.name}\n` +
+                `*Divisi:* ${user.role}\n` +
+                `*Jenis:* ${type}\n` +
+                `*Mulai:* ${format(toZonedTime(startDate, TIMEZONE), 'dd MMMM yyyy', { locale: id })}\n` +
+                `*Sampai:* ${format(toZonedTime(endDate, TIMEZONE), 'dd MMMM yyyy', { locale: id })}\n` +
+                `*Alasan:* ${reason}\n\n` +
+                `_Mohon untuk segera ditinjau oleh Admin & RT._`;
+
+            // Fire and forget
+            sendWhatsAppMessage(message, {
+                provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                apiKey: settings.WA_API_KEY,
+                target: settings.WA_GROUP_ID,
+                numberKey: settings.WA_NUMBER_KEY
+            });
+        }
+
         return { success: true, message: 'Pengajuan izin berhasil dibuat.' };
     } catch (error) {
         console.error('Create Permit Error:', error);
