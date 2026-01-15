@@ -23,13 +23,13 @@ const geistMono = Geist_Mono({
 });
 
 export const metadata: Metadata = {
-  title: "Absensi Karyawan Marunda",
-  description: "Sistem Manajemen Kehadiran Karyawan dan Security - Manage Access with Ease and Security",
+  title: "Cluster Taman Marunda",
+  description: "Sistem Terintegrasi Hunian dan Manajemen Operasional – Solusi Digital untuk Layanan Warga, Kehadiran Karyawan, dan Keamanan Cluster Taman Marunda",
   manifest: "/manifest.json",
   appleWebApp: {
     capable: true,
     statusBarStyle: "default",
-    title: "Absensi Karyawan Marunda",
+    title: "Cluster Taman Marunda",
   },
   icons: {
     icon: [

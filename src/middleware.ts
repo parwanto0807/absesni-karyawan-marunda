@@ -2,36 +2,35 @@ import { NextRequest, NextResponse } from 'next/server';
 import { decrypt, encrypt } from '@/lib/auth';
 
 // 1. Specify protected and public routes
-const protectedRoutes = ['/', '/attendance', '/history', '/employees', '/schedules', '/permits'];
+const protectedRoutes = ['/dashboard', '/attendance', '/history', '/employees', '/schedules', '/permits', '/admin/settings', '/admin/incidents'];
 const publicRoutes = ['/login'];
+// Note: '/' is public but we might want to redirect authenticated users to /dashboard for better UX
 
 export default async function middleware(req: NextRequest) {
-    // 2. Check if the current route is protected or public
     const path = req.nextUrl.pathname;
-    const isProtectedRoute = protectedRoutes.includes(path);
+    const isProtectedRoute = protectedRoutes.some(route => path.startsWith(route));
     const isPublicRoute = publicRoutes.includes(path);
+    const isLandingPage = path === '/';
 
-    // 3. Decrypt the session from the cookie
+    // 2. Decrypt the session from the cookie
     const cookie = req.cookies.get('session')?.value;
     const session = cookie ? await decrypt(cookie) : null;
 
-    // 4. Redirect to /login if the user is not authenticated
+    // 3. Redirect to /login if the user is not authenticated and trying to access a protected route
     if (isProtectedRoute && !session) {
         return NextResponse.redirect(new URL('/login', req.nextUrl));
     }
 
-    // 5. Redirect to / if the user is authenticated
-    if (isPublicRoute && session) {
-        return NextResponse.redirect(new URL('/', req.nextUrl));
+    // 4. Redirect to /dashboard if the user is authenticated and trying to access public routes (like login or landing)
+    if (session && (isPublicRoute || isLandingPage)) {
+        return NextResponse.redirect(new URL('/dashboard', req.nextUrl));
     }
 
-    // 6. Refresh the session so it doesn't expire (Edge Compatible)
+    // 5. Refresh the session if it exists
     if (session) {
         const now = Math.floor(Date.now() / 1000);
         const sevenDaysInSeconds = 7 * 24 * 60 * 60;
 
-        // Check if the session is older than 7 days from initial login
-        // If it is, we don't refresh and let it expire naturally (or redirect to login)
         if (now - session.iat > sevenDaysInSeconds) {
             const response = NextResponse.redirect(new URL('/login', req.nextUrl));
             response.cookies.set('session', '', { expires: new Date(0) });
@@ -39,8 +38,6 @@ export default async function middleware(req: NextRequest) {
         }
 
         const response = NextResponse.next();
-
-        // Extend session by 2 hours (Access Token style)
         const newExpires = new Date(Date.now() + 2 * 60 * 60 * 1000);
         const newSessionToken = await encrypt(session);
 

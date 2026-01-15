@@ -209,4 +209,26 @@ model IncidentComment {
 
   @@index([incidentId])
   @@index([userId])
+  @@index([createdAt])
+}
+
+model LandingActivity {
+  id          String   @id @default(cuid())
+  title       String
+  time        String
+  description String?  @db.Text
+  image       String?  @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+}
+
+model LandingService {
+  id          String   @id @default(cuid())
+  icon        String // Lucide icon name
+  title       String
+  description String   @db.Text
+  order       Int      @default(0)
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
 }

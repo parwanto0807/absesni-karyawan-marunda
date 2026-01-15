@@ -27,7 +27,7 @@ export default function LayoutContent({ children, user }: { children: React.Reac
             </main>
 
             {/* Mobile Draggable Premium Home Button - Only visible when NOT on dashboard */}
-            {pathname !== '/' && (
+            {pathname !== '/dashboard' && (
                 <motion.div
                     drag
                     dragConstraints={{ left: -200, right: 0, top: -500, bottom: 0 }}
@@ -39,7 +39,7 @@ export default function LayoutContent({ children, user }: { children: React.Reac
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
                 >
-                    <Link href="/" className="relative group block">
+                    <Link href="/dashboard" className="relative group block">
                         {/* Animated Glow Effect */}
                         <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-[1.25rem] blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
 

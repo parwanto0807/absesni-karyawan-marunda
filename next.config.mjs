@@ -1,11 +1,13 @@
-import withPWA from "next-pwa";
+import withPWAInit from "@ducanh2912/next-pwa";
+
+const withPWA = withPWAInit({
+  dest: "public",
+  disable: process.env.NODE_ENV === "development",
+});
 
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   turbopack: {},
-  serverActions: {
-    bodySizeLimit: '50mb',
-  },
   experimental: {
     serverActions: {
       bodySizeLimit: '50mb',
@@ -13,10 +15,5 @@ const nextConfig = {
   },
 };
 
-export default withPWA({
-  dest: "public",
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === "development",
-})(nextConfig);
+export default withPWA(nextConfig);
 

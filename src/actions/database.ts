@@ -4,20 +4,35 @@ import { exec } from 'child_process';
 import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
+import os from 'os';
 import { prisma } from '@/lib/db';
 
 const execPromise = promisify(exec);
 
+// Function to remove Prisma-specific query parameters like ?schema=public
+// which are invalid for standard postgres tools like pg_dump and psql
+function getCleanDbUrl(url: string) {
+    try {
+        const parsed = new URL(url);
+        parsed.search = ''; // Remove all query parameters for safety
+        return parsed.toString();
+    } catch (e) {
+        return url; // Fallback if URL parsing fails
+    }
+}
+
 export async function backupDatabase() {
     try {
-        const dbUrl = process.env.DATABASE_URL;
+        let dbUrl = process.env.DATABASE_URL;
         if (!dbUrl) throw new Error('DATABASE_URL is not defined');
+
+        dbUrl = getCleanDbUrl(dbUrl);
 
         // We use pg_dump to generate the SQL
         // Since it might be a large file, we'll write to a temp file first then read it
         const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
         const fileName = `backup-${timestamp}.sql`;
-        const filePath = path.join(process.cwd(), fileName);
+        const filePath = path.join(os.tmpdir(), fileName);
 
         // Command: pg_dump --clean --if-exists "url" > file
         // On windows, we might need quotes around the path
@@ -49,10 +64,12 @@ export async function restoreDatabase(sqlContent: string) {
         // usually, but we can try to split or use psql if available.
 
         // Better approach: write to temp file and use psql
-        const dbUrl = process.env.DATABASE_URL;
+        let dbUrl = process.env.DATABASE_URL;
         if (!dbUrl) throw new Error('DATABASE_URL is not defined');
 
-        const filePath = path.join(process.cwd(), 'temp_restore.sql');
+        dbUrl = getCleanDbUrl(dbUrl);
+
+        const filePath = path.join(os.tmpdir(), 'temp_restore.sql');
         fs.writeFileSync(filePath, sqlContent);
 
         // Command: psql "url" < file

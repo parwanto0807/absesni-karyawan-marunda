@@ -38,7 +38,7 @@ export default function Sidebar({ user }: { user: any }) {
     };
 
     const menuItems = [
-        { icon: LayoutDashboard, label: 'Dashboard', href: '/', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
+        { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },

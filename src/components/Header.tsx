@@ -48,7 +48,7 @@ export default function Header({ user }: HeaderProps) {
     };
 
     const menuItems = [
-        { label: 'Dashboard', href: '/', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
+        { label: 'Dashboard', href: '/dashboard', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
         { label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
         { label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'STAFF'] },
         { label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },

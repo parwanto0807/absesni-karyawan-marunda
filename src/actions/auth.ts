@@ -62,7 +62,7 @@ export async function login(formData: FormData) {
     }
 
     // Redirect outside try-catch to allow cleanup
-    redirect('/');
+    redirect('/dashboard');
 }
 
 export async function logout() {

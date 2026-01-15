@@ -12,11 +12,12 @@ import TrackingAuthTab from '@/components/TrackingAuthTab';
 import WhatsAppSettingsTab from '@/components/WhatsAppSettingsTab';
 import PusherSettingsTab from '@/components/PusherSettingsTab';
 import DatabaseTab from '@/components/DatabaseTab';
+import LandingSettingsTab from '@/components/LandingSettingsTab';
 import { getSettings, updateSettings } from '@/actions/settings';
 import { isUserAuthorizedForTracking } from '@/actions/tracking';
 
 export default function SettingsClient({ username }: { username: string }) {
-    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'holidays' | 'duty' | 'logs' | 'tracking' | 'tracking_auth' | 'whatsapp' | 'pusher' | 'database'>('location');
+    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'holidays' | 'duty' | 'logs' | 'tracking' | 'tracking_auth' | 'whatsapp' | 'pusher' | 'database' | 'landing'>('location');
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
@@ -296,6 +297,25 @@ export default function SettingsClient({ username }: { username: string }) {
                         )}
                     </button>
                 )}
+                {username === 'adminit' && (
+                    <button
+                        onClick={() => setActiveTab('landing')}
+                        title="Website Landing"
+                        className={`px-4 md:px-6 py-3 font-bold text-xs md:text-sm transition-all relative whitespace-nowrap ${activeTab === 'landing'
+                            ? 'text-emerald-600 dark:text-emerald-400'
+                            : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                            }`}
+                    >
+                        <div className="flex items-center gap-1.5 md:gap-2">
+                            <ExternalLink size={18} className="w-4.5 h-4.5 md:w-[18px] md:h-[18px]" />
+                            <span className="hidden md:inline">Landing Website</span>
+                            <span className="md:hidden text-[10px] uppercase">{activeTab === 'landing' && 'Web'}</span>
+                        </div>
+                        {activeTab === 'landing' && (
+                            <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-emerald-600 dark:bg-emerald-400" />
+                        )}
+                    </button>
+                )}
             </div>
 
             {/* Tab Content */}
@@ -479,6 +499,9 @@ export default function SettingsClient({ username }: { username: string }) {
             ) : activeTab === 'database' ? (
                 // Database Management Tab
                 <DatabaseTab />
+            ) : activeTab === 'landing' ? (
+                // Landing Settings Tab
+                <LandingSettingsTab />
             ) : (
                 // Holiday Settings Tab
                 <HolidaySettingsTab />
