@@ -4,6 +4,12 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { createNotification } from './notifications';
 import { triggerPusher } from '@/lib/pusher-server';
+import { getSettings } from './settings';
+import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+import { toZonedTime } from 'date-fns-tz';
+import { TIMEZONE } from '@/lib/date-utils';
 
 export async function createIncidentReport(data: {
     userId: string;
@@ -47,6 +53,27 @@ export async function createIncidentReport(data: {
         // Trigger Realtime - Send a "clean" version without heavy Base64 image
         const pusherReport = { ...report, evidenceImg: report.evidenceImg ? 'HAS_IMAGE' : null };
         await triggerPusher('incidents', 'new-incident', pusherReport);
+
+        // 📢 WhatsApp Notification for Incident
+        const settings = await getSettings();
+        if (settings.WA_ENABLE_LATE_NOTIF === 'true' && settings.WA_API_KEY && settings.WA_GROUP_ID) {
+            const message = `🚨 *LAPORAN INSIDEN BARU* 🚨\n\n` +
+                `*Pelapor:* ${report.user.name}\n` +
+                `*Divisi:* ${report.user.role}\n` +
+                `*Kategori:* ${data.category}\n` +
+                `*Waktu:* ${format(toZonedTime(new Date(), TIMEZONE), 'dd MMMM yyyy, HH:mm', { locale: id })} WIB\n` +
+                `*Lokasi:* ${data.address || 'Lihat di aplikasi'}\n\n` +
+                `*Keterangan:* \n${data.description}\n\n` +
+                `_Mohon segera ditindaklanjuti oleh tim terkait._`;
+
+            // Fire and forget
+            sendWhatsAppMessage(message, {
+                provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                apiKey: settings.WA_API_KEY,
+                target: settings.WA_GROUP_ID,
+                numberKey: settings.WA_NUMBER_KEY
+            });
+        }
 
         revalidatePath('/');
         revalidatePath('/admin/incidents');
