@@ -23,6 +23,47 @@ const ICON_MAP: Record<string, any> = {
     Smartphone
 };
 
+const TABS = [
+    { id: 'hero', label: 'Home' },
+    { id: 'info-warga', label: 'Informasi' },
+    { id: 'kegiatan', label: 'Kegiatan' },
+    { id: 'keamanan', label: 'Keamanan' }
+];
+
+// Simple Tab Navigation with animated underline
+function TabNav({ activeSection, onTabClick }: { activeSection: string; onTabClick: (id: string) => void }) {
+    return (
+        <div className="hidden lg:flex items-center space-x-10 relative">
+            {TABS.map((tab) => (
+                <button
+                    key={tab.id}
+                    onClick={() => onTabClick(tab.id)}
+                    className="relative group py-2"
+                >
+                    <span className={`text-xs font-black uppercase tracking-widest transition-colors ${activeSection === tab.id ? 'text-indigo-600' : 'text-slate-500 hover:text-indigo-600'}`}>
+                        {tab.label}
+                    </span>
+
+                    {/* Animated underline indicator */}
+                    {activeSection === tab.id && (
+                        <motion.div
+                            layoutId="tab-underline"
+                            className="absolute -bottom-2 left-0 right-0 h-[3px] bg-indigo-600 rounded-full"
+                            transition={{
+                                type: "spring",
+                                stiffness: 300,
+                                damping: 30
+                            }}
+                        />
+                    )}
+                </button>
+            ))}
+        </div>
+    );
+}
+
+
+
 export default function LandingPage({ settings = {}, activities = [], services = [] }: LandingPageProps) {
     const [selectedActivity, setSelectedActivity] = React.useState<any>(null);
     const [activeSection, setActiveSection] = React.useState('hero');
@@ -151,94 +192,10 @@ export default function LandingPage({ settings = {}, activities = [], services =
                     </div>
                 </div>
 
-                <div className="hidden lg:flex items-center space-x-10 relative">
-                    {[
-                        { id: 'hero', label: 'Home' },
-                        { id: 'info-warga', label: 'Informasi' },
-                        { id: 'kegiatan', label: 'Kegiatan' },
-                        { id: 'keamanan', label: 'Keamanan' }
-                    ].map((tab, index) => (
-                        <button
-                            key={tab.id}
-                            onClick={() => scrollToSection(tab.id)}
-                            className="relative group py-2"
-                            data-tab-index={index}
-                        >
-                            <span className={`text-xs font-black uppercase tracking-widest transition-colors ${activeSection === tab.id ? 'text-indigo-600' : 'text-slate-500 hover:text-indigo-600'}`}>
-                                {tab.label}
-                            </span>
-                            {activeSection === tab.id && (() => {
-                                const currentIndex = SECTION_ORDER.indexOf(activeSection);
-                                const prevIndex = SECTION_ORDER.indexOf(prevSection);
-                                const movingRight = currentIndex > prevIndex;
-                                const isInitial = prevSection === activeSection;
-
-                                // Timing: Stick first (0s), then target ball (0.5s), then trailing ball (0.7s)
-                                const stickDuration = 0.5;
-                                const targetBallDelay = 0.5;
-                                const trailingBallDelay = 0.7;
-                                const rollDegrees = movingRight ? 720 : -720;
-
-                                return (
-                                    <div className="absolute -bottom-4 left-1/2 -translate-x-1/2 w-[120%] h-4 flex items-center justify-center overflow-visible">
-                                        {/* Left Ball */}
-                                        <motion.div
-                                            className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.8)] z-20 shrink-0 relative overflow-hidden"
-                                            initial={isInitial ? { rotate: 0 } : { rotate: 0 }}
-                                            animate={{ rotate: isInitial ? 0 : rollDegrees }}
-                                            transition={{
-                                                rotate: {
-                                                    duration: 0.8,
-                                                    ease: "easeOut",
-                                                    delay: movingRight ? trailingBallDelay : targetBallDelay
-                                                }
-                                            }}
-                                        >
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-full bg-white/80 rounded-full" />
-                                        </motion.div>
-
-                                        {/* The Cue Stick - Animates first */}
-                                        <motion.div
-                                            className="h-[2px] bg-indigo-600/40 w-8 mx-1 relative flex items-center z-10 shrink-0"
-                                            initial={isInitial ? { x: 0 } : { x: 0 }}
-                                            animate={isInitial ? { x: 0 } : {
-                                                x: [0, movingRight ? -30 : 30, 0, movingRight ? -6 : 6],
-                                            }}
-                                            transition={{
-                                                x: {
-                                                    duration: stickDuration,
-                                                    times: [0, 0.6, 0.85, 1],
-                                                    ease: "easeOut",
-                                                    delay: 0 // Stick moves FIRST
-                                                }
-                                            }}
-                                        >
-                                            <div
-                                                className={`absolute w-3 h-[4px] bg-indigo-600 rounded-full ${movingRight ? '-right-1.5' : '-left-1.5'}`}
-                                            />
-                                        </motion.div>
-
-                                        {/* Right Ball */}
-                                        <motion.div
-                                            className="w-3 h-3 rounded-full bg-indigo-600 shadow-[0_0_12px_rgba(79,70,229,0.8)] z-20 shrink-0 relative overflow-hidden"
-                                            initial={isInitial ? { rotate: 0 } : { rotate: 0 }}
-                                            animate={{ rotate: isInitial ? 0 : rollDegrees }}
-                                            transition={{
-                                                rotate: {
-                                                    duration: 0.8,
-                                                    ease: "easeOut",
-                                                    delay: movingRight ? targetBallDelay : trailingBallDelay
-                                                }
-                                            }}
-                                        >
-                                            <div className="absolute top-0 left-1/2 -translate-x-1/2 w-[2px] h-full bg-white/80 rounded-full" />
-                                        </motion.div>
-                                    </div>
-                                );
-                            })()}
-                        </button>
-                    ))}
-                </div>
+                <TabNav
+                    activeSection={activeSection}
+                    onTabClick={scrollToSection}
+                />
 
                 <Link
                     href="/login"
