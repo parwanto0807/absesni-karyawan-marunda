@@ -144,14 +144,14 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
         if (isLate && user) {
             const settings = await getSettings();
             if (settings.WA_ENABLE_LATE_NOTIF === 'true' && settings.WA_API_KEY && settings.WA_GROUP_ID) {
-                const message = `🚨 *NOTIFIKASI KETERLAMBATAN* 🚨\n\n` +
+                const message = `🚨 *NOTIF. KETERLAMBATAN* 🚨\n\n` +
                     `*Nama:* ${user.name}\n` +
                     `*Divisi:* ${user.role}\n` +
                     `*Shift:* ${shiftCode}\n` +
                     `*Jadwal In:* ${scheduledStart ? format(toZonedTime(scheduledStart, TIMEZONE), 'HH:mm', { locale: id }) : '--:--'} WIB\n` +
                     `*Waktu Absen:* ${format(toZonedTime(now, TIMEZONE), 'HH:mm', { locale: id })} WIB\n` +
                     `*Durasi Telat:* ${lateMinutes} Menit\n\n` +
-                    `_Mohon untuk menjadi perhatian admin._`;
+                    `_Mohon untuk menjadi perhatian Admin dan Koordinator._`;
 
                 // Fire and forget (don't await to avoid slowing down the response)
                 sendWhatsAppMessage(message, {
