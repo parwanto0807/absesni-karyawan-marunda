@@ -5,14 +5,14 @@ import { useSidebar } from '@/hooks/use-sidebar';
 import Header from '@/components/Header';
 import { cn } from '@/lib/utils';
 import { SessionPayload } from '@/types/auth';
-import { LayoutDashboard, Home as HomeIcon, Sparkles } from 'lucide-react';
-import Link from 'next/link';
-import { usePathname } from 'next/navigation';
+import { Home as HomeIcon, Sparkles } from 'lucide-react';
+import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
 
 export default function LayoutContent({ children, user }: { children: React.ReactNode, user: SessionPayload | null }) {
     const { isCollapsed } = useSidebar();
     const pathname = usePathname();
+    const router = useRouter();
 
     return (
         <div
@@ -33,13 +33,15 @@ export default function LayoutContent({ children, user }: { children: React.Reac
                     dragConstraints={{ left: -200, right: 0, top: -500, bottom: 0 }}
                     whileDrag={{ scale: 1.1, cursor: "grabbing" }}
                     whileTap={{ scale: 0.9 }}
+                    dragMomentum={false}
+                    onTap={() => router.push('/dashboard')}
                     className="md:hidden fixed bottom-6 right-6 z-[100] cursor-grab active:cursor-grabbing"
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}
                     transition={{ type: "spring", stiffness: 260, damping: 20 }}
                 >
-                    <Link href="/dashboard" className="relative group block">
+                    <div className="relative group block cursor-pointer">
                         {/* Animated Glow Effect */}
                         <div className="absolute -inset-1 bg-gradient-to-r from-indigo-500 via-purple-500 to-pink-500 rounded-[1.25rem] blur opacity-40 group-hover:opacity-100 transition duration-1000 group-hover:duration-200 animate-pulse"></div>
 
@@ -69,7 +71,7 @@ export default function LayoutContent({ children, user }: { children: React.Reac
                         <div className="absolute -top-10 right-0 bg-slate-800 text-white text-[8px] font-black uppercase tracking-widest px-2 py-1 rounded-md opacity-0 group-hover:opacity-100 transition-opacity whitespace-nowrap shadow-xl">
                             Kembali Ke Beranda
                         </div>
-                    </Link>
+                    </div>
                 </motion.div>
             )}
         </div>
