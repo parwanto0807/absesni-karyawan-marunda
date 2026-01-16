@@ -21,6 +21,7 @@ export default function SettingsClient({ username }: { username: string }) {
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
+    const [showMapPreview, setShowMapPreview] = useState(false);
     const [locationName, setLocationName] = useState('POS Cluster Taman Marunda');
     const [latitude, setLatitude] = useState('-6.251427');
     const [longitude, setLongitude] = useState('107.113802');
@@ -334,17 +335,43 @@ export default function SettingsClient({ username }: { username: string }) {
                             </div>
                         </div>
 
-                        {/* Map Preview - Google Maps */}
-                        <div className="relative w-full h-[250px] md:h-[350px] lg:h-[400px] rounded-lg md:rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700">
-                            <iframe
-                                width="100%"
-                                height="100%"
-                                style={{ border: 0 }}
-                                loading="lazy"
-                                allowFullScreen
-                                referrerPolicy="no-referrer-when-downgrade"
-                                src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${latitude},${longitude}&zoom=17`}
-                            />
+                        {/* Map Preview - Google Maps (Lazy Loaded) */}
+                        <div className="relative w-full h-[250px] md:h-[350px] lg:h-[400px] rounded-lg md:rounded-xl overflow-hidden border border-slate-200 dark:border-slate-700 bg-slate-50 dark:bg-slate-800">
+                            {!showMapPreview ? (
+                                <div className="absolute inset-0 flex flex-col items-center justify-center space-y-4 p-6">
+                                    <div className="p-4 rounded-full bg-indigo-100 dark:bg-indigo-900/30">
+                                        <MapPin className="w-12 h-12 text-indigo-600 dark:text-indigo-400" />
+                                    </div>
+                                    <div className="text-center space-y-2">
+                                        <h3 className="text-sm md:text-base font-bold text-slate-900 dark:text-white">
+                                            Preview Peta Lokasi
+                                        </h3>
+                                        <p className="text-xs text-slate-500 dark:text-slate-400 max-w-xs">
+                                            Klik tombol di bawah untuk memuat peta lokasi absensi
+                                        </p>
+                                    </div>
+                                    <button
+                                        onClick={() => setShowMapPreview(true)}
+                                        className="px-6 py-3 rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-bold text-sm flex items-center gap-2 transition-all active:scale-95 shadow-lg shadow-indigo-200 dark:shadow-none"
+                                    >
+                                        <MapPin size={18} />
+                                        <span>Tampilkan Peta</span>
+                                    </button>
+                                    <p className="text-[10px] text-slate-400 italic">
+                                        Peta akan dimuat saat Anda mengklik tombol
+                                    </p>
+                                </div>
+                            ) : (
+                                <iframe
+                                    width="100%"
+                                    height="100%"
+                                    style={{ border: 0 }}
+                                    loading="lazy"
+                                    allowFullScreen
+                                    referrerPolicy="no-referrer-when-downgrade"
+                                    src={`https://www.google.com/maps/embed/v1/place?key=AIzaSyBFw0Qbyq9zTFTd-tUY6dZWTgaQzuU17R8&q=${latitude},${longitude}&zoom=17`}
+                                />
+                            )}
                         </div>
 
                         {/* Location Info */}

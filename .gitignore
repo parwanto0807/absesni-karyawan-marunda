@@ -39,3 +39,33 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# development files
+*.log.txt
+build_*.txt
+final_build.txt
+build_check.txt
+check-settings.js
+test-dist.js
+
+# server configuration (environment-specific)
+*.conf
+
+# documentation (optional - keep if you want to commit docs)
+# CLOCK_TOLERANCE_RULES.md
+# IMAGE_STORAGE_VERCEL.md
+# PERFORMANCE_CALCULATION_GUIDE.md
+# PWA_ICONS_README.md
+# PWA_SETUP.md
+# SHIFT_TRACKING_SYSTEM.md
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db

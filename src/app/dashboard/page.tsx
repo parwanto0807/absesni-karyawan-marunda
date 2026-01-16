@@ -54,28 +54,39 @@ export default async function DashboardPage() {
     };
 
     // 1. Data untuk Security/Lingkungan: History 7 hari rekan kerja
-    const teamAttendance = await prisma.attendance.findMany({
+    const teamAttendanceRaw = await prisma.attendance.findMany({
         where: {
             ...(isFieldRole ? { userId: session.userId } : {}),
             clockIn: { gte: sevenDaysAgo }
         },
         include: {
-            user: { select: { name: true, employeeId: true, role: true, image: true } }
+            user: { select: { id: true, name: true, employeeId: true, role: true, image: true } }
         },
         orderBy: { clockIn: 'desc' },
         take: 50
     });
 
+    const teamAttendance = teamAttendanceRaw.map(record => ({
+        ...record,
+        image: undefined, // Strip base64
+        evidenceImageUrl: record.image ? `/api/images/attendance/${record.id}` : null,
+        user: {
+            ...record.user,
+            image: undefined, // Strip base64
+            imageUrl: record.user.image ? `/api/images/users/${record.user.id}` : null
+        }
+    }));
+
     const activeWindow = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
 
-    const presentSecurity = await prisma.attendance.findMany({
+    const presentSecurityRaw = await prisma.attendance.findMany({
         where: {
             clockIn: { gte: activeWindow },
             clockOut: null,
             user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
         },
         include: {
-            user: { select: { name: true, role: true, employeeId: true, image: true } }
+            user: { select: { id: true, name: true, role: true, employeeId: true, image: true } }
         },
         orderBy: [
             { userId: 'asc' },
@@ -84,7 +95,11 @@ export default async function DashboardPage() {
         distinct: ['userId']
     });
 
-    const securityEmployees = presentSecurity.map(a => a.user);
+    const securityEmployees = presentSecurityRaw.map(a => ({
+        ...a.user,
+        image: undefined, // Strip base64
+        imageUrl: a.user.image ? `/api/images/users/${a.user.id}` : null
+    }));
 
     const currentAttendance = await prisma.attendance.findFirst({
         where: {
@@ -233,7 +248,7 @@ export default async function DashboardPage() {
                                         <div className="flex items-center space-x-3">
                                             <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-50 dark:border-slate-800 group-hover:border-indigo-100 transition-colors shadow-sm">
                                                 <img
-                                                    src={emp.image || '/default-avatar.png'}
+                                                    src={emp.imageUrl || '/default-avatar.png'}
                                                     alt={emp.name}
                                                     className="w-full h-full object-cover"
                                                 />
@@ -308,7 +323,7 @@ export default async function DashboardPage() {
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center space-x-4">
                                                             <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
-                                                                <img src={attendance.user.image || '/default-avatar.png'} alt={attendance.user.name} className="w-full h-full object-cover" />
+                                                                <img src={attendance.user.imageUrl || '/default-avatar.png'} alt={attendance.user.name} className="w-full h-full object-cover" />
                                                             </div>
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white leading-tight">
@@ -447,7 +462,7 @@ export default async function DashboardPage() {
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
                                                     <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm border border-slate-100">
-                                                        <img src={attendance.user.image || '/default-avatar.png'} alt={attendance.user.name} className="w-full h-full object-cover" />
+                                                        <img src={attendance.user.imageUrl || '/default-avatar.png'} alt={attendance.user.name} className="w-full h-full object-cover" />
                                                     </div>
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-black uppercase text-slate-900 dark:text-white leading-tight">{attendance.user.name}</span>
@@ -537,7 +552,7 @@ export default async function DashboardPage() {
                                                 </a>
                                                 <div className="flex items-center space-x-2">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase">FOTO ABSEN:</span>
-                                                    <ImageModal src={attendance.image || ''} alt="Absen" />
+                                                    <ImageModal src={attendance.evidenceImageUrl || ''} alt="Absen" />
                                                 </div>
                                             </div>
                                         </div>
