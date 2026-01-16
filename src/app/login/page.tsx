@@ -56,11 +56,11 @@ export default function LoginPage() {
             {/* Left Side: Aesthetic Residential Image (Hidden on Mobile) */}
             <div className="hidden lg:flex lg:w-1/2 relative">
                 <div className="absolute inset-0 bg-indigo-900/40 z-10" />
-                <img
+                {/* <img
                     src="/metland_marunda_gate_ultra.png"
                     alt="Metland Cluster Gate"
                     className="absolute inset-0 w-full h-full object-cover"
-                />
+                /> */}
 
                 <div className="relative z-20 p-20 flex flex-col justify-between h-full text-white">
                     <div className="flex items-center space-x-3">

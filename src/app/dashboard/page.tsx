@@ -287,7 +287,7 @@ export default async function DashboardPage() {
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Waktu Absen</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Lokasi / GPS</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Performance</th>
-                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Foto</th>
+                                        {/* <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Foto</th> */}
                                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
                                     </tr>
                                 </thead>
@@ -376,18 +376,17 @@ export default async function DashboardPage() {
                                                     {/* Lokasi / GPS Component */}
                                                     <td className="px-6 py-6 border-r border-slate-50/50 last:border-r-0">
                                                         {attendance.latitude && attendance.longitude ? (
-                                                            <a
-                                                                href={`https://www.google.com/maps?q=${attendance.latitude},${attendance.longitude}`}
-                                                                target="_blank"
-                                                                rel="noopener noreferrer"
-                                                                className="flex items-center space-x-2 text-[10px] font-bold text-slate-400 hover:text-indigo-600 transition-colors group/map"
-                                                            >
+                                                            <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400">
                                                                 <MapPin size={12} className="text-rose-500" />
-                                                                <span className="uppercase tracking-tighter">Lokasi GPS: {attendance.latitude.toFixed(6)}, {attendance.longitude.toFixed(6)}</span>
+                                                                <span className="uppercase tracking-tighter">
+                                                                    Lokasi GPS: {attendance.latitude.toFixed(6)}, {attendance.longitude.toFixed(6)}
+                                                                </span>
                                                                 <CheckCircle2 size={12} className="text-emerald-500" />
-                                                            </a>
+                                                            </div>
                                                         ) : (
-                                                            <span className="text-[10px] text-slate-300 uppercase italic">Tanpa Koordinat GPS</span>
+                                                            <span className="text-[10px] text-slate-300 uppercase italic">
+                                                                Tanpa Koordinat GPS
+                                                            </span>
                                                         )}
                                                     </td>
 
@@ -407,7 +406,7 @@ export default async function DashboardPage() {
                                                     </td>
 
                                                     {/* Foto Component */}
-                                                    <td className="px-6 py-6 text-center">
+                                                    {/* <td className="px-6 py-6 text-center">
                                                         {attendance.image ? (
                                                             <ImageModal src={attendance.image} alt={`Foto ${attendance.user.name}`} />
                                                         ) : (
@@ -415,7 +414,7 @@ export default async function DashboardPage() {
                                                                 <UserCheck size={16} />
                                                             </div>
                                                         )}
-                                                    </td>
+                                                    </td> */}
 
                                                     {/* Status Component */}
                                                     <td className="px-8 py-6 text-center">
