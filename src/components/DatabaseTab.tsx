@@ -33,9 +33,10 @@ export default function DatabaseTab() {
             } else {
                 throw new Error(result.message || 'Gagal melakukan backup');
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as Error;
             toast.error('Gagal Backup', {
-                description: error.message || 'Terjadi kesalahan saat memproses backup'
+                description: err.message || 'Terjadi kesalahan saat memproses backup'
             });
         } finally {
             setLoading(false);
@@ -69,9 +70,10 @@ export default function DatabaseTab() {
             } else {
                 throw new Error(result.message);
             }
-        } catch (error: any) {
+        } catch (error: unknown) {
+            const err = error as Error;
             toast.error('Restore Gagal', {
-                description: error.message || 'Terjadi kesalahan saat memproses restore'
+                description: err.message || 'Terjadi kesalahan saat memproses restore'
             });
         } finally {
             setLoading(false);

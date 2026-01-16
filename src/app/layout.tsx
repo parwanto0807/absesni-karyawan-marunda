@@ -11,6 +11,7 @@ import { prisma } from "@/lib/db";
 import { SessionPayload, UserRole } from "@/types/auth"; // import UserRole for casting if needed
 import ActivityTracker from "@/components/ActivityTracker";
 import LocationTracker from "@/components/LocationTracker";
+import InstallPWA from "@/components/InstallPWA";
 
 const geistSans = Geist({
   variable: "--font-geist-sans",
@@ -58,6 +59,7 @@ export default async function RootLayout({
 }>) {
   const session = await getSession();
   let currentUser: SessionPayload | null = session;
+  let sidebarUser: { id: string; name: string; role: string; image: string | null } | null = null;
 
   if (session?.userId) {
     const dbUser = await prisma.user.findUnique({
@@ -75,6 +77,14 @@ export default async function RootLayout({
         image: dbUser.image,
         iat: session.iat
       };
+
+      // Create sidebar-compatible user object
+      sidebarUser = {
+        id: session.userId,
+        name: dbUser.name,
+        role: dbUser.role,
+        image: dbUser.image
+      };
     }
   }
 
@@ -88,11 +98,12 @@ export default async function RootLayout({
           disableTransitionOnChange
         >
           <Toaster position="top-center" richColors closeButton />
+          <InstallPWA />
           {currentUser ? (
             <SidebarProvider>
               <ActivityTracker userId={currentUser.userId} />
               <LocationTracker userId={currentUser.userId} role={currentUser.role} />
-              <Sidebar user={currentUser} />
+              <Sidebar user={sidebarUser} />
               <LayoutContent user={currentUser}>
                 {children}
               </LayoutContent>

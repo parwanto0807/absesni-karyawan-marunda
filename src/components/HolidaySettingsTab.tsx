@@ -8,8 +8,15 @@ import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
 import { INDONESIAN_HOLIDAYS_2026 } from '@/lib/holiday-utils';
 
+interface Holiday {
+    id: string;
+    date: Date;
+    name: string;
+    isCutiBersama: boolean;
+}
+
 export default function HolidaySettingsTab() {
-    const [holidays, setHolidays] = useState<any[]>([]);
+    const [holidays, setHolidays] = useState<Holiday[]>([]);
     const [loading, setLoading] = useState(true);
     const [isAdding, setIsAdding] = useState(false);
     const [isSeeding, setIsSeeding] = useState(false);
@@ -29,8 +36,8 @@ export default function HolidaySettingsTab() {
         setLoading(true);
         try {
             const data = await getHolidays();
-            setHolidays(data);
-        } catch (error) {
+            setHolidays(data as Holiday[]);
+        } catch (_error) {
             toast.error('Gagal memuat data hari libur');
         } finally {
             setLoading(false);
@@ -58,7 +65,7 @@ export default function HolidaySettingsTab() {
             } else {
                 toast.error(result.message || 'Gagal menambah hari libur');
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Terjadi kesalahan');
         } finally {
             setIsAdding(false);
@@ -74,7 +81,7 @@ export default function HolidaySettingsTab() {
                 toast.success('Hari libur dihapus');
                 loadHolidays();
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal menghapus');
         }
     };
@@ -95,7 +102,7 @@ export default function HolidaySettingsTab() {
             }
             toast.success(`${successCount} Hari libur berhasil diimpor`);
             loadHolidays();
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal mengimpor data');
         } finally {
             setIsSeeding(false);
@@ -188,7 +195,7 @@ export default function HolidaySettingsTab() {
                             <div className="bg-white dark:bg-slate-900 rounded-2xl border border-slate-200 dark:border-slate-800 p-12 text-center">
                                 <AlertCircle className="mx-auto mb-2 text-slate-300" size={32} />
                                 <p className="text-slate-400 font-bold text-xs uppercase tracking-widest">Belum ada hari libur</p>
-                                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tighter italic">Klik "Sinkron SKB 2026" untuk mengisi cepat.</p>
+                                <p className="text-[10px] text-slate-400 mt-1 uppercase tracking-tighter italic">Klik &quot;Sinkron SKB 2026&quot; untuk mengisi cepat.</p>
                             </div>
                         ) : (
                             <>

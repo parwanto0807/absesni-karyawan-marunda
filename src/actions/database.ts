@@ -5,7 +5,7 @@ import { promisify } from 'util';
 import path from 'path';
 import fs from 'fs';
 import os from 'os';
-import { prisma } from '@/lib/db';
+// Removed unused prisma import
 
 const execPromise = promisify(exec);
 
@@ -16,7 +16,7 @@ function getCleanDbUrl(url: string) {
         const parsed = new URL(url);
         parsed.search = ''; // Remove all query parameters for safety
         return parsed.toString();
-    } catch (e) {
+    } catch (_e) {
         return url; // Fallback if URL parsing fails
     }
 }
@@ -48,11 +48,12 @@ export async function backupDatabase() {
             content,
             fileName
         };
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         console.error('Backup Error:', error);
         return {
             success: false,
-            message: error.message || 'Failed to backup database'
+            message: errorMsg || 'Failed to backup database'
         };
     }
 }
@@ -84,11 +85,12 @@ export async function restoreDatabase(sqlContent: string) {
             success: true,
             message: 'Database restored successfully'
         };
-    } catch (error: any) {
+    } catch (error: Error | unknown) {
+        const errorMsg = error instanceof Error ? error.message : 'Unknown error';
         console.error('Restore Error:', error);
         return {
             success: false,
-            message: error.message || 'Failed to restore database'
+            message: errorMsg || 'Failed to restore database'
         };
     }
 }

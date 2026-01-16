@@ -4,10 +4,17 @@ import React, { useState } from 'react';
 import { X, Loader2, Save, User as UserIcon } from 'lucide-react';
 import { updateRotationOffset } from '@/actions/employees';
 
+interface RotationUser {
+    id: string;
+    name: string;
+    rotationOffset: number;
+    employeeId: string;
+}
+
 interface ScheduleOffsetDialogProps {
     isOpen: boolean;
     onClose: () => void;
-    users: any[];
+    users: RotationUser[];
 }
 
 export default function ScheduleOffsetDialog({ isOpen, onClose, users }: ScheduleOffsetDialogProps) {

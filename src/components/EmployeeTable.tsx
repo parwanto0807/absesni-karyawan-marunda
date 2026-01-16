@@ -1,13 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { MoreHorizontal, Mail, Shield, User, Edit2, Trash2, X, Clock } from 'lucide-react';
+import { Shield, User, Edit2, Trash2, X, Clock } from 'lucide-react';
 import { User as UserType } from '@/types/attendance';
 import { deleteUser } from '@/actions/employees';
 import EmployeeDialog from './EmployeeDialog';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
+import Image from 'next/image';
 
 interface EmployeeTableProps {
     employees: UserType[];
@@ -72,7 +73,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                             )}
                                         >
                                             {emp.image ? (
-                                                <img src={emp.image} alt={emp.name} className="h-full w-full object-cover" />
+                                                <Image src={emp.image} alt={emp.name} fill className="object-cover" unoptimized />
                                             ) : (
                                                 <User size={20} />
                                             )}
@@ -155,7 +156,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                 )}
                             >
                                 {emp.image ? (
-                                    <img src={emp.image} alt={emp.name} className="h-full w-full object-cover" />
+                                    <Image src={emp.image} alt={emp.name} fill className="object-cover" unoptimized />
                                 ) : (
                                     <User size={24} />
                                 )}
@@ -229,11 +230,15 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                         >
                             <X size={24} />
                         </button>
-                        <img
-                            src={previewImage.url}
-                            alt={previewImage.name}
-                            className="w-full h-auto max-h-[80vh] object-contain bg-slate-950"
-                        />
+                        <div className="relative w-full aspect-square md:aspect-video">
+                            <Image
+                                src={previewImage.url}
+                                alt={previewImage.name}
+                                fill
+                                className="object-contain bg-slate-950"
+                                unoptimized
+                            />
+                        </div>
                         <div className="p-6 text-center">
                             <h3 className="text-xl font-bold text-slate-900 dark:text-white uppercase tracking-tight">{previewImage.name}</h3>
                             <p className="text-sm text-slate-500 mt-1 font-medium">Foto Profil Karyawan</p>

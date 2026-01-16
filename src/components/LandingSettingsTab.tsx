@@ -33,6 +33,22 @@ import {
     addLandingService,
     deleteLandingService
 } from '@/actions/landing';
+import NextImage from 'next/image';
+
+interface Activity {
+    id: string;
+    title: string;
+    time: string;
+    description: string | null;
+    image: string | null;
+}
+
+interface Service {
+    id: string;
+    icon: string;
+    title: string;
+    description: string;
+}
 
 export default function LandingSettingsTab() {
     const [loading, setLoading] = useState(false);
@@ -45,8 +61,8 @@ export default function LandingSettingsTab() {
     const [defaultPage, setDefaultPage] = useState('landing');
 
     // Lists State
-    const [activities, setActivities] = useState<any[]>([]);
-    const [services, setServices] = useState<any[]>([]);
+    const [activities, setActivities] = useState<Activity[]>([]);
+    const [services, setServices] = useState<Service[]>([]);
 
     // Form Inputs
     const [newActivityTitle, setNewActivityTitle] = useState('');
@@ -73,9 +89,9 @@ export default function LandingSettingsTab() {
             setHeroSubtitle(settings['landing_hero_subtitle'] || 'Menyatukan keberagaman suku bangsa dari Jawa, Sumatera, Kalimantan, Papua, hingga NTT dalam satu lingkungan yang asri dan nyaman di Metland Cibitung.');
             setFooterInfo(settings['landing_footer_info'] || 'Membangun komunitas multikultural yang harmonis, aman, dan sejuk di jantung Bekasi. Wadah aspirasi untuk warga RT 003 & 004 RW 26 Metland Cibitung.');
             setDefaultPage(settings['landing_default_page'] || 'landing');
-            setActivities(acts);
-            setServices(svcs);
-        } catch (error) {
+            setActivities(acts as Activity[]);
+            setServices(svcs as Service[]);
+        } catch (_error) {
             toast.error('Gagal memuat data landing');
         } finally {
             setInitialLoading(false);
@@ -92,7 +108,7 @@ export default function LandingSettingsTab() {
                 updateLandingSetting('default_page', defaultPage)
             ]);
             toast.success('Pengaturan teks berhasil disimpan');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal menyimpan pengaturan');
         } finally {
             setLoading(false);
@@ -109,9 +125,9 @@ export default function LandingSettingsTab() {
             setNewActivityDesc('');
             setNewActivityImage('');
             const acts = await getLandingActivities();
-            setActivities(acts);
+            setActivities(acts as Activity[]);
             toast.success('Kegiatan berhasil ditambahkan');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal menambah kegiatan');
         } finally {
             setLoading(false);
@@ -123,9 +139,9 @@ export default function LandingSettingsTab() {
         try {
             await deleteLandingActivity(id);
             const acts = await getLandingActivities();
-            setActivities(acts);
+            setActivities(acts as Activity[]);
             toast.success('Kegiatan berhasil dihapus');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal menghapus kegiatan');
         } finally {
             setLoading(false);
@@ -140,9 +156,9 @@ export default function LandingSettingsTab() {
             setNewServiceTitle('');
             setNewServiceDesc('');
             const svcs = await getLandingServices();
-            setServices(svcs);
+            setServices(svcs as Service[]);
             toast.success('Layanan berhasil ditambahkan');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal menambah layanan');
         } finally {
             setLoading(false);
@@ -154,9 +170,9 @@ export default function LandingSettingsTab() {
         try {
             await deleteLandingService(id);
             const svcs = await getLandingServices();
-            setServices(svcs);
+            setServices(svcs as Service[]);
             toast.success('Layanan berhasil dihapus');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal menghapus layanan');
         } finally {
             setLoading(false);
@@ -174,7 +190,7 @@ export default function LandingSettingsTab() {
             try {
                 await updateLandingSetting(key, base64String);
                 toast.success('Foto berhasil diperbarui');
-            } catch (error) {
+            } catch (_error) {
                 toast.error('Gagal memperbarui foto');
             } finally {
                 setLoading(false);
@@ -425,8 +441,8 @@ export default function LandingSettingsTab() {
                             <div key={act.id} className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex items-start justify-between">
                                 <div className="flex gap-3">
                                     {act.image && (
-                                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-100">
-                                            <img src={act.image} alt="" className="w-full h-full object-cover" />
+                                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-100 relative">
+                                            <NextImage src={act.image} alt="" fill className="object-cover" unoptimized />
                                         </div>
                                     )}
                                     <div className="min-w-0">

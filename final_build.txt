@@ -1,0 +1,294 @@
+﻿
+> absesni-karyawan-marunda@0.1.0 build
+> prisma generate && next build
+
+npm : Loaded Prisma config from 
+prisma.config.ts.
+At line:1 char:1
++ npm run build 2>&1 | Out-File 
+-FilePath final_build.txt -Encoding 
+UTF ...
++ ~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSp 
+   ecified: (Loaded Prisma c...ism  
+  a.config.ts.:String) [], Remote   
+ Exception
+    + FullyQualifiedErrorId : Nativ 
+   eCommandError
+ 
+
+Prisma config detected, skipping 
+environment variable loading.
+Prisma schema loaded from prisma\schema.prisma
+
+Γ£ö Generated Prisma Client (v6.19.2) to .\node_modules\@prisma\client in 160ms
+
+Start by importing your Prisma Client (See: https://pris.ly/d/importing-client)
+
+Tip: Need your database queries to be 1000x faster? Accelerate offers you that and more: https://pris.ly/tip-2-accelerate
+
+   Γû▓ Next.js 15.5.9
+   - Environments: .env
+   - Experiments (use with caution):
+     ┬╖ serverActions
+
+   Creating an optimized production build ...
+ Γ£ô (pwa) Compiling for server...
+ Γ£ô (pwa) Compiling for server...
+ Γ£ô (pwa) Compiling for client (static)...
+ Γùï (pwa) Service worker: D:\Project WebApp\absesni-karyawan-marunda\public\sw.js
+ Γùï (pwa)   URL: /sw.js
+ Γùï (pwa)   Scope: /
+ Γ£ô Compiled successfully in 8.7s
+   Linting and checking validity of types ...
+
+./src/actions/database.ts
+19:14  Warning: '_e' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/actions/employees.ts
+119:14  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+131:14  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/actions/holidays.ts
+51:36  Warning: 'year' is defined but never used.  @typescript-eslint/no-unused-vars
+60:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/actions/notifications.ts
+78:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/actions/permits.ts
+6:20  Warning: 'getStartOfDayJakarta' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/actions/tracking.ts
+5:10  Warning: 'UserRole' is defined but never used.  @typescript-eslint/no-unused-vars
+185:14  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/admin/settings/SettingsClient.tsx
+71:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/app/attendance/AttendanceClient.tsx
+122:8  Warning: React Hook useEffect has a missing dependency: 'getLocation'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/app/dashboard/page.tsx
+31:8  Warning: 'Image' is defined but never used.  @typescript-eslint/no-unused-vars
+132:11  Warning: 'getDutyForRole' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+235:49  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+311:65  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+451:57  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/history/page.tsx
+5:17  Warning: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+5:27  Warning: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+5:35  Warning: 'Search' is defined but never used.  @typescript-eslint/no-unused-vars
+15:63  Warning: 'ShiftCode' is defined but never used.  @typescript-eslint/no-unused-vars
+263:45  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+404:57  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/login/page.tsx
+12:5  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+14:5  Warning: 'Briefcase' is defined but never used.  @typescript-eslint/no-unused-vars
+15:5  Warning: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+59:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+115:29  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/app/permits/page.tsx
+8:10  Warning: 'prisma' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ActivityLogTab.tsx
+100:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/DutySettingsTab.tsx
+46:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/EmployeeDialog.tsx
+6:16  Warning: 'UserRole' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ExportButtons.tsx
+128:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/Header.tsx
+4:10  Warning: 'Bell' is defined but never used.  @typescript-eslint/no-unused-vars
+45:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/HistoryFilter.tsx
+4:10  Warning: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/HolidaySettingsTab.tsx
+7:10  Warning: 'toZonedTime' is defined but never used.  @typescript-eslint/no-unused-vars
+8:10  Warning: 'TIMEZONE' is defined but never used.  @typescript-eslint/no-unused-vars
+40:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+68:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+84:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+105:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ImageModal.tsx
+22:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+37:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+61:17  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+76:25  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/IncidentCenter.tsx
+8:5  Warning: 'Clock' is defined but never used.  @typescript-eslint/no-unused-vars
+9:5  Warning: 'ChevronRight' is defined but never used.  @typescript-eslint/no-unused-vars
+14:5  Warning: 'Filter' is defined but never used.  @typescript-eslint/no-unused-vars
+19:5  Warning: 'Download' is defined but never used.  @typescript-eslint/no-unused-vars
+53:8  Warning: React Hook useEffect has a missing dependency: 'selectedReport'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+57:8  Warning: React Hook useEffect has a missing dependency: 'fetchReports'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+62:13  Warning: 'commentChannel' is defined but never used.  @typescript-eslint/no-unused-vars
+182:8  Warning: React Hook useEffect has missing dependencies: 'adminId' and 'selectedReport'. Either include them or remove the dependency array. If 'setSelectedReport' needs the current value of 'adminId', you can also switch to useReducer instead of useState and read 'adminId' in the reducer.  react-hooks/exhaustive-deps
+
+./src/components/IncidentReportDialog.tsx
+13:5  Warning: 'RefreshCw' is defined but never used.  @typescript-eslint/no-unused-vars
+22:39  Warning: 'SpeechRecognition' is defined but never used.  @typescript-eslint/no-unused-vars
+50:12  Warning: 'isCameraActive' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+167:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+399:41  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/LandingPage.tsx
+5:18  Warning: 'MapPin' is defined but never used.  @typescript-eslint/no-unused-vars
+5:26  Warning: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+5:72  Warning: 'Star' is defined but never used.  @typescript-eslint/no-unused-vars
+5:78  Warning: 'Zap' is defined but never used.  @typescript-eslint/no-unused-vars
+90:12  Warning: 'prevSection' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+94:11  Warning: 'SECTION_ORDER' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+177:8  Warning: React Hook React.useEffect has a missing dependency: 'handleUpdateActiveSection'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/LandingSettingsTab.tsx
+7:5  Warning: 'List' is defined but never used.  @typescript-eslint/no-unused-vars
+18:5  Warning: 'CheckCircle2' is defined but never used.  @typescript-eslint/no-unused-vars
+21:5  Warning: 'Megaphone' is defined but never used.  @typescript-eslint/no-unused-vars
+22:5  Warning: 'TreePine' is defined but never used.  @typescript-eslint/no-unused-vars
+94:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+111:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+130:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+144:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+161:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+175:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+193:22  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/LayoutContent.tsx
+8:10  Warning: 'LayoutDashboard' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/LiveTrackingTab.tsx
+71:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/LocationTracker.tsx
+29:34  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+33:22  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/NotificationBell.tsx
+54:8  Warning: React Hook useEffect has a missing dependency: 'fetchUnreadCount'. Either include it or remove the dependency array.  react-hooks/exhaustive-deps
+
+./src/components/PerformanceDashboard.tsx
+4:10  Warning: 'TrendingUp' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/PermitDialog.tsx
+6:10  Warning: 'cn' is defined but never used.  @typescript-eslint/no-unused-vars
+164:53  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/PermitTable.tsx
+4:28  Warning: 'Users' is defined but never used.  @typescript-eslint/no-unused-vars
+4:35  Warning: 'UserCog' is defined but never used.  @typescript-eslint/no-unused-vars
+125:49  Warning: Using `<img>` could result in slower LCP and higher bandwidth. Consider using `<Image />` from `next/image` or a custom image loader to automatically optimize images. This may incur additional usage or cost from your provider. See: https://nextjs.org/docs/messages/no-img-element  @next/next/no-img-element
+
+./src/components/ProfileDialog.tsx
+7:5  Warning: 'DialogHeader' is defined but never used.  @typescript-eslint/no-unused-vars
+13:24  Warning: 'Key' is defined but never used.  @typescript-eslint/no-unused-vars
+59:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/PusherSettingsTab.tsx
+4:36  Warning: 'CheckCircle2' is defined but never used.  @typescript-eslint/no-unused-vars
+4:50  Warning: 'XCircle' is defined but never used.  @typescript-eslint/no-unused-vars
+119:18  Warning: '_error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ReviewIncidents.tsx
+11:5  Warning: 'Maximize2' is defined but never used.  @typescript-eslint/no-unused-vars
+27:15  Warning: 'SpeechRecognitionEvent' is defined but never used.  @typescript-eslint/no-unused-vars
+27:39  Warning: 'SpeechRecognition' is defined but never used.  @typescript-eslint/no-unused-vars
+102:8  Warning: React Hook useEffect has missing dependencies: 'incidents' and 'selectedIncidentId'. Either include them or remove the dependency array.  react-hooks/exhaustive-deps
+102:28  Warning: React Hook useEffect has a complex expression in the dependency array. Extract it to a separate variable so it can be statically checked.  react-hooks/exhaustive-deps
+132:18  Warning: 'err' is defined but never used.  @typescript-eslint/no-unused-vars
+323:43  Warning: 'isAdmin' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+419:8  Warning: React Hook useEffect has a missing dependency: 'setIncidents'. Either include it or remove the dependency array. If 'setIncidents' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+477:8  Warning: React Hook useEffect has a missing dependency: 'setSelectedIncidentId'. Either include it or remove the dependency array. If 'setSelectedIncidentId' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+550:8  Warning: React Hook useEffect has missing dependencies: 'setIncidents' and 'userId'. Either include them or remove the dependency array. If 'setIncidents' changes too often, find the parent component that defines it and wrap that definition in useCallback.  react-hooks/exhaustive-deps
+
+./src/components/ScheduleGrid.tsx
+169:53  Warning: 'index' is defined but never used.  @typescript-eslint/no-unused-vars
+185:39  Warning: 'isSelected' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/ScheduleOffsetDialog.tsx
+4:22  Warning: 'Save' is defined but never used.  @typescript-eslint/no-unused-vars
+4:36  Warning: 'UserIcon' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/Sidebar.tsx
+15:5  Warning: 'Menu' is defined but never used.  @typescript-eslint/no-unused-vars
+42:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/TrackingAuthTab.tsx
+66:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/components/WhatsAppSettingsTab.tsx
+53:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+74:18  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/hooks/use-sidebar.tsx
+3:54  Warning: 'useEffect' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/auth.ts
+22:14  Warning: 'error' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/date-utils.ts
+1:38  Warning: 'format' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/incident-pdf.ts
+112:15  Warning: 'col2Width' is assigned a value but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/pusher-client.ts
+45:61  Warning: '_states' is defined but never used.  @typescript-eslint/no-unused-vars
+
+./src/lib/shift-utils.ts
+60:31  Warning: '_userId' is defined but never used.  @typescript-eslint/no-unused-vars
+60:48  Warning: '_date' is defined but never used.  @typescript-eslint/no-unused-vars
+
+info  - Need to disable some ESLint rules? Learn more here: https://nextjs.org/docs/app/api-reference/config/eslint#disabling-rules
+Failed to compile.
+
+./src/app/permits/page.tsx:85:48
+Type error: Property 'employeeId' 
+is missing in type '{ id: string; 
+role: UserRole; }' but required in 
+type '{ id: string; role: string; 
+employeeId: string; }'.
+
+[0m [90m 83 |[39m                
+     [33m<[39m[33mh2[39m classNa
+me[33m=[39m[32m"text-[10px] 
+md:text-xs font-black 
+text-slate-900 dark:text-white 
+uppercase tracking-[0.2em]"[39m[33
+m>[39m[33mDaftar[39m 
+[33mPengajuan[39m [33mTerbaru[39
+m[33m<[39m[33m/[39m[33mh2[39m
+[33m>[39m
+ [90m 84 |[39m                 [3
+3m<[39m[33m/[39m[33mdiv[39m[33
+m>[39m
+[31m[1m>[22m[39m[90m 85 |[39m 
+                
+[33m<[39m[33mPermitTable[39m 
+permits[33m=[39m{permits} 
+currentUser[33m=[39m{currentUser} 
+[33m/[39m[33m>[39m
+ [90m    |[39m                    
+                            
+[31m[1m^[22m[39m
+ [90m 86 |[39m             [33m<
+[39m[33m/[39m[33mdiv[39m[33m>[
+39m
+ [90m 87 |[39m         [33m<[39m
+[33m/[39m[33mdiv[39m[33m>[39m
+ [90m 88 |[39m     
+)[33m;[39m[0m
+Next.js build worker exited with 
+code: 1 and signal: null

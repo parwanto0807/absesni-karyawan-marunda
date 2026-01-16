@@ -4,37 +4,32 @@ import {
     UserCheck,
     Clock,
     MapPin,
-    TrendingUp,
     ShieldCheck,
     Calendar,
     FileText,
     UserPlus,
-    Bell,
-    Settings,
-    ChevronRight,
-    ArrowRight,
     Activity,
     CheckCircle2,
-    XCircle,
-    ClipboardList
+    ChevronRight
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
 import { cn } from '@/lib/utils';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { getAttendances } from '@/actions/attendance';
-import { getIncidentReports, getMyRecentIncidents } from '@/actions/incident';
+import { getIncidentReports } from '@/actions/incident';
 import { prisma } from '@/lib/db';
 import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { ImageModal } from '@/components/ImageModal';
-import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
+import { calculateDailyPerformance, getPerformanceBarColor } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta } from '@/lib/date-utils';
 import DigitalClock from '@/components/DigitalClock';
 import IncidentReportDialog from '@/components/IncidentReportDialog';
 import ReviewIncidents from '@/components/ReviewIncidents';
 import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
+import Image from 'next/image';
+import { IncidentReport } from '@/types/incident';
 
 export default async function DashboardPage() {
     const session = await getSession();
@@ -49,14 +44,7 @@ export default async function DashboardPage() {
     const sevenDaysAgo = getStartOfDayJakarta();
     sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
 
-    const getStatusColor = (status: string) => {
-        switch (status) {
-            case 'PRESENT': return 'bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400';
-            case 'LATE': return 'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-400';
-            case 'ALPH': return 'bg-rose-100 text-rose-700 dark:bg-rose-900/30 dark:text-rose-400';
-            default: return 'bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-400';
-        }
-    };
+
 
     const formatDuration = (minutes: number) => {
         if (minutes < 60) return `${minutes} Menit`;
@@ -107,21 +95,10 @@ export default async function DashboardPage() {
     });
     const isOnDuty = !!currentAttendance;
 
-    const allPermitActivity = await prisma.permit.findMany({
-        where: {
-            endDate: { gte: getStartOfDayJakarta() }
-        },
-        take: 5,
-        include: {
-            user: { select: { name: true, employeeId: true, role: true } }
-        },
-        orderBy: { createdAt: 'desc' }
-    });
-
-    let myRecentIncidents: any[] = [];
+    let myRecentIncidents: IncidentReport[] = [];
     if (isPowerful || isFieldRole) {
         const incidentsResult = await getIncidentReports(true);
-        myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? incidentsResult.data.slice(0, 10) : [];
+        myRecentIncidents = (incidentsResult.success && incidentsResult.data) ? (incidentsResult.data as IncidentReport[]).slice(0, 10) : [];
     }
 
     const stats = {
@@ -159,7 +136,7 @@ export default async function DashboardPage() {
         return null;
     };
 
-    const myDuty = getDutyForRole(session.role);
+
 
     return (
         <div className="space-y-6 md:space-y-8 pb-24 md:pb-8 font-sans">

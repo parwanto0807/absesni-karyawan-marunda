@@ -228,7 +228,7 @@ export default function PerformanceGuideTab() {
                             <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Toleransi Terlambat</p>
                                 <p className="text-sm font-bold text-rose-600 dark:text-rose-400">0 Menit (Strict)</p>
-                                <p className="text-[12px] text-slate-500 mt-1 italic">Absen melewati menit jadwal (misal 08:01) langsung dicatat "TERLAMBAT".</p>
+                                <p className="text-[12px] text-slate-500 mt-1 italic">Absen melewati menit jadwal (misal 08:01) langsung dicatat &quot;TERLAMBAT&quot;.</p>
                             </div>
 
                             <div className="p-4 rounded-xl bg-indigo-50 dark:bg-indigo-900/10 border border-indigo-100 dark:border-indigo-800">
@@ -253,7 +253,7 @@ export default function PerformanceGuideTab() {
                                 <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest mb-1.5">Toleransi Pulang Cepat</p>
                                 <p className="text-sm font-bold text-emerald-600 dark:text-emerald-400">5 Menit</p>
                                 <p className="text-[12px] text-slate-500 mt-1 italic leading-relaxed">
-                                    Diizinkan pulang 5 menit sebelum jadwal tanpa dianggap "PULANG CEPAT".
+                                    Diizinkan pulang 5 menit sebelum jadwal tanpa dianggap &quot;PULANG CEPAT&quot;.
                                     Hal ini untuk mengantisipasi transisi personil yang melakukan **Shift Terusan** (menggantikan rekan yang berhalangan), di mana karyawan bisa mendapatkan kelonggaran untuk melakukan **Absensi OUT** kemudian langsung **Absensi IN**.
                                 </p>
                             </div>

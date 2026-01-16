@@ -21,14 +21,19 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { addIncidentComment } from '@/actions/incident';
 import { toast } from 'sonner';
 import { getPusherClient } from '@/lib/pusher-client';
+import Image from 'next/image';
+import { IncidentReport, IncidentComment } from '@/types/incident';
+import { Channel } from 'pusher-js';
+import type { SpeechRecognitionEvent, SpeechRecognition } from '@/types/speech-recognition';
+
 
 interface ReviewIncidentsProps {
-    incidents: any[];
+    incidents: IncidentReport[];
     userId: string;
 }
 
 export default function ReviewIncidents({ incidents: initialIncidents, userId }: ReviewIncidentsProps) {
-    const [incidents, setIncidents] = useState<any[]>(initialIncidents);
+    const [incidents, setIncidents] = useState<IncidentReport[]>(initialIncidents);
     const [currentIndex, setCurrentIndex] = useState(0);
 
     // Sync state with props when data is refreshed from server
@@ -50,7 +55,7 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
             return;
         }
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
+        const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
         if (!SpeechRecognition) {
             toast.error('Browser tidak mendukung pendeteksi suara.');
             return;
@@ -66,7 +71,7 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
             toast.info('Bicaralah sekarang...');
         };
 
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event) => {
             const transcript = event.results[0][0].transcript;
             setUserResponse(prev => prev ? `${prev} ${transcript}` : transcript);
             setIsListening(false);
@@ -80,6 +85,7 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
         recognition.onend = () => setIsListening(false);
         recognition.start();
     };
+
 
     // Auto-cycle incidents every 5 seconds
     useEffect(() => {
@@ -202,7 +208,7 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
                         }}
                         onClick={(e) => {
                             // Only open if it wasn't a significant drag
-                            if (Math.abs((e as any).movementX || 0) < 5) {
+                            if (Math.abs((e as unknown as { movementX: number }).movementX || 0) < 5) {
                                 setSelectedIncidentId(current.id);
                             }
                         }}
@@ -210,12 +216,12 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
                     >
                         <div className="h-full bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-100 dark:border-slate-800 shadow-lg shadow-slate-200/40 dark:shadow-none p-3 pr-4 flex items-center gap-4 overflow-hidden group">
                             <div className={cn(
-                                "w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center relative bg-gradient-to-br transition-transform group-active:scale-95",
+                                "w-16 h-16 shrink-0 rounded-2xl flex items-center justify-center relative bg-gradient-to-br transition-transform group-active:scale-95 overflow-hidden",
                                 current.status === 'PENDING' ? "from-rose-500 to-rose-600 text-white" :
                                     current.status === 'ON_PROGRESS' ? "from-amber-500 to-amber-600 text-white" : "from-emerald-500 to-emerald-600 text-white"
                             )}>
                                 {current.evidenceImg ? (
-                                    <img src={current.evidenceImg} className="w-full h-full object-cover rounded-2xl" alt="Bukti" />
+                                    <Image src={current.evidenceImg} fill className="object-cover" alt="Bukti" unoptimized />
                                 ) : (
                                     <AlertTriangle size={24} />
                                 )}
@@ -268,9 +274,9 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
                             className="relative w-full max-w-sm bg-white dark:bg-slate-950 rounded-[2.5rem] shadow-2xl overflow-hidden flex flex-col max-h-[85vh]"
                         >
                             {/* Photo Header */}
-                            <div className="relative h-48 shrink-0 bg-slate-900">
+                            <div className="relative h-48 shrink-0 bg-slate-900 overflow-hidden">
                                 {selectedIncident.evidenceImg ? (
-                                    <img src={selectedIncident.evidenceImg} className="w-full h-full object-cover" alt="Bukti" />
+                                    <Image src={selectedIncident.evidenceImg} fill className="object-cover" alt="Bukti" unoptimized />
                                 ) : (
                                     <div className="w-full h-full flex items-center justify-center bg-gradient-to-br from-rose-500 to-rose-700">
                                         <AlertTriangle size={64} className="text-white/20" />
@@ -312,7 +318,7 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
                                     </span>
                                 </div>
 
-                                {selectedIncident.comments?.map((comment: any) => {
+                                {selectedIncident.comments?.map((comment) => {
                                     const isMe = comment.userId === userId;
                                     const isAdmin = ['ADMIN', 'PIC', 'RT'].includes(comment.user.role);
 
@@ -390,14 +396,14 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
     );
 }
 
-function RealtimeIncidentListener({ setIncidents }: { setIncidents: (fn: (prev: any[]) => any[]) => void }) {
+function RealtimeIncidentListener({ setIncidents }: { setIncidents: (fn: (prev: IncidentReport[]) => IncidentReport[]) => void }) {
     useEffect(() => {
-        let channel: any;
+        let channel: Channel;
         const initPusher = async () => {
             const pusher = await getPusherClient();
             if (pusher) {
                 channel = pusher.subscribe('incidents');
-                channel.bind('new-incident', (newReport: any) => {
+                channel.bind('new-incident', (newReport: IncidentReport) => {
                     setIncidents(prev => {
                         if (prev.some(r => r.id === newReport.id)) return prev;
                         return [newReport, ...prev];
@@ -415,7 +421,7 @@ function RealtimeIncidentListener({ setIncidents }: { setIncidents: (fn: (prev: 
     return null;
 }
 
-function GlobalNotificationListener({ incidents, setIncidents, userId, setSelectedIncidentId, selectedIncidentId }: { incidents: any[], setIncidents: any, userId: string, setSelectedIncidentId: any, selectedIncidentId?: string | null }) {
+function GlobalNotificationListener({ incidents, setIncidents, userId, setSelectedIncidentId, selectedIncidentId }: { incidents: IncidentReport[], setIncidents: (fn: (prev: IncidentReport[]) => IncidentReport[]) => void, userId: string, setSelectedIncidentId: (id: string | null) => void, selectedIncidentId?: string | null }) {
     const incidentsRef = useRef(incidents);
     const selectedIdRef = useRef(selectedIncidentId);
 
@@ -424,14 +430,14 @@ function GlobalNotificationListener({ incidents, setIncidents, userId, setSelect
     useEffect(() => { selectedIdRef.current = selectedIncidentId; }, [selectedIncidentId]);
 
     useEffect(() => {
-        let channel: any;
+        let channel: Channel;
         const init = async () => {
             const pusher = await getPusherClient();
             if (pusher) {
                 channel = pusher.subscribe('incident-globals');
-                console.log('[Global Listener] PERSISTENT Channel Active');
 
-                channel.bind('update', (data: any) => {
+
+                channel.bind('update', (data: { incidentId: string, senderId: string, senderName: string, lastMessage: string, newStatus: string, fullComment: IncidentComment }) => {
                     const currentIncidents = incidentsRef.current;
                     const activeId = selectedIdRef.current;
                     const exists = currentIncidents.some(r => r.id === data.incidentId);
@@ -450,10 +456,10 @@ function GlobalNotificationListener({ incidents, setIncidents, userId, setSelect
                         }
 
                         // 2. Continuous Sync to state
-                        setIncidents((prev: any[]) => prev.map(r => {
+                        setIncidents((prev: IncidentReport[]) => prev.map(r => {
                             if (r.id === data.incidentId) {
                                 const currentComments = r.comments || [];
-                                const commentExists = currentComments.some((c: any) => c.id === data.fullComment?.id);
+                                const commentExists = currentComments.some((c: IncidentComment) => c.id === data.fullComment?.id);
                                 return {
                                     ...r,
                                     status: data.newStatus || r.status,
@@ -473,7 +479,7 @@ function GlobalNotificationListener({ incidents, setIncidents, userId, setSelect
     return null;
 }
 
-function RealtimeStatusBadge({ selectedIncident }: { selectedIncident: any }) {
+function RealtimeStatusBadge({ selectedIncident }: { selectedIncident: IncidentReport }) {
     const [status, setStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
 
     useEffect(() => {
@@ -481,8 +487,8 @@ function RealtimeStatusBadge({ selectedIncident }: { selectedIncident: any }) {
         const init = async () => {
             const pusher = await getPusherClient();
             if (pusher && isMounted) {
-                setStatus(pusher.connection.state as any);
-                pusher.connection.bind('state_change', (states: any) => {
+                setStatus(pusher.connection.state as 'connecting' | 'connected' | 'disconnected');
+                pusher.connection.bind('state_change', (states: { current: 'connecting' | 'connected' | 'disconnected' }) => {
                     if (isMounted) setStatus(states.current);
                 });
             } else {
@@ -507,19 +513,19 @@ function RealtimeStatusBadge({ selectedIncident }: { selectedIncident: any }) {
     );
 }
 
-function RealtimeCommentListener({ selectedIncidentId, setIncidents, userId }: { selectedIncidentId: string | null, setIncidents: any, userId: string }) {
+function RealtimeCommentListener({ selectedIncidentId, setIncidents, userId }: { selectedIncidentId: string | null, setIncidents: (fn: (prev: IncidentReport[]) => IncidentReport[]) => void, userId: string }) {
     useEffect(() => {
         if (!selectedIncidentId) return;
-        let channel: any;
+        let channel: Channel;
         const initPusher = async () => {
             const pusher = await getPusherClient();
             if (pusher) {
                 channel = pusher.subscribe(`incident-${selectedIncidentId}`);
-                channel.bind('new-comment', (data: any) => {
-                    setIncidents((prevList: any[]) => prevList.map(r => {
+                channel.bind('new-comment', (data: IncidentComment & { newStatus?: string }) => {
+                    setIncidents((prevList) => prevList.map(r => {
                         if (r.id === selectedIncidentId) {
                             const comments = r.comments || [];
-                            if (comments.some((c: any) => c.id === data.id)) return r;
+                            if (comments.some((c: IncidentComment) => c.id === data.id)) return r;
 
                             // Show toast if from someone else
                             if (data.userId !== userId) {

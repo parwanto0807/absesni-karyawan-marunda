@@ -3,7 +3,7 @@ import { getPusherConfig } from '@/actions/settings';
 
 // Enable pusher logging for debugging in development
 if (typeof window !== 'undefined') {
-    (window as any).Pusher = PusherClient;
+    (window as unknown as { Pusher: typeof PusherClient }).Pusher = PusherClient;
     PusherClient.logToConsole = process.env.NODE_ENV === 'development';
 }
 
@@ -23,11 +23,7 @@ export async function getPusherClient(forceReconnect = false): Promise<PusherCli
         try {
             const config = await getPusherConfig();
 
-            console.log('[Pusher Client] Initializing with:', {
-                enabled: config.enabled,
-                key: config.key ? config.key.substring(0, 5) + '...' : 'NONE',
-                cluster: config.cluster || 'NONE'
-            });
+
 
             if (!config.enabled || !config.key || !config.cluster) {
                 console.warn('[Pusher Client] Aborted: Missing config');
@@ -46,11 +42,11 @@ export async function getPusherClient(forceReconnect = false): Promise<PusherCli
                 activityTimeout: 30000, // Faster heartbeat
             });
 
-            pusherInstance.connection.bind('state_change', (states: any) => {
-                console.log(`[Pusher Client] State: ${states.current}`);
+            pusherInstance.connection.bind('state_change', (_states: { current: string }) => {
+
             });
 
-            pusherInstance.connection.bind('error', (err: any) => {
+            pusherInstance.connection.bind('error', (err: { error?: { data?: { code: number } }, message?: string, type?: string }) => {
                 // Better error logging for debugging
                 const errorMsg = err?.error?.data?.code === 4001
                     ? 'App Key Salah atau Tidak Ditemukan'

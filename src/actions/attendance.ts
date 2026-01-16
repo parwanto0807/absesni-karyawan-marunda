@@ -8,7 +8,7 @@ import { createNotification } from './notifications';
 import { getShiftForDate, getShiftTimings, ShiftCode, getStaticSchedule } from '@/lib/schedule-utils';
 import { getStartOfDayJakarta, TIMEZONE } from '@/lib/date-utils';
 import { getSettings } from './settings';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppMessage, WhatsAppProvider } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -155,7 +155,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
 
                 // Fire and forget (don't await to avoid slowing down the response)
                 sendWhatsAppMessage(message, {
-                    provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                    provider: (settings.WA_PROVIDER as WhatsAppProvider) || 'fonnte',
                     apiKey: settings.WA_API_KEY,
                     target: settings.WA_GROUP_ID,
                     numberKey: settings.WA_NUMBER_KEY
@@ -277,7 +277,7 @@ export async function clockOut(attendanceId: string) {
 
                     // Fire and forget
                     sendWhatsAppMessage(message, {
-                        provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                        provider: (settings.WA_PROVIDER as WhatsAppProvider) || 'fonnte',
                         apiKey: settings.WA_API_KEY,
                         target: settings.WA_GROUP_ID,
                         numberKey: settings.WA_NUMBER_KEY
@@ -303,7 +303,7 @@ export async function submitPermit(data: { userId: string, type: string, reason:
             data: {
                 userId: data.userId,
                 clockIn: new Date(), // Using current date for permit record
-                status: data.type as any,
+                status: data.type as AttendanceStatus,
                 notes: data.reason,
             },
         });
@@ -418,7 +418,7 @@ export async function getTodayUserShift(userId: string) {
 
 export async function getAttendances(userId?: string, startDate?: Date, endDate?: Date) {
     try {
-        const where: any = {};
+        const where: { userId?: string, clockIn?: { gte?: Date, lte?: Date } } = {};
         if (userId) where.userId = userId;
 
         if (startDate || endDate) {

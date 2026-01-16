@@ -8,9 +8,28 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Image from 'next/image';
 
+interface Log {
+    id: string;
+    action: string;
+    target: string | null;
+    device: string | null;
+    createdAt: Date;
+    user: {
+        name: string;
+        username: string;
+        image: string | null;
+    };
+}
+
+interface FilterUser {
+    id: string;
+    name: string;
+    username: string;
+}
+
 export default function ActivityLogTab() {
-    const [logs, setLogs] = useState<any[]>([]);
-    const [users, setUsers] = useState<any[]>([]);
+    const [logs, setLogs] = useState<Log[]>([]);
+    const [users, setUsers] = useState<FilterUser[]>([]);
     const [selectedUserId, setSelectedUserId] = useState<string>('all');
     const [selectedIds, setSelectedIds] = useState<string[]>([]);
     const [loading, setLoading] = useState(true);
@@ -36,6 +55,7 @@ export default function ActivityLogTab() {
 
     useEffect(() => {
         loadData();
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     useEffect(() => {
@@ -43,6 +63,7 @@ export default function ActivityLogTab() {
             loadLogsOnly();
             setSelectedIds([]); // Reset selection when user filter changes
         }
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [selectedUserId]);
 
     const handleSelectAll = () => {
@@ -76,7 +97,7 @@ export default function ActivityLogTab() {
             } else {
                 toast.error(result.message || 'Gagal menghapus data');
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Terjadi kesalahan saat menghapus data');
         } finally {
             setDeleting(false);

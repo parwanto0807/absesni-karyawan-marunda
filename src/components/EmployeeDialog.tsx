@@ -5,6 +5,7 @@ import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Lea
 import { cn } from '@/lib/utils';
 import { User, UserRole } from '@/types/attendance';
 import { createUser, updateUser } from '@/actions/employees';
+import NextImage from 'next/image';
 
 interface EmployeeDialogProps {
     isOpen: boolean;
@@ -32,12 +33,12 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0];
         if (file) {
-            console.log('📁 File selected:', file.name, 'Size:', file.size, 'bytes');
+
 
             // Compress image before converting to base64
             const reader = new FileReader();
             reader.onloadend = () => {
-                const img = new Image();
+                const img = new window.Image();
                 img.onload = () => {
                     // Create canvas for compression
                     const canvas = document.createElement('canvas');
@@ -63,11 +64,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                     ctx?.drawImage(img, 0, 0, width, height);
                     const compressedBase64 = canvas.toDataURL('image/jpeg', 0.8); // 80% quality
 
-                    console.log('✅ Image compressed:', {
-                        originalSize: file.size,
-                        base64Length: compressedBase64.length,
-                        dimensions: `${width}x${height}`
-                    });
+
 
                     setPreview(compressedBase64);
                     setImageBase64(compressedBase64);
@@ -86,22 +83,17 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
         const formData = new FormData(event.currentTarget);
 
         // Debug logging
-        console.log('🖼️ Client-side Image Debug:', {
-            hasImageBase64: !!imageBase64,
-            imageLength: imageBase64?.length || 0,
-            imagePrefix: imageBase64?.substring(0, 50) || 'null',
-            isUpdate: !!employee
-        });
+
 
         // Explicitly append the base64 image to FormData
         if (imageBase64) {
             formData.set('image', imageBase64);
-            console.log('✅ Image appended to FormData');
+
         } else {
-            console.log('⚠️ No image to append');
+
         }
 
-        let result;
+        let result: { success: boolean; message?: string };
 
         if (employee) {
             result = await updateUser(employee.id, formData);
@@ -113,7 +105,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
             setIsLoading(false);
             onClose();
         } else {
-            setError(result.message);
+            setError(result.message || 'Gagal menyimpan data');
             setIsLoading(false);
         }
     }
@@ -160,7 +152,9 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                             <div className="relative group mt-1">
                                 <div className="h-20 w-20 rounded-[1.5rem] bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden ring-4 ring-white dark:ring-slate-900 shadow-lg">
                                     {preview ? (
-                                        <img src={preview} alt="Preview" className="h-full w-full object-cover" />
+                                        <div className="relative h-full w-full">
+                                            <NextImage src={preview} alt="Preview" fill className="object-cover" unoptimized />
+                                        </div>
                                     ) : (
                                         <UserIcon size={28} className="text-slate-300" />
                                     )}

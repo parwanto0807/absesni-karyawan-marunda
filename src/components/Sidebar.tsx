@@ -22,7 +22,14 @@ import { logout } from '@/actions/auth';
 import { Tooltip, TooltipContent, TooltipProvider, TooltipTrigger } from '@/components/ui/tooltip';
 import { toast } from 'sonner';
 
-export default function Sidebar({ user }: { user: any }) {
+interface SidebarUser {
+    id: string;
+    name: string;
+    role: string;
+    image: string | null;
+}
+
+export default function Sidebar({ user }: { user: SidebarUser | null }) {
     const pathname = usePathname();
     const router = useRouter();
     const { isOpen, isCollapsed, toggleCollapse, setOpen } = useSidebar();

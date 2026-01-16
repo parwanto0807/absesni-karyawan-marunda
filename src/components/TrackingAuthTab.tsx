@@ -7,7 +7,7 @@ import { getSettings, updateSettings } from '@/actions/settings';
 import { toast } from 'sonner';
 
 export default function TrackingAuthTab() {
-    const [users, setUsers] = useState<any[]>([]);
+    const [users, setUsers] = useState<{ username: string; name: string; role: string }[]>([]);
     const [authorizedUsernames, setAuthorizedUsernames] = useState<string[]>([]);
     const [trackingRoles, setTrackingRoles] = useState<string>('SECURITY,LINGKUNGAN,KEBERSIHAN');
     const [requireActive, setRequireActive] = useState<boolean>(true);

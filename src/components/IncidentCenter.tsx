@@ -23,14 +23,17 @@ import { toast } from 'sonner';
 import { getIncidentReports, addIncidentComment, updateIncidentAdminNotes } from '@/actions/incident';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
+import { IncidentReport, IncidentComment } from '@/types/incident';
+import { Channel } from 'pusher-js';
 import { cn } from '@/lib/utils';
 import { generateIncidentPDF } from '@/lib/incident-pdf';
 import { getPusherClient } from '@/lib/pusher-client';
+import Image from 'next/image';
 
 export default function IncidentCenter({ adminId }: { adminId: string }) {
-    const [reports, setReports] = useState<any[]>([]);
+    const [reports, setReports] = useState<IncidentReport[]>([]);
     const [loading, setLoading] = useState(true);
-    const [selectedReport, setSelectedReport] = useState<any | null>(null);
+    const [selectedReport, setSelectedReport] = useState<IncidentReport | null>(null);
     const [reply, setReply] = useState('');
     const [replyLoading, setReplyLoading] = useState(false);
     const [filter, setFilter] = useState<'ALL' | 'PENDING' | 'RESOLVED'>('ALL');
@@ -55,22 +58,22 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
 
     // Realtime: Connection Status & Global Listeners
     useEffect(() => {
-        let channel: any;
-        let commentChannel: any;
+        let channel: Channel;
+        let commentChannel: Channel;
         const initPusher = async () => {
             const pusher = await getPusherClient();
             if (pusher) {
-                setRealtimeStatus(pusher.connection.state as any);
-                pusher.connection.bind('state_change', (states: any) => {
+                setRealtimeStatus(pusher.connection.state as 'connecting' | 'connected' | 'disconnected');
+                pusher.connection.bind('state_change', (states: { current: 'connecting' | 'connected' | 'disconnected' }) => {
                     setRealtimeStatus(states.current);
                 });
 
                 // Listen for new incidents (global)
                 channel = pusher.subscribe('incidents');
-                console.log('[Pusher] Subscribed to: incidents');
 
-                channel.bind('new-incident', (newReport: any) => {
-                    console.log('[Pusher] New Incident received:', newReport.id);
+
+                channel.bind('new-incident', (newReport: IncidentReport) => {
+
                     setReports(prev => {
                         if (prev.some(r => r.id === newReport.id)) return prev;
                         return [newReport, ...prev];
@@ -82,15 +85,15 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
 
                 // Global Updates for List (Status changes & New comments everywhere)
                 const globalChannel = pusher.subscribe('incident-globals');
-                console.log('[Pusher] Subscribed to: incident-globals');
-                globalChannel.bind('update', (data: any) => {
-                    console.log('[Pusher] Global update received for:', data.incidentId);
+
+                globalChannel.bind('update', (data: { incidentId: string, newStatus: string }) => {
+
                     setReports(prev => prev.map(r => {
                         if (r.id === data.incidentId) {
                             return {
                                 ...r,
                                 status: data.newStatus || r.status,
-                                updatedAt: new Date().toISOString()
+                                updatedAt: new Date()
                             };
                         }
                         return r;
@@ -110,27 +113,27 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
     // Realtime: Listen for new comments on selected report
     useEffect(() => {
         if (!selectedReport) return;
-        let channel: any;
+        let channel: Channel;
         const initPusher = async () => {
             const pusher = await getPusherClient();
             if (pusher) {
                 const channelName = `incident-${selectedReport.id}`;
                 channel = pusher.subscribe(channelName);
-                console.log(`[Pusher] Subscribed to detail: ${channelName}`);
 
-                channel.bind('new-comment', (data: any) => {
-                    console.log('[Pusher] New Comment received on detail:', data.id);
+
+                channel.bind('new-comment', (data: IncidentComment & { newStatus?: string }) => {
+
 
                     // 1. Update the main reports list (sidebar)
                     setReports(prevList => {
                         return prevList.map(r => {
                             if (r.id === selectedReport.id) {
                                 const currentComments = r.comments || [];
-                                if (currentComments.some((c: any) => c.id === data.id)) return r;
+                                if (currentComments.some((c: IncidentComment) => c.id === data.id)) return r;
                                 return {
                                     ...r,
                                     status: data.newStatus || r.status,
-                                    updatedAt: new Date().toISOString(),
+                                    updatedAt: new Date(),
                                     comments: [...currentComments, data]
                                 };
                             }
@@ -139,14 +142,14 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                     });
 
                     // 2. Update the currently selected report (chat area)
-                    setSelectedReport((prev: any) => {
+                    setSelectedReport((prev: IncidentReport | null) => {
                         if (!prev || prev.id !== selectedReport.id) return prev;
 
-                        const exists = prev.comments.some((c: any) => c.id === data.id);
+                        const exists = prev.comments.some((c: IncidentComment) => c.id === data.id);
                         if (exists) {
                             // If it exists but status changed, update status
                             if (data.newStatus && data.newStatus !== prev.status) {
-                                return { ...prev, status: data.newStatus };
+                                return { ...prev, status: data.newStatus, updatedAt: new Date() };
                             }
                             return prev;
                         }
@@ -162,7 +165,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                         return {
                             ...prev,
                             status: data.newStatus || prev.status,
-                            updatedAt: new Date().toISOString(),
+                            updatedAt: new Date(),
                             comments: [...(prev.comments || []), data]
                         };
                     });
@@ -172,7 +175,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
         initPusher();
         return () => {
             if (channel) {
-                console.log(`[Pusher] Unsubscribing from detail`);
+
                 channel.unbind_all().unsubscribe();
             }
         };
@@ -185,7 +188,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
             setReports(result.data || []);
             // Update selected report if it exists
             if (selectedReport) {
-                const updated = result.data?.find((r: any) => r.id === selectedReport.id);
+                const updated = result.data?.find((r: IncidentReport) => r.id === selectedReport.id);
                 if (updated) setSelectedReport(updated);
             }
         }
@@ -195,6 +198,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
 
 
     const handleReply = async (status: string) => {
+        if (!selectedReport) return;
         let finalMessage = reply.trim();
 
         // Allow empty message for RESOLVED status (Close Case)
@@ -314,8 +318,8 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                                         <p className="text-xs font-bold text-slate-900 dark:text-white truncate">{report.description}</p>
                                         <div className="mt-2 flex items-center justify-between">
                                             <div className="flex items-center gap-1.5 text-[9px] font-bold text-slate-500 uppercase">
-                                                <div className="w-4 h-4 rounded-full bg-slate-200 overflow-hidden">
-                                                    {report.user.image ? <img src={report.user.image} className="w-full h-full object-cover" /> : <UserCircle2 size={16} />}
+                                                <div className="relative w-4 h-4 rounded-full bg-slate-200 overflow-hidden">
+                                                    {report.user.image ? <Image src={report.user.image} alt={report.user.name} fill className="w-full h-full object-cover" unoptimized /> : <UserCircle2 size={16} />}
                                                 </div>
                                                 {report.user.name.split(' ')[0]}
                                             </div>
@@ -364,7 +368,18 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                                 </div>
                                 <div className="flex items-center gap-2 mt-4 md:mt-0 ml-auto md:ml-0">
                                     <button
-                                        onClick={() => generateIncidentPDF(selectedReport)}
+                                        onClick={() => {
+                                            if (!selectedReport) return;
+                                            generateIncidentPDF({
+                                                ...selectedReport,
+                                                createdAt: selectedReport.createdAt.toISOString(),
+                                                address: selectedReport.address || '-',
+                                                comments: selectedReport.comments.map(c => ({
+                                                    ...c,
+                                                    createdAt: c.createdAt.toISOString()
+                                                }))
+                                            });
+                                        }}
                                         className="h-10 px-4 rounded-xl bg-white/10 hover:bg-white/20 text-[10px] font-black uppercase tracking-widest transition-all flex items-center gap-2 text-rose-400 border border-rose-400/20"
                                     >
                                         <Printer size={14} />
@@ -393,8 +408,8 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                                 {selectedReport.evidenceImg && (
                                     <div className="space-y-2">
                                         <label className="text-[10px] font-black text-slate-400 uppercase tracking-widest ml-1">Bukti Foto</label>
-                                        <div className="relative aspect-video rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 group cursor-pointer" onClick={() => window.open(selectedReport.evidenceImg, '_blank')}>
-                                            <img src={selectedReport.evidenceImg} className="w-full h-full object-cover" />
+                                        <div className="relative aspect-video rounded-3xl overflow-hidden border border-slate-200 dark:border-slate-800 group cursor-pointer" onClick={() => window.open(selectedReport.evidenceImg || '', '_blank')}>
+                                            <Image src={selectedReport.evidenceImg} alt="Bukti" fill className="w-full h-full object-cover" unoptimized />
                                             <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity flex items-center justify-center">
                                                 <ExternalLink className="text-white" size={24} />
                                             </div>
@@ -466,7 +481,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                                 </div>
 
                                 {/* Iterating Comments */}
-                                {selectedReport.comments?.map((comment: any) => {
+                                {selectedReport.comments?.map((comment) => {
                                     const isAdmin = ['ADMIN', 'PIC', 'RT'].includes(comment.user.role);
                                     return (
                                         <div key={comment.id} className={cn(

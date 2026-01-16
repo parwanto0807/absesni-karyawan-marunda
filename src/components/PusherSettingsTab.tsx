@@ -6,6 +6,7 @@ import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getSettings, updateSettings, testPusherAction } from '@/actions/settings';
 import { getPusherClient, clearPusherInstance } from '@/lib/pusher-client';
+import Pusher from 'pusher-js';
 
 export default function PusherSettingsTab() {
     const [loading, setLoading] = useState(false);
@@ -29,8 +30,8 @@ export default function PusherSettingsTab() {
                 setAppKey(settings.PUSHER_KEY || '');
                 setAppSecret(settings.PUSHER_SECRET || '');
                 setAppCluster(settings.PUSHER_CLUSTER || '');
-            } catch (error) {
-                console.error('Failed to load Pusher settings:', error);
+            } catch (_error) {
+                console.error('Failed to load Pusher settings:', _error);
             } finally {
                 setInitialLoading(false);
             }
@@ -40,17 +41,17 @@ export default function PusherSettingsTab() {
 
     useEffect(() => {
         let isMounted = true;
-        let pusher: any;
+        let pusher: Pusher | null = null;
         const init = async () => {
-            pusher = await getPusherClient();
+            pusher = await getPusherClient() as Pusher | null;
             if (pusher) {
-                if (isMounted) setConnectionStatus(pusher.connection.state as any);
-                pusher.connection.bind('state_change', (states: any) => {
+                if (isMounted) setConnectionStatus(pusher.connection.state as 'connected' | 'connecting' | 'disconnected');
+                pusher.connection.bind('state_change', (states: { current: 'connected' | 'connecting' | 'disconnected' }) => {
                     if (isMounted) setConnectionStatus(states.current);
                 });
 
                 const channel = pusher.subscribe('admin-test');
-                channel.bind('test-event', (data: any) => {
+                channel.bind('test-event', (data: { message: string }) => {
                     if (isMounted) {
                         setTestLogs(prev => [`[${new Date().toLocaleTimeString()}] Event diteriman: ${data.message}`, ...prev]);
                         toast.success('Pesan Tes Realtime Diterima!', {
@@ -87,9 +88,10 @@ export default function PusherSettingsTab() {
                 toast.error(result.message);
                 setTestLogs(prev => [`[${new Date().toLocaleTimeString()}] Error: ${result.message}`, ...prev]);
             }
-        } catch (error: any) {
+        } catch (_error: unknown) {
+            const err = _error as { message?: string };
             toast.error('Gagal menjalankan tes Pusher');
-            setTestLogs(prev => [`[${new Date().toLocaleTimeString()}] Exception: ${error?.message || 'Unknown'}`, ...prev]);
+            setTestLogs(prev => [`[${new Date().toLocaleTimeString()}] Exception: ${err?.message || 'Unknown'}`, ...prev]);
         } finally {
             setTestLoading(false);
         }
@@ -114,7 +116,7 @@ export default function PusherSettingsTab() {
             } else {
                 throw new Error(result.message);
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal Menyimpan Pengaturan Pusher');
         } finally {
             setLoading(false);
@@ -274,7 +276,7 @@ export default function PusherSettingsTab() {
                             <div className="flex gap-4">
                                 <div className="h-6 w-6 rounded-lg bg-indigo-100 dark:bg-indigo-900/40 text-indigo-600 flex items-center justify-center text-[10px] font-black shrink-0">1</div>
                                 <p className="text-[11px] text-slate-600 dark:text-slate-400 font-medium leading-relaxed">
-                                    Login ke <a href="https://pusher.com" target="_blank" className="text-indigo-600 font-bold hover:underline">Pusher.com</a> dan buat "App" baru di menu **Channels**.
+                                    Login ke <a href="https://pusher.com" target="_blank" className="text-indigo-600 font-bold hover:underline">Pusher.com</a> dan buat &quot;App&quot; baru di menu **Channels**.
                                 </p>
                             </div>
                             <div className="flex gap-4">

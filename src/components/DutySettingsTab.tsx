@@ -20,8 +20,8 @@ export default function DutySettingsTab() {
                 setSecurityDuty(settings.DUTY_SECURITY || '');
                 setCleaningDuty(settings.DUTY_KEBERSIHAN || '');
                 setEnvironmentDuty(settings.DUTY_LINGKUNGAN || '');
-            } catch (error) {
-                console.error('Failed to load duties:', error);
+            } catch (_error) {
+                console.error('Failed to load duties:', _error);
             } finally {
                 setLoading(false);
             }
@@ -43,7 +43,7 @@ export default function DutySettingsTab() {
             } else {
                 throw new Error(result.message);
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal Menyimpan', {
                 description: 'Terjadi kesalahan saat menyimpan data.'
             });

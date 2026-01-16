@@ -67,7 +67,7 @@ export async function logActivity(userId: string, action: string, target?: strin
  */
 export async function getActivityLogs(limit: number = 100, userId?: string) {
     try {
-        const where: any = {};
+        const where: { userId?: string } = {};
         if (userId && userId !== 'all') {
             where.userId = userId;
         }

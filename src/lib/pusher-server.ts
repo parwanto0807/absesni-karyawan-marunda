@@ -31,13 +31,13 @@ export async function getPusherServer() {
     });
 }
 
-export async function triggerPusher(channel: string, event: string, data: any) {
+export async function triggerPusher(channel: string, event: string, data: unknown) {
     try {
-        console.log(`Triggering Pusher: ${channel} -> ${event}`);
+
         const pusher = await getPusherServer();
         if (pusher) {
             await pusher.trigger(channel, event, data);
-            console.log('Pusher triggered successfully');
+
             return true;
         } else {
             console.warn('Pusher not triggered: Server instance not available (possibly disabled)');

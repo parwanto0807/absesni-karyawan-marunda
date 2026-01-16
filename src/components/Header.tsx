@@ -161,7 +161,7 @@ export default function Header({ user }: HeaderProps) {
 
                         {isSearchOpen && searchQuery && searchResults.length === 0 && (
                             <div className="absolute top-12 left-0 w-full bg-white dark:bg-slate-900 rounded-xl shadow-xl border border-slate-200 dark:border-slate-800 p-4 text-center">
-                                <p className="text-sm text-slate-500">Tidak ditemukan hasil untuk "{searchQuery}"</p>
+                                <p className="text-sm text-slate-500">Tidak ditemukan hasil untuk &quot;{searchQuery}&quot;</p>
                             </div>
                         )}
                     </div>

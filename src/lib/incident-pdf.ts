@@ -22,11 +22,11 @@ interface IncidentReport {
     status: string;
     createdAt: string;
     user: User;
-    address: string;
+    address: string | null;
     latitude: number;
     longitude: number;
     description: string;
-    evidenceImg?: string;
+    evidenceImg?: string | null;
     comments?: Comment[];
     priority?: string;
     severity?: string;
@@ -34,9 +34,39 @@ interface IncidentReport {
     assignedTo?: string;
     area?: string;
     unit?: string;
-    actionDetail?: string;
-    analysis?: string;
-    improvement?: string;
+    actionDetail: string | null;
+    analysis: string | null;
+    improvement: string | null;
+}
+
+interface JsPDFCustom {
+    internal: {
+        pageSize: {
+            getWidth: () => number;
+            getHeight: () => number;
+        };
+    };
+    lastAutoTable: {
+        finalY: number;
+    };
+    getNumberOfPages: () => number;
+    setPage: (page: number) => void;
+    setFont: (font: string, style: string) => void;
+    setFontSize: (size: number) => void;
+    setTextColor: (r: number, g: number, b: number, a?: number) => void;
+    setFillColor: (r: number, g: number, b: number) => void;
+    setDrawColor: (r: number, g: number, b: number, a?: number) => void;
+    setLineWidth: (width: number) => void;
+    rect: (x: number, y: number, w: number, h: number, style?: string) => void;
+    roundedRect: (x: number, y: number, w: number, h: number, rx: number, ry: number, style?: string) => void;
+    line: (x1: number, y1: number, x2: number, y2: number) => void;
+    text: (text: string | string[], x: number, y: number, options?: { align?: string, angle?: number }) => void;
+    addImage: (img: string, format: string, x: number, y: number, w: number, h: number) => void;
+    addPage: () => void;
+    splitTextToSize: (text: string, width: number) => string[];
+    getTextWidth: (text: string) => number;
+    getImageProperties: (img: string) => { width: number, height: number };
+    output: (type: string) => unknown;
 }
 
 export const generateIncidentPDF = async (
@@ -54,7 +84,7 @@ export const generateIncidentPDF = async (
             unit: 'mm',
             format: 'a4',
             compress: true
-        }) as any;
+        }) as unknown as JsPDFCustom;
 
         const pageWidth = doc.internal.pageSize.getWidth();
         const pageHeight = doc.internal.pageSize.getHeight();
@@ -62,7 +92,7 @@ export const generateIncidentPDF = async (
         const compact = options?.compact ?? true;
 
         // Maritime/Beach Theme Color Scheme
-        const colors: any = {
+        const colors: Record<string, [number, number, number]> = {
             primary: [2, 48, 71],      // Navy Blue (Deep Sea)
             secondary: [33, 158, 188],  // Cyan (Ocean Surface)
             accent: [255, 183, 3],     // Gold/Sand (Beach)
@@ -177,7 +207,7 @@ export const generateIncidentPDF = async (
             }
         ];
 
-        const gridColWidth = (pageWidth - 2 * margin - 12) / 3;
+
         gridData.forEach((item, index) => {
             const row = Math.floor(index / 2);
             const col = index % 2;
@@ -373,7 +403,7 @@ export const generateIncidentPDF = async (
             let maxRowY = currentY;
             let currentRowY = currentY;
 
-            displayComments.forEach((comment: any, index: number) => {
+            displayComments.forEach((comment: Comment, index: number) => {
                 const col = index % 2;
                 const x = margin + col * (logColWidth + 6);
 
@@ -459,7 +489,7 @@ export const generateIncidentPDF = async (
         );
 
         // Right - Page info
-        const pageCount = doc.internal.getNumberOfPages();
+        const pageCount = doc.getNumberOfPages();
         for (let i = 1; i <= pageCount; i++) {
             doc.setPage(i);
             doc.setTextColor(150, 150, 150);
@@ -487,7 +517,7 @@ export const generateIncidentPDF = async (
 
         // Generate PDF
         const fileName = `LAP_${report.id}_${format(new Date(), 'yyMMdd')}.pdf`;
-        const pdfBlob = doc.output('blob');
+        const pdfBlob = doc.output('blob') as Blob;
         const pdfUrl = URL.createObjectURL(pdfBlob);
 
         // Open in new tab
@@ -524,9 +554,9 @@ export const generateIncidentPDF = async (
 
 // Additional utility for batch reports
 export const generateSummaryPDF = async (reports: IncidentReport[]) => {
-    const doc = new jsPDF() as any;
+    const doc = new jsPDF() as unknown as JsPDFCustom;
     const pageWidth = doc.internal.pageSize.getWidth();
-    const margin = 10;
+
 
     // Ultra compact summary table
     const tableData = reports.map(report => [
@@ -554,7 +584,7 @@ export const generateSummaryPDF = async (reports: IncidentReport[]) => {
     doc.setFontSize(9);
     doc.text(`Ringkasan ${reports.length} Insiden`, pageWidth / 2, 15, { align: 'center' });
 
-    const pdfUrl = doc.output('bloburl');
+    const pdfUrl = doc.output('bloburl') as string;
     window.open(pdfUrl, '_blank');
     toast.success('Ringkasan PDF dibuat');
 };

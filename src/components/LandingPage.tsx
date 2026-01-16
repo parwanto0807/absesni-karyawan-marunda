@@ -4,14 +4,34 @@ import React from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Shield, MapPin, Users, Phone, ArrowRight, Home, CheckCircle2, Star, Zap, Info, Calendar, Megaphone, Heart, Coffee, TreePine, Sparkles, Smartphone, X } from 'lucide-react';
 import Link from 'next/link';
+import NextImage from 'next/image';
+
+interface Activity {
+    id: string;
+    title: string;
+    time: string;
+    image: string | null;
+    description: string | null;
+    order: number;
+    createdAt: Date;
+}
+
+interface Service {
+    id: string;
+    icon: string;
+    title: string;
+    description: string;
+    order: number;
+    createdAt: Date;
+}
 
 interface LandingPageProps {
     settings?: Record<string, string>;
-    activities?: any[];
-    services?: any[];
+    activities?: Activity[];
+    services?: Service[];
 }
 
-const ICON_MAP: Record<string, any> = {
+const ICON_MAP: Record<string, React.ElementType> = {
     Megaphone,
     TreePine,
     Shield,
@@ -65,7 +85,7 @@ function TabNav({ activeSection, onTabClick }: { activeSection: string; onTabCli
 
 
 export default function LandingPage({ settings = {}, activities = [], services = [] }: LandingPageProps) {
-    const [selectedActivity, setSelectedActivity] = React.useState<any>(null);
+    const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
     const [activeSection, setActiveSection] = React.useState('hero');
     const [prevSection, setPrevSection] = React.useState('hero');
     const isAutoScrolling = React.useRef(false);
@@ -167,17 +187,17 @@ export default function LandingPage({ settings = {}, activities = [], services =
     const securityImage = settings['landing_security_image'] || '/metland_marunda_gate_ultra.png';
 
     // Default Lists if empty
-    const displayActivities = activities.length > 0 ? activities : [
-        { title: 'Senam Pagi Bersama', time: 'Setiap Minggu Pagi' },
-        { title: 'Rapat Koordinasi RT', time: 'Sabtu Minggu Ke-2' },
-        { title: 'Arisan & Kuliner Nusantara', time: 'Minggu Terakhir' },
-        { title: 'Bakti Lingkungan', time: 'Bulan Ganjil' }
+    const displayActivities: Activity[] = activities.length > 0 ? activities : [
+        { id: 'default-1', title: 'Senam Pagi Bersama', time: 'Setiap Minggu Pagi', image: null, description: null, order: 0, createdAt: new Date() },
+        { id: 'default-2', title: 'Rapat Koordinasi RT', time: 'Sabtu Minggu Ke-2', image: null, description: null, order: 1, createdAt: new Date() },
+        { id: 'default-3', title: 'Arisan & Kuliner Nusantara', time: 'Minggu Terakhir', image: null, description: null, order: 2, createdAt: new Date() },
+        { id: 'default-4', title: 'Bakti Lingkungan', time: 'Bulan Ganjil', image: null, description: null, order: 3, createdAt: new Date() }
     ];
 
-    const displayServices = services.length > 0 ? services : [
-        { icon: 'Megaphone', title: 'WARTA RT/RW', description: 'Informasi terbuka, kebijakan jelas, warga selaras. Pusat informasi resmi mengenai kegiatan, jadwal layanan, dan kebijakan lingkungan yang transparan.' },
-        { icon: 'TreePine', title: 'LINGKUNGAN ASRI', description: 'Kebersihan terjaga, penghijauan lestari, taman indah. Program pemilahan sampah, penghijauan, dan perawatan fasilitas taman agar lingkungan selalu nyaman.' },
-        { icon: 'Shield', title: 'RESPON CEPAT', description: 'Tim security siaga 24 jam untuk kedaruratan Anda. Layanan sigap yang menghubungkan warga langsung dengan tim keamanan untuk situasi mendesak.' }
+    const displayServices: Service[] = services.length > 0 ? services : [
+        { id: 'default-1', icon: 'Megaphone', title: 'WARTA RT/RW', description: 'Informasi terbuka, kebijakan jelas, warga selaras. Pusat informasi resmi mengenai kegiatan, jadwal layanan, dan kebijakan lingkungan yang transparan.', order: 0, createdAt: new Date() },
+        { id: 'default-2', icon: 'TreePine', title: 'LINGKUNGAN ASRI', description: 'Kebersihan terjaga, penghijauan lestari, taman indah. Program pemilahan sampah, penghijauan, dan perawatan fasilitas taman agar lingkungan selalu nyaman.', order: 1, createdAt: new Date() },
+        { id: 'default-3', icon: 'Shield', title: 'RESPON CEPAT', description: 'Tim security siaga 24 jam untuk kedaruratan Anda. Layanan sigap yang menghubungkan warga langsung dengan tim keamanan untuk situasi mendesak.', order: 2, createdAt: new Date() }
     ];
 
     return (
@@ -185,7 +205,9 @@ export default function LandingPage({ settings = {}, activities = [], services =
             {/* Header / Navbar */}
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 md:px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2 md:space-x-3 overflow-hidden">
-                    <img src="/logo_marunda.png" alt="Logo Taman Marunda" className="w-10 h-10 md:w-12 md:h-12 object-contain" />
+                    <div className="relative w-10 h-10 md:w-12 md:h-12 shrink-0">
+                        <NextImage src="/logo_marunda.png" alt="Logo Taman Marunda" fill className="object-contain" unoptimized />
+                    </div>
                     <div className="min-w-0">
                         <span className="text-[11px] md:text-base font-black text-slate-900 uppercase tracking-tighter leading-tight block truncate">Cluster Taman Marunda</span>
                         <span className="block text-[7px] md:text-[10px] font-black text-indigo-600 uppercase tracking-widest -mt-0.5 md:-mt-1 truncate">RT 003/004 | RW 26 Metland</span>
@@ -248,12 +270,18 @@ export default function LandingPage({ settings = {}, activities = [], services =
                     >
                         <div className="absolute -inset-4 md:-inset-10 bg-indigo-600/5 blur-[100px] rounded-full" />
                         <div className="relative aspect-[4/5] md:aspect-square lg:aspect-[4/5] rounded-[2.5rem] md:rounded-[4rem] overflow-hidden border-4 md:border-8 border-white shadow-[0_32px_64px_-16px_rgba(79,70,229,0.1)]">
-                            <motion.img
+                            <motion.div
                                 style={{ y: useTransform(scrollY, [0, 1000], [-40, 40]) }}
-                                src={heroImage}
-                                alt="Keharmonisan Suku Bangsa di Metland"
-                                className="w-full h-full object-cover scale-125"
-                            />
+                                className="w-full h-full relative scale-125"
+                            >
+                                <NextImage
+                                    src={heroImage}
+                                    alt="Keharmonisan Suku Bangsa di Metland"
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                />
+                            </motion.div>
 
                             {/* Diversity Floating Badge */}
                             <motion.div
@@ -310,12 +338,18 @@ export default function LandingPage({ settings = {}, activities = [], services =
 
                         {/* Main Service Banner */}
                         <div className="relative max-w-5xl mx-auto aspect-[21/9] md:aspect-video lg:aspect-[21/9] rounded-[3rem] md:rounded-[5rem] overflow-hidden border-4 md:border-8 border-slate-100 shadow-2xl group">
-                            <motion.img
+                            <motion.div
                                 style={{ y: yBanner }}
-                                src="/metland_service_banner.png"
-                                alt="Cluster Hijau Asri"
-                                className="w-full h-full object-cover scale-125"
-                            />
+                                className="w-full h-full relative scale-125"
+                            >
+                                <NextImage
+                                    src="/metland_service_banner.png"
+                                    alt="Cluster Hijau Asri"
+                                    fill
+                                    className="object-cover"
+                                    unoptimized
+                                />
+                            </motion.div>
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent flex flex-col justify-end p-8 md:p-16 text-left group-hover:via-slate-900/40 transition-all duration-700">
                                 <motion.div
                                     initial={{ opacity: 0, x: -20 }}
@@ -363,10 +397,12 @@ export default function LandingPage({ settings = {}, activities = [], services =
                 >
                     <div className="order-2 lg:order-1 relative">
                         <div className="relative aspect-square md:aspect-video lg:aspect-square rounded-[2.5rem] md:rounded-[4rem] overflow-hidden border-4 md:border-8 border-white shadow-2xl">
-                            <img
+                            <NextImage
                                 src={activityImage}
                                 alt="Kegiatan Bersama Suku Bangsa"
-                                className="w-full h-full object-cover transition-transform duration-1000 hover:scale-105"
+                                fill
+                                className="object-cover transition-transform duration-1000 hover:scale-105"
+                                unoptimized
                             />
                         </div>
                         {/* Event Float Card */}
@@ -402,8 +438,8 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                         className={`flex flex-col p-5 md:p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:translate-y-[-4px] hover:shadow-xl hover:shadow-indigo-500/5 ${hasDetail ? 'md:col-span-2 flex-row gap-5 cursor-pointer active:scale-[0.98]' : ''}`}
                                     >
                                         {item.image && (
-                                            <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden shrink-0 border border-slate-100">
-                                                <img src={item.image} alt={item.title} className="w-full h-full object-cover" />
+                                            <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden shrink-0 border border-slate-100 relative">
+                                                <NextImage src={item.image} alt={item.title} fill className="object-cover" unoptimized />
                                             </div>
                                         )}
                                         <div className="flex flex-col justify-center">
@@ -463,10 +499,12 @@ export default function LandingPage({ settings = {}, activities = [], services =
                     <div className="relative">
                         <div className="absolute -inset-10 md:-inset-20 bg-indigo-500/10 blur-[100px] rounded-full" />
                         <div className="relative aspect-square md:aspect-video lg:aspect-square rounded-[2.5rem] md:rounded-[4rem] overflow-hidden border-4 md:border-8 border-slate-800 shadow-2xl">
-                            <img
+                            <NextImage
                                 src={securityImage}
                                 alt="Sistem Keamanan RFID Gate Marunda"
-                                className="w-full h-full object-cover"
+                                fill
+                                className="object-cover"
+                                unoptimized
                             />
                         </div>
                     </div>
@@ -478,7 +516,9 @@ export default function LandingPage({ settings = {}, activities = [], services =
                 <div className="max-w-7xl mx-auto flex flex-col items-center text-center space-y-12">
                     <div className="space-y-4">
                         <div className="flex items-center justify-center space-x-3">
-                            <img src="/logo_marunda.png" alt="Logo Taman Marunda" className="w-14 h-14 md:w-20 md:h-20 object-contain" />
+                            <div className="relative w-14 h-14 md:w-20 md:h-20 shrink-0">
+                                <NextImage src="/logo_marunda.png" alt="Logo Taman Marunda" fill className="object-contain" unoptimized />
+                            </div>
                             <div className="text-left">
                                 <span className="text-lg md:text-2xl font-black text-slate-900 uppercase tracking-tighter block leading-none">Cluster Taman Marunda</span>
                                 <span className="text-[9px] md:text-xs font-black text-indigo-600 uppercase tracking-[0.4em]">Metland Cibitung</span>
@@ -542,11 +582,13 @@ export default function LandingPage({ settings = {}, activities = [], services =
 
                             <div className="max-h-[85vh] overflow-y-auto no-scrollbar">
                                 {selectedActivity.image && (
-                                    <div className="aspect-video w-full overflow-hidden border-b border-slate-50">
-                                        <img
+                                    <div className="aspect-video w-full overflow-hidden border-b border-slate-50 relative">
+                                        <NextImage
                                             src={selectedActivity.image}
                                             alt={selectedActivity.title}
-                                            className="w-full h-full object-cover"
+                                            fill
+                                            className="object-cover"
+                                            unoptimized
                                         />
                                     </div>
                                 )}
@@ -568,7 +610,7 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                         <div className="space-y-4">
                                             <div className="h-px w-20 bg-slate-200" />
                                             <p className="text-sm md:text-lg text-slate-500 font-medium leading-relaxed md:leading-loose whitespace-pre-line italic">
-                                                "{selectedActivity.description}"
+                                                &quot;{selectedActivity.description}&quot;
                                             </p>
                                         </div>
                                     )}

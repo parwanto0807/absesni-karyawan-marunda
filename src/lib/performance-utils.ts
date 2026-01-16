@@ -8,7 +8,7 @@
  * - Early Leave Penalty: 1 point per minute
  * - No Clock Out Penalty: 50 points (if shift is likely over, handled conceptually, typically creates early leave)
  */
-export function calculateDailyPerformance(attendance: any): number {
+export function calculateDailyPerformance(attendance: { status: string, lateMinutes?: number, earlyLeaveMinutes?: number }): number {
     if (attendance.status === 'ALPH' || attendance.status === 'ABSENT') return 0;
 
     // For now, only 'PRESENT' and 'LATE' get a calculated score.

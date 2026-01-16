@@ -18,10 +18,16 @@ export default async function PermitsPage() {
         ? await getPermits()
         : await getPermits(session.userId);
 
-    // For approval logic, we need the user's current role and ID
+    // For approval logic, we need the user's current role, ID, and employeeId
+    const dbUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { employeeId: true }
+    });
+
     const currentUser = {
         id: session.userId,
-        role: session.role
+        role: session.role,
+        employeeId: dbUser?.employeeId || ''
     };
 
     return (

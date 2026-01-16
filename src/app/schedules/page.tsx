@@ -8,6 +8,16 @@ import Link from 'next/link';
 import ScheduleClientHelper from '@/components/ScheduleClientHelper';
 import ScheduleGrid from '@/components/ScheduleGrid';
 import { getSession } from '@/lib/auth';
+import { Role } from '@prisma/client';
+
+interface ScheduleUser {
+    id: string;
+    name: string;
+    role: Role;
+    rotationOffset: number;
+    employeeId: string;
+    image: string | null;
+}
 
 export default async function SchedulesPage({
     searchParams
@@ -35,17 +45,17 @@ export default async function SchedulesPage({
     const securityUsers = await prisma.user.findMany({
         where: { role: 'SECURITY' },
         orderBy: { name: 'asc' }
-    }) as any[];
+    }) as ScheduleUser[];
 
     const lingkunganUsers = await prisma.user.findMany({
         where: { role: 'LINGKUNGAN' },
         orderBy: { name: 'asc' }
-    }) as any[];
+    }) as ScheduleUser[];
 
     const kebersihanUsers = await prisma.user.findMany({
         where: { role: 'KEBERSIHAN' },
         orderBy: { name: 'asc' }
-    }) as any[];
+    }) as ScheduleUser[];
 
     // Hitung jumlah hari dalam bulan yang dipilih
     const daysInMonth = new Date(currentYear, currentMonth + 1, 0).getDate();
@@ -69,7 +79,7 @@ export default async function SchedulesPage({
     });
 
     // Ambil hari libur dari database
-    const holidays = await prisma.holiday.findMany({
+    const dbHolidays = await prisma.holiday.findMany({
         where: {
             date: {
                 gte: new Date(currentYear, 0, 1),
@@ -77,6 +87,11 @@ export default async function SchedulesPage({
             }
         }
     });
+
+    const holidays = dbHolidays.map(h => ({
+        ...h,
+        date: h.date.toISOString().split('T')[0]
+    }));
 
     const monthName = new Date(currentYear, currentMonth).toLocaleString('id-ID', { month: 'long' });
 

@@ -3,6 +3,13 @@
 import { Download, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
+import { jsPDF } from 'jspdf';
+
+interface JsPDFCustom extends jsPDF {
+    lastAutoTable: {
+        finalY: number;
+    };
+}
 
 interface AttendanceExportData {
     id: string;
@@ -41,16 +48,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
         return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
     };
 
-    const formatDateTime = (date: Date) => {
-        return new Date(date).toLocaleString('id-ID', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            hour: '2-digit',
-            minute: '2-digit',
-            timeZone: 'Asia/Jakarta'
-        });
-    };
+
 
     const formatDate = (date: Date) => {
         return new Date(date).toLocaleDateString('id-ID', {
@@ -127,7 +125,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
             toast.success('Export CSV Berhasil', {
                 description: `${attendances.length} data berhasil di-export`
             });
-        } catch (error) {
+        } catch (_error) {
             toast.error('Export CSV Gagal', {
                 description: 'Terjadi kesalahan saat export data'
             });
@@ -147,7 +145,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
 
             const doc = new jsPDF({
                 orientation: 'landscape',
-            }) as any; // Cast to any to use autoTable
+            }) as JsPDFCustom;
 
             // Title
             doc.setFontSize(18);
@@ -378,7 +376,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                     },
                 });
 
-                yPos = (doc as any).lastAutoTable.finalY + 10;
+                yPos = doc.lastAutoTable.finalY + 10;
             }
 
             // Detail Attendance Section

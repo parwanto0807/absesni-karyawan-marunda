@@ -57,7 +57,7 @@ export function getShiftName(shiftType: ShiftType): string {
     return names[shiftType];
 }
 
-export function getTodayShift(userId: string, date: Date): ShiftType | null {
+export function getTodayShift(_userId: string, _date: Date): ShiftType | null {
     // This should query the Schedule model to get today's shift
     // For now, return null - will be implemented with actual schedule lookup
     return null;

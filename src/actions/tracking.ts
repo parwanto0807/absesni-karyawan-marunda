@@ -2,6 +2,8 @@
 
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
+import { UserRole } from '@/types/attendance';
+import { Role } from '@prisma/client';
 
 export async function logLocation(latitude: number, longitude: number) {
     const session = await getSession();
@@ -58,7 +60,7 @@ export async function logLocation(latitude: number, longitude: number) {
             },
         });
         return { success: true };
-    } catch (error) {
+    } catch (error: unknown) { // Type-safe catch block
         console.error('Error logging location:', error);
         return { error: 'Failed to log location' };
     }
@@ -72,7 +74,7 @@ export async function getLocationLogs(userId?: string, date?: Date) {
     const isAuthorized = await isUserAuthorizedForTracking(session.username);
     if (!isAuthorized) return { error: 'Not authorized' };
 
-    const where: any = {};
+    const where: { userId?: string, createdAt?: { gte: Date, lte: Date } } = {};
     if (userId) where.userId = userId;
     if (date) {
         const startOfDay = new Date(date);
@@ -101,7 +103,7 @@ export async function getLocationLogs(userId?: string, date?: Date) {
             },
         });
         return { success: true, data: logs };
-    } catch (error) {
+    } catch (error: unknown) { // Type-safe catch block
         console.error('Error getting location logs:', error);
         return { error: 'Failed to get location logs' };
     }
@@ -124,7 +126,7 @@ export async function getTrackableUsers() {
         const users = await prisma.user.findMany({
             where: {
                 role: {
-                    in: rolesToTrack as any
+                    in: rolesToTrack as Role[]
                 }
             },
             select: {
@@ -138,7 +140,7 @@ export async function getTrackableUsers() {
             }
         });
         return { success: true, data: users };
-    } catch (error) {
+    } catch (error: unknown) { // Type-safe catch block
         console.error('Error getting trackable users:', error);
         return { error: 'Failed to get users' };
     }
@@ -156,7 +158,7 @@ export async function isUserAuthorizedForTracking(username: string) {
 
         const authorizedUsers = setting.value.split(',').map(s => s.trim());
         return authorizedUsers.includes(username);
-    } catch (error) {
+    } catch (error: unknown) { // Type-safe catch block
         console.error('Error checking authorization:', error);
         return false;
     }
@@ -180,7 +182,7 @@ export async function getAllPICSAndAdmins() {
             orderBy: { name: 'asc' }
         });
         return { success: true, data: users };
-    } catch (error) {
+    } catch (_error: unknown) { // Type-safe catch block, prefixed unused variable
         return { error: 'Failed to fetch users' };
     }
 }

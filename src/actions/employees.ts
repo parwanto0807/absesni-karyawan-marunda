@@ -3,6 +3,7 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { UserRole } from '@/types/attendance';
+import { Role } from '@prisma/client';
 
 export async function createUser(formData: FormData) {
     const name = formData.get('name') as string;
@@ -13,20 +14,16 @@ export async function createUser(formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
-    console.log('📸 Image Upload Debug:', {
-        hasImage: !!imageBase64,
-        imageLength: imageBase64?.length || 0,
-        imagePrefix: imageBase64?.substring(0, 30) || 'null'
-    });
+
 
     try {
         // Validate image - must be string and start with data:image or be null
         let validImage: string | null = null;
         if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
             validImage = imageBase64;
-            console.log('✅ Image validated successfully, length:', validImage.length);
+
         } else {
-            console.log('⚠️ No valid image provided');
+
         }
 
         // ✅ Simpan base64 langsung ke database (Vercel compatible)
@@ -35,7 +32,7 @@ export async function createUser(formData: FormData) {
                 name,
                 username,
                 password,
-                role: role as any,
+                role: role as Role,
                 employeeId,
                 image: validImage,
                 rotationOffset,
@@ -43,12 +40,13 @@ export async function createUser(formData: FormData) {
         });
         revalidatePath('/employees');
         return { success: true, message: 'Karyawan berhasil ditambahkan.' };
-    } catch (error: any) {
-        console.error('Create User Error:', error);
-        if (error.code === 'P2002') {
+    } catch (error: unknown) {
+        const err = error as { code?: string; message?: string };
+        console.error('Create User Error:', err);
+        if (err.code === 'P2002') {
             return { success: false, message: 'Username atau ID Karyawan sudah digunakan.' };
         }
-        return { success: false, message: 'Gagal menambahkan karyawan. Detail: ' + (error.message || 'Unknown error') };
+        return { success: false, message: 'Gagal menambahkan karyawan. Detail: ' + (err.message || 'Unknown error') };
     }
 }
 
@@ -61,19 +59,23 @@ export async function updateUser(id: string, formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
 
-    const debugInfo = {
-        hasImage: !!imageBase64,
-        imageLength: imageBase64?.length || 0,
-        imagePrefix: imageBase64?.substring(0, 30) || 'null'
-    };
 
-    console.log('📸 Update Image Debug:', debugInfo);
+
+
 
     try {
-        const data: any = {
+        const data: {
+            name: string;
+            username: string;
+            role: Role;
+            employeeId: string;
+            rotationOffset: number;
+            image?: string;
+            password?: string;
+        } = {
             name,
             username,
-            role: role as any,
+            role: role as Role,
             employeeId,
             rotationOffset,
         };
@@ -81,9 +83,9 @@ export async function updateUser(id: string, formData: FormData) {
         // Handle image upload if base64 is provided and valid
         if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
             data.image = imageBase64; // Simpan base64 langsung
-            console.log('✅ Image will be updated, length:', imageBase64.length);
+
         } else {
-            console.log('⚠️ No valid image to update');
+
         }
 
         // Only update password if provided
@@ -98,12 +100,11 @@ export async function updateUser(id: string, formData: FormData) {
         revalidatePath('/employees');
         revalidatePath('/');
 
-        // Return debug info in message
-        const debugMsg = `Data karyawan berhasil diperbarui. [DEBUG: Image=${debugInfo.hasImage ? 'YES' : 'NO'}, Length=${debugInfo.imageLength}]`;
-        return { success: true, message: debugMsg };
-    } catch (error: any) {
-        console.error('Update User Error:', error);
-        return { success: false, message: 'Gagal memperbarui data karyawan. Detail: ' + (error.message || 'Unknown error') };
+        return { success: true, message: 'Data karyawan berhasil diperbarui.' };
+    } catch (error: unknown) {
+        const err = error as Error;
+        console.error('Update User Error:', err);
+        return { success: false, message: 'Gagal memperbarui data karyawan. Detail: ' + (err.message || 'Unknown error') };
     }
 }
 
@@ -115,7 +116,7 @@ export async function deleteUser(id: string) {
         });
         revalidatePath('/employees');
         return { success: true, message: 'Karyawan berhasil dihapus.' };
-    } catch (error) {
+    } catch (_error) {
         return { success: false, message: 'Gagal menghapus karyawan.' };
     }
 }
@@ -127,7 +128,7 @@ export async function updateRotationOffset(id: string, offset: number) {
         });
         revalidatePath('/schedules');
         return { success: true };
-    } catch (error) {
+    } catch (_error) {
         return { success: false, message: 'Gagal memperbarui offset.' };
     }
 }

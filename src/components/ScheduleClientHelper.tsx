@@ -4,8 +4,15 @@ import React, { useState } from 'react';
 import { Settings } from 'lucide-react';
 import ScheduleOffsetDialog from './ScheduleOffsetDialog';
 
+interface RotationUser {
+    id: string;
+    name: string;
+    rotationOffset: number;
+    employeeId: string;
+}
+
 interface ScheduleClientHelperProps {
-    securityUsers: any[];
+    securityUsers: RotationUser[];
 }
 
 export default function ScheduleClientHelper({ securityUsers }: ScheduleClientHelperProps) {

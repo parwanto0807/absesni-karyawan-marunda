@@ -6,7 +6,7 @@ const secretKey = process.env.SECRET_KEY;
 const key = new TextEncoder().encode(secretKey);
 
 export async function encrypt(payload: SessionPayload) {
-    return await new SignJWT(payload as any)
+    return await new SignJWT(payload as unknown as Record<string, unknown>)
         .setProtectedHeader({ alg: 'HS256' })
         .setIssuedAt()
         .setExpirationTime('2h')

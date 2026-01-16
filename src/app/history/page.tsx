@@ -15,12 +15,41 @@ import ExportButtons from '@/components/ExportButtons';
 import { getShiftForDate, getStaticSchedule, getShiftTimings, ShiftCode } from '@/lib/schedule-utils';
 import { getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
 
-export default async function HistoryPage(props: { searchParams: Promise<{ [key: string]: string | string[] | undefined }> }) {
-    const searchParams = await props.searchParams;
+import { AttendanceStatus } from '@prisma/client';
+
+interface VirtualAttendance {
+    id: string;
+    userId: string;
+    clockIn: Date;
+    clockOut: Date | null;
+    status: AttendanceStatus | 'ABSENT' | 'SICK' | 'PERMIT' | 'SHIFT_CHANGE';
+    shiftType: string;
+    scheduledClockIn?: Date | null;
+    scheduledClockOut?: Date | null;
+    notes?: string | null;
+    isLate: boolean;
+    lateMinutes: number;
+    isEarlyLeave: boolean;
+    earlyLeaveMinutes: number;
+    latitude: number;
+    longitude: number;
+    address: string | null;
+    image: string | null;
+    user: {
+        name: string;
+        employeeId: string;
+        role: string;
+        image: string | null;
+    };
+}
+
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ userId?: string, startDate?: string, endDate?: string }> }) {
     const session = await getSession();
     if (!session) {
         redirect('/login');
     }
+
+    const params = await searchParams;
 
     // Fetch users for filter (Admin/PIC only)
     let filterUsers;
@@ -34,7 +63,7 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
     // Determine filter parameters
     let targetUserId: string | undefined = session.userId;
     if (session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT') {
-        const pUserId = searchParams.userId;
+        const pUserId = params.userId;
         const pUserIdStr = Array.isArray(pUserId) ? pUserId[0] : pUserId;
         targetUserId = pUserIdStr || undefined;
     }
@@ -47,8 +76,8 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
         return isNaN(date.getTime()) ? undefined : date;
     };
 
-    const startDate = parseDate(searchParams.startDate) || getStartOfDayJakarta(new Date('2026-01-12'));
-    const endDate = parseDate(searchParams.endDate) || getEndOfDayJakarta(new Date());
+    const startDate = parseDate(params.startDate) || getStartOfDayJakarta(new Date('2026-01-12'));
+    const endDate = parseDate(params.endDate) || getEndOfDayJakarta(new Date());
 
     // 1. Fetch Actual Attendances
     const actualAttendances = await getAttendances(targetUserId, startDate, endDate);
@@ -76,12 +105,12 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
     });
 
     // 3. Generate Virtual Records
-    const virtualRecords: any[] = [];
+    const virtualRecords: VirtualAttendance[] = [];
     const dateRange: Date[] = [];
     let current = new Date(startDate);
     while (current <= endDate) {
         dateRange.push(new Date(current));
-        current.setDate(current.getDate() + 1);
+        current = new Date(current.setDate(current.getDate() + 1));
     }
 
     const now = new Date();
@@ -129,11 +158,20 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
                                 id: `absent-${user.id}-${dayStart.getTime()}`,
                                 userId: user.id,
                                 clockIn: timings.start,
+                                clockOut: null,
                                 status: permit ? (permit.type === 'SAKIT' ? 'SICK' : (permit.type === 'PERUBAHAN_SHIFT' ? 'SHIFT_CHANGE' : 'PERMIT')) : 'ABSENT',
                                 shiftType: shiftCode,
                                 scheduledClockIn: timings.start,
                                 scheduledClockOut: timings.end,
                                 notes: permit ? permit.reason : 'Tidak ada keterangan',
+                                isLate: false,
+                                lateMinutes: 0,
+                                isEarlyLeave: false,
+                                earlyLeaveMinutes: 0,
+                                latitude: 0,
+                                longitude: 0,
+                                address: null,
+                                image: null,
                                 user: {
                                     name: user.name,
                                     employeeId: user.employeeId,
@@ -157,8 +195,8 @@ export default async function HistoryPage(props: { searchParams: Promise<{ [key:
     const selectedUser = filterUsers?.find(u => u.id === targetUserId);
     const filterInfo = {
         userName: selectedUser?.name,
-        startDate: searchParams.startDate ? String(searchParams.startDate) : undefined,
-        endDate: searchParams.endDate ? String(searchParams.endDate) : undefined,
+        startDate: params.startDate ? String(params.startDate) : undefined,
+        endDate: params.endDate ? String(params.endDate) : undefined,
     };
 
     const getStatusColor = (status: string) => {

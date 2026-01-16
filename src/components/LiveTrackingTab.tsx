@@ -297,7 +297,7 @@ export default function LiveTrackingTab() {
             ) : selectedUserId && !loading ? (
                 <div className="flex flex-col items-center justify-center h-[400px] bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400">
                     <MapPin className="w-12 h-12 mb-2 opacity-20" />
-                    <p className="text-sm font-medium">Klik "Tampilkan Pergerakan" untuk melihat data</p>
+                    <p className="text-sm font-medium">Klik &quot;Tampilkan Pergerakan&quot; untuk melihat data</p>
                 </div>
             ) : (
                 <div className="flex flex-col items-center justify-center h-[400px] bg-white dark:bg-slate-900 rounded-xl md:rounded-2xl border-2 border-dashed border-slate-200 dark:border-slate-800 text-slate-400">

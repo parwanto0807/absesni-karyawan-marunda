@@ -10,6 +10,7 @@ import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
+import { WhatsAppProvider } from '@/lib/whatsapp';
 
 export async function createIncidentReport(data: {
     userId: string;
@@ -68,7 +69,7 @@ export async function createIncidentReport(data: {
 
             // Fire and forget
             sendWhatsAppMessage(message, {
-                provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                provider: (settings.WA_PROVIDER as WhatsAppProvider) || 'fonnte',
                 apiKey: settings.WA_API_KEY,
                 target: settings.WA_GROUP_ID,
                 numberKey: settings.WA_NUMBER_KEY
@@ -87,7 +88,7 @@ export async function createIncidentReport(data: {
 
 export async function getIncidentReports(excludeResolved: boolean = false) {
     try {
-        const whereClause: any = {};
+        const whereClause: { status?: { not: string } } = {};
         if (excludeResolved) {
             whereClause.status = { not: 'RESOLVED' };
         }
@@ -112,7 +113,7 @@ export async function getIncidentReports(excludeResolved: boolean = false) {
 
 export async function getMyRecentIncidents(userId: string, excludeResolved: boolean = false) {
     try {
-        const whereClause: any = { userId: userId };
+        const whereClause: { userId: string, status?: { not: string } } = { userId: userId };
         if (excludeResolved) {
             whereClause.status = { not: 'RESOLVED' };
         }

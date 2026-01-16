@@ -6,8 +6,41 @@ import { approvePermit, resetPermit } from '@/actions/permits';
 import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TIMEZONE } from '@/lib/date-utils';
+import NextImage from 'next/image';
 
-export default function PermitTable({ permits, currentUser }: { permits: any[], currentUser: any }) {
+interface User {
+    name: string;
+    employeeId: string;
+    role: string;
+    image: string | null;
+}
+
+interface Permit {
+    id: string;
+    userId: string;
+    type: string;
+    startDate: Date;
+    endDate: Date;
+    reason: string;
+    image: string | null;
+    adminStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    rt03Status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    rt04Status: 'PENDING' | 'APPROVED' | 'REJECTED';
+    finalStatus: 'PENDING' | 'APPROVED' | 'REJECTED';
+    createdAt: Date;
+    user: User;
+}
+
+interface PermitTableProps {
+    permits: Permit[];
+    currentUser: {
+        id: string;
+        role: string;
+        employeeId: string;
+    };
+}
+
+export default function PermitTable({ permits, currentUser }: PermitTableProps) {
     const [loading, setLoading] = useState<string | null>(null);
     const [currentPage, setCurrentPage] = useState(1);
     const rowsPerPage = 10;
@@ -279,9 +312,9 @@ export default function PermitTable({ permits, currentUser }: { permits: any[], 
                                 <tr key={permit.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-b border-slate-50 dark:border-slate-800 transition-colors">
                                     <td className="px-5 py-3">
                                         <div className="flex items-center space-x-3">
-                                            <div className="h-9 w-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-xs md:text-base overflow-hidden">
+                                            <div className="h-9 w-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-xs md:text-base overflow-hidden relative">
                                                 {permit.user.image ? (
-                                                    <img src={permit.user.image} alt={permit.user.name} className="h-full w-full object-cover" />
+                                                    <NextImage src={permit.user.image} alt={permit.user.name} fill className="object-cover" unoptimized />
                                                 ) : (
                                                     permit.user.name.charAt(0)
                                                 )}

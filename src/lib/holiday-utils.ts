@@ -35,7 +35,7 @@ export const INDONESIAN_HOLIDAYS_2026: Holiday[] = [
     { date: '2026-12-25', name: 'Hari Raya Natal', isCutiBersama: false },
 ];
 
-export function getHoliday(date: Date, customHolidays?: any[]): Holiday | undefined {
+export function getHoliday(date: Date, customHolidays?: Holiday[]): Holiday | undefined {
     const zonedDate = toZonedTime(date, TIMEZONE);
     const day = String(zonedDate.getDate()).padStart(2, '0');
     const month = String(zonedDate.getMonth() + 1).padStart(2, '0');

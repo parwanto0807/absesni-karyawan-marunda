@@ -14,6 +14,7 @@ import {
     MapPinCheck,
     CircleDashed
 } from 'lucide-react';
+import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
@@ -23,7 +24,26 @@ import { calculateDistance } from '@/lib/location-utils';
 import { SHIFT_DETAILS, getShiftTimings } from '@/lib/schedule-utils';
 import { toast } from 'sonner';
 
-export default function AttendanceClient({ user }: { user: any }) {
+interface Attendance {
+    id: string;
+    userId: string;
+    clockIn: Date;
+    clockOut: Date | null;
+    status: string;
+    latitude?: number | null;
+    longitude?: number | null;
+    address?: string | null;
+    image?: string | null;
+    shiftType?: string | null;
+    scheduledClockIn?: Date | null;
+    scheduledClockOut?: Date | null;
+    isLate?: boolean;
+    lateMinutes?: number;
+    isEarlyLeave?: boolean;
+    earlyLeaveMinutes?: number;
+}
+
+export default function AttendanceClient({ user }: { user: { userId: string; role: string; name?: string } }) {
     const router = useRouter();
     const [time, setTime] = useState<Date | null>(null);
     const [loading, setLoading] = useState(false);
@@ -38,7 +58,7 @@ export default function AttendanceClient({ user }: { user: any }) {
         radius: number;
         name: string;
     } | null>(null);
-    const [currentAttendance, setCurrentAttendance] = useState<any>(null);
+    const [currentAttendance, setCurrentAttendance] = useState<Attendance | null>(null);
     const [checkingStatus, setCheckingStatus] = useState(true);
     const [settingsLoaded, setSettingsLoaded] = useState(false);
     const [todayShift, setTodayShift] = useState<string | null>(null);
@@ -123,7 +143,8 @@ export default function AttendanceClient({ user }: { user: any }) {
                 videoRef.current.srcObject = stream;
                 setIsCameraActive(true);
             }
-        } catch (err: any) {
+        } catch (_err: unknown) {
+            const err = _err as { name?: string };
             // Silently handle AbortError as it usually means a concurrent request was made
             if (err.name === 'AbortError') {
                 console.warn("Camera initialization aborted - common in development React StrictMode");
@@ -249,7 +270,7 @@ export default function AttendanceClient({ user }: { user: any }) {
                     toast.success('Hati-hati di Jalan!', { description: result.message });
                     setStatus('success');
                     setMessage('Absen Keluar Berhasil. Sampai jumpa besok!');
-                    setCurrentAttendance({ ...currentAttendance, clockOut: new Date() });
+                    setCurrentAttendance(result.data as Attendance);
                     stopCamera();
                     // Redirect after 2 seconds
                     setTimeout(() => {
@@ -276,7 +297,7 @@ export default function AttendanceClient({ user }: { user: any }) {
                     toast.success('Selamat Bekerja!', { description: result.message });
                     setStatus('success');
                     setMessage(result.message);
-                    setCurrentAttendance(result.data); // Update state to reflect clock-in
+                    setCurrentAttendance(result.data as Attendance); // Update state to reflect clock-in
                     stopCamera();
                     // Redirect after 2 seconds
                     setTimeout(() => {
@@ -288,8 +309,8 @@ export default function AttendanceClient({ user }: { user: any }) {
                     setMessage(result.message);
                 }
             }
-        } catch (err) {
-            console.error(err);
+        } catch (_err) {
+            console.error(_err);
             toast.error("Terjadi Kesalahan", { description: "Silakan coba lagi." });
         } finally {
             setLoading(false);
@@ -438,13 +459,13 @@ export default function AttendanceClient({ user }: { user: any }) {
                                 <div className="space-y-0.5">
                                     <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Shift</span>
                                     <p className="text-sm md:text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight leading-none">
-                                        {(SHIFT_DETAILS as any)[todayShift]?.label || todayShift}
+                                        {(SHIFT_DETAILS as Record<string, { label: string; time: string }>)[todayShift]?.label || todayShift}
                                     </p>
                                 </div>
                                 <div className="text-right space-y-0.5">
                                     <span className="text-[8px] md:text-[9px] font-black text-slate-400 uppercase tracking-widest">Jam Kerja</span>
                                     <p className="text-sm md:text-lg font-black text-indigo-600 dark:text-indigo-400 tabular-nums tracking-tight leading-none">
-                                        {(SHIFT_DETAILS as any)[todayShift]?.time || '-'}
+                                        {(SHIFT_DETAILS as Record<string, { label: string; time: string }>)[todayShift]?.time || '-'}
                                     </p>
                                 </div>
                             </div>
@@ -453,7 +474,7 @@ export default function AttendanceClient({ user }: { user: any }) {
                             {(() => {
                                 const now = time || new Date();
                                 const hour = toZonedTime(now, TIMEZONE).getHours();
-                                let targetDate = new Date(now);
+                                const targetDate = new Date(now);
 
                                 // Logika penyesuaian tanggal untuk shift yang melintasi tengah malam
                                 // Jika jam 00-08 pagi dan shift adalah M atau PM, berarti itu shift dari 'kemarin'
@@ -517,7 +538,7 @@ export default function AttendanceClient({ user }: { user: any }) {
                             {(() => {
                                 const now = time || new Date();
                                 const hour = toZonedTime(now, TIMEZONE).getHours();
-                                let targetDate = new Date(now);
+                                const targetDate = new Date(now);
                                 if (hour < 8 && (todayShift === 'M' || todayShift === 'PM')) {
                                     targetDate.setDate(targetDate.getDate() - 1);
                                 }
@@ -551,7 +572,7 @@ export default function AttendanceClient({ user }: { user: any }) {
                         {!isFinished && (
                             <div className="w-full aspect-[3/4] max-w-[220px] md:max-w-[280px] rounded-[1.5rem] md:rounded-[2rem] bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 relative group overflow-hidden shadow-inner">
                                 {capturedImage ? (
-                                    <img src={capturedImage} className="w-full h-full object-cover rounded-[1.5rem] md:rounded-[2rem]" alt="Captured" />
+                                    <NextImage src={capturedImage} fill unoptimized className="object-cover rounded-[1.5rem] md:rounded-[2rem]" alt="Captured" />
                                 ) : (
                                     <video
                                         ref={videoRef}

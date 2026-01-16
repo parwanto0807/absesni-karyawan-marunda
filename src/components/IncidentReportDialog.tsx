@@ -19,6 +19,8 @@ import {
 import { toast } from 'sonner';
 import { createIncidentReport } from '@/actions/incident';
 import { cn } from '@/lib/utils';
+import type { SpeechRecognitionEvent, SpeechRecognition } from '@/types/speech-recognition';
+
 
 interface IncidentReportDialogProps {
     userId: string;
@@ -56,13 +58,13 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
             return;
         }
 
-        const SpeechRecognition = (window as any).SpeechRecognition || (window as any).webkitSpeechRecognition;
-        if (!SpeechRecognition) {
+        const SpeechRecognitionClass = window.SpeechRecognition || window.webkitSpeechRecognition;
+        if (!SpeechRecognitionClass) {
             toast.error('Browser Anda tidak mendukung fitur Suara-ke-Teks.');
             return;
         }
 
-        const recognition = new SpeechRecognition();
+        const recognition = new SpeechRecognitionClass();
         recognition.lang = 'id-ID'; // Set to Indonesian
         recognition.continuous = false;
         recognition.interimResults = false;
@@ -72,13 +74,13 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
             toast.info('Silakan bicara sekarang...');
         };
 
-        recognition.onresult = (event: any) => {
+        recognition.onresult = (event: SpeechRecognitionEvent) => {
             const transcript = event.results[0][0].transcript;
             setDescription(prev => prev ? `${prev} ${transcript}` : transcript);
             setIsListening(false);
         };
 
-        recognition.onerror = (event: any) => {
+        recognition.onerror = (event: { error: string }) => {
             console.error('Speech Recognition Error:', event.error);
             setIsListening(false);
             toast.error('Gagal mengenali suara. Coba lagi.');
@@ -140,8 +142,8 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
         const init = async () => {
             const pusher = await getPusherClient();
             if (pusher && isMounted) {
-                setRealtimeStatus(pusher.connection.state as any);
-                pusher.connection.bind('state_change', (states: any) => {
+                setRealtimeStatus(pusher.connection.state as 'connecting' | 'connected' | 'disconnected');
+                pusher.connection.bind('state_change', (states: { current: 'connecting' | 'connected' | 'disconnected' }) => {
                     if (isMounted) setRealtimeStatus(states.current);
                 });
             } else if (isMounted) {

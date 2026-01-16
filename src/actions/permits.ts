@@ -3,9 +3,9 @@
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { createNotification } from './notifications';
-import { TIMEZONE } from '@/lib/date-utils';
+import { TIMEZONE, getStartOfDayJakarta } from '@/lib/date-utils';
 import { getSettings } from './settings';
-import { sendWhatsAppMessage } from '@/lib/whatsapp';
+import { sendWhatsAppMessage, WhatsAppProvider } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
@@ -13,7 +13,7 @@ import { toZonedTime } from 'date-fns-tz';
 export async function createPermit(formData: FormData) {
     try {
         const userId = formData.get('userId') as string;
-        console.log('Creating permit for userId:', userId);
+
         const type = formData.get('type') as string;
         const startDate = new Date(formData.get('startDate') as string);
         const endDate = new Date(formData.get('endDate') as string);
@@ -100,7 +100,7 @@ export async function createPermit(formData: FormData) {
 
             // Fire and forget
             sendWhatsAppMessage(message, {
-                provider: (settings.WA_PROVIDER as any) || 'fonnte',
+                provider: (settings.WA_PROVIDER as WhatsAppProvider) || 'fonnte',
                 apiKey: settings.WA_API_KEY,
                 target: settings.WA_GROUP_ID,
                 numberKey: settings.WA_NUMBER_KEY
@@ -121,7 +121,18 @@ export async function approvePermit(permitId: string, role: string, status: 'APP
         }
 
         const now = new Date();
-        const updateData: any = {};
+        const updateData: {
+            adminStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            adminId?: string | null;
+            adminAt?: Date | null;
+            rt03Status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rt03Id?: string | null;
+            rt03At?: Date | null;
+            rt04Status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rt04Id?: string | null;
+            rt04At?: Date | null;
+            finalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+        } = {};
         if (role === 'ADMIN' || role === 'PIC') {
             updateData.adminStatus = status;
             updateData.adminId = approverId;
@@ -224,7 +235,18 @@ export async function resetPermit(permitId: string, role: string, approverId: st
             return { success: false, message: 'Hanya PIC, RT, atau ADMIN yang dapat mereset status.' };
         }
 
-        const updateData: any = {
+        const updateData: {
+            finalStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            adminStatus?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            adminId?: string | null;
+            adminAt?: Date | null;
+            rt03Status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rt03Id?: string | null;
+            rt03At?: Date | null;
+            rt04Status?: 'PENDING' | 'APPROVED' | 'REJECTED';
+            rt04Id?: string | null;
+            rt04At?: Date | null;
+        } = {
             finalStatus: 'PENDING' // Always back to pending if anyone resets
         };
 

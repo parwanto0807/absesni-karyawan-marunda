@@ -4,6 +4,27 @@ import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor 
 import { TrendingUp, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getJakartaTime } from '@/lib/date-utils';
+import Image from 'next/image';
+
+interface AttendanceRecord {
+    lateMinutes: number | null;
+    earlyLeaveMinutes: number | null;
+    status: string;
+}
+
+interface EmployeeRecord {
+    id: string;
+    name: string;
+    role: string;
+    image: string | null;
+    employeeId: string;
+    attendances: AttendanceRecord[];
+}
+
+interface LeaderboardItem extends EmployeeRecord {
+    averageScore: number;
+    totalAttendance: number;
+}
 
 export default async function PerformanceDashboard() {
     const now = getJakartaTime();
@@ -22,16 +43,16 @@ export default async function PerformanceDashboard() {
         }
     });
 
-    const leaderboard = employees.map((emp: any) => {
+    const leaderboard: LeaderboardItem[] = employees.map((emp) => {
         if (!emp.attendances || emp.attendances.length === 0) {
             return { ...emp, averageScore: 0, totalAttendance: 0 };
         }
-        const totalScore = emp.attendances.reduce((sum: number, att: any) => sum + calculateDailyPerformance(att), 0);
+        const totalScore = emp.attendances.reduce((sum: number, att) => sum + calculateDailyPerformance(att), 0);
         const averageScore = emp.attendances.length > 0
             ? (totalScore / emp.attendances.length).toFixed(2)
             : "0.00";
         return { ...emp, averageScore: parseFloat(averageScore), totalAttendance: emp.attendances.length };
-    }).sort((a: any, b: any) => (b.averageScore - a.averageScore) || (b.totalAttendance - a.totalAttendance));
+    }).sort((a, b) => (b.averageScore - a.averageScore) || (b.totalAttendance - a.totalAttendance));
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">
@@ -61,7 +82,7 @@ export default async function PerformanceDashboard() {
                         {leaderboard.length === 0 ? (
                             <tr><td colSpan={4} className="px-6 py-8 text-center text-xs text-slate-400 uppercase tracking-widest italic">Belum ada data bulan ini</td></tr>
                         ) : (
-                            leaderboard.map((emp: any, index: number) => (
+                            leaderboard.map((emp, index) => (
                                 <tr key={emp.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 transition-colors">
                                     <td className="px-3 py-2 text-center">
                                         {index < 3 ? (
@@ -70,8 +91,16 @@ export default async function PerformanceDashboard() {
                                     </td>
                                     <td className="px-3 py-2">
                                         <div className="flex items-center space-x-2">
-                                            <div className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[9px] uppercase overflow-hidden shrink-0">
-                                                {emp.image ? <img src={emp.image} className="w-full h-full object-cover" /> : emp.name.charAt(0)}
+                                            <div className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[9px] uppercase overflow-hidden shrink-0 relative">
+                                                {emp.image ? (
+                                                    <Image
+                                                        src={emp.image}
+                                                        alt={emp.name}
+                                                        fill
+                                                        unoptimized
+                                                        className="object-cover"
+                                                    />
+                                                ) : emp.name.charAt(0)}
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[80px] md:max-w-none">{emp.name}</div>

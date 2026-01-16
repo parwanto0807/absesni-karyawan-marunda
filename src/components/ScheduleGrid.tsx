@@ -7,7 +7,7 @@ import { createManualSchedule, deleteManualSchedule } from '@/actions/employees'
 import { Loader2, RotateCcw } from 'lucide-react';
 import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
-import { getHoliday } from '@/lib/holiday-utils';
+import { getHoliday, type Holiday } from '@/lib/holiday-utils';
 import {
     Tooltip,
     TooltipContent,
@@ -15,14 +15,27 @@ import {
     TooltipTrigger,
 } from "@/components/ui/tooltip"
 
+interface ScheduleUser {
+    id: string;
+    name: string;
+    role: string;
+    rotationOffset: number;
+}
+
+interface ManualSchedule {
+    userId: string;
+    date: Date;
+    shiftCode: string;
+}
+
 interface ScheduleGridProps {
-    users: any[];
+    users: ScheduleUser[];
     days: number[];
     currentMonth: number;
     currentYear: number;
-    manualSchedules: any[];
+    manualSchedules: ManualSchedule[];
     canEdit: boolean;
-    holidays?: any[];
+    holidays?: Holiday[];
 }
 
 export default function ScheduleGrid({ users, days, currentMonth, currentYear, manualSchedules, canEdit, holidays }: ScheduleGridProps) {
@@ -36,7 +49,7 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
         return new Date(Date.UTC(y, m, d, 6, 0, 0));
     };
 
-    const getBaseShift = (user: any, date: Date) => {
+    const getBaseShift = (user: ScheduleUser, date: Date) => {
         if (user.role === 'LINGKUNGAN' || user.role === 'KEBERSIHAN') {
             return getStaticSchedule(user.role, date);
         }
@@ -60,7 +73,7 @@ export default function ScheduleGrid({ users, days, currentMonth, currentYear, m
     };
 
     // Shared Popover Component
-    const ShiftPopover = ({ user, day, shift, manual }: { user: any, day: number, shift: string, manual: any }) => (
+    const ShiftPopover = ({ user, day, shift, manual }: { user: ScheduleUser, day: number, shift: string, manual: ManualSchedule | undefined }) => (
         <div
             className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 backdrop-blur-sm p-4 animate-in fade-in duration-200"
             onClick={(e) => {
