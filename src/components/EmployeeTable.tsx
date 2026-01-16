@@ -68,7 +68,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                         <div
                                             onClick={() => emp.image && setPreviewImage({ url: emp.image, name: emp.name })}
                                             className={cn(
-                                                "h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 transition-all overflow-hidden",
+                                                "h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 transition-all overflow-hidden relative",
                                                 emp.image && "cursor-zoom-in hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2 dark:hover:ring-offset-slate-900"
                                             )}
                                         >
@@ -151,7 +151,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                             <div
                                 onClick={() => emp.image && setPreviewImage({ url: emp.image, name: emp.name })}
                                 className={cn(
-                                    "h-12 w-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 transition-all overflow-hidden shrink-0",
+                                    "h-12 w-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 transition-all overflow-hidden shrink-0 relative",
                                     emp.image && "active:scale-95"
                                 )}
                             >
