@@ -89,7 +89,10 @@ export default async function DashboardPage() {
         include: {
             user: { select: { name: true, role: true, employeeId: true, image: true } }
         },
-        orderBy: { clockIn: 'desc' },
+        orderBy: [
+            { userId: 'asc' },
+            { clockIn: 'desc' }
+        ],
         distinct: ['userId']
     });
 
@@ -481,24 +484,73 @@ export default async function DashboardPage() {
                                                 </span>
                                             </div>
 
-                                            <div className="grid grid-cols-2 gap-3">
-                                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 flex flex-col items-center justify-center">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase mb-1">Shift / Waktu</span>
-                                                    <div className="flex items-center space-x-1 mb-1">
-                                                        <div className="px-1.5 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded uppercase">{attendance.shiftType || '-'}</div>
-                                                        <span className="text-[10px] font-black text-indigo-600 uppercase italic">
-                                                            {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit' })} WIB
+                                            {/* Date & Time Block (Inspired by History Mode) */}
+                                            <div className="bg-slate-50 dark:bg-slate-800/50 rounded-2xl p-4 space-y-3">
+                                                <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-2">
+                                                    <div className="flex items-center space-x-1.5">
+                                                        <Calendar size={12} className="text-slate-400" />
+                                                        <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                                            {new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric', timeZone: TIMEZONE })}
                                                         </span>
                                                     </div>
-                                                    <span className="text-[8px] font-bold text-slate-500 uppercase">{new Date(attendance.clockIn).toLocaleDateString('id-ID', { day: 'numeric', month: 'short', year: 'numeric' })}</span>
-                                                </div>
-                                                <div className="bg-slate-50 dark:bg-slate-800/50 rounded-xl p-3 flex flex-col items-center justify-center">
-                                                    <span className="text-[8px] font-black text-slate-400 uppercase mb-1">Performance</span>
-                                                    <span className={cn("text-xs font-black mb-1.5", perfScore >= 90 ? "text-emerald-600" : "text-amber-600")}>{perfScore}%</span>
-                                                    <div className="w-full h-1 bg-slate-200 rounded-full overflow-hidden">
-                                                        <div className={cn("h-full", getPerformanceBarColor(perfScore))} style={{ width: `${perfScore}%` }} />
+                                                    <div className="flex items-center space-x-1.5 px-2 py-0.5 bg-indigo-600 text-white text-[8px] font-black rounded uppercase">
+                                                        {attendance.shiftType || 'OFF'}
                                                     </div>
                                                 </div>
+
+                                                <div className="grid grid-cols-2 gap-4">
+                                                    {/* Time In */}
+                                                    <div className="space-y-1">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Waktu In</span>
+                                                            <span className="text-[11px] font-black text-indigo-600 uppercase">
+                                                                {new Date(attendance.clockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB
+                                                            </span>
+                                                        </div>
+                                                        {attendance.isLate && (
+                                                            <div className="inline-flex px-1.5 py-0.5 rounded bg-amber-50 text-amber-700 border border-amber-200 dark:bg-amber-900/20 dark:text-amber-400 dark:border-amber-900 text-[8px] font-black uppercase italic">
+                                                                TELAT {formatDuration(attendance.lateMinutes)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+
+                                                    {/* Time Out */}
+                                                    <div className="space-y-1 border-l border-slate-100 dark:border-slate-800 pl-4">
+                                                        <div className="flex flex-col">
+                                                            <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest">Waktu Out</span>
+                                                            {attendance.clockOut ? (
+                                                                <span className="text-[11px] font-black text-slate-600 dark:text-slate-300 uppercase">
+                                                                    {new Date(attendance.clockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE })} WIB
+                                                                </span>
+                                                            ) : (
+                                                                <span className="text-[9px] font-black text-slate-300 uppercase italic">BELUM ABSEN</span>
+                                                            )}
+                                                        </div>
+                                                        {attendance.isEarlyLeave && (
+                                                            <div className="inline-flex px-1.5 py-0.5 rounded bg-rose-50 text-rose-700 border border-rose-200 dark:bg-rose-900/20 dark:text-rose-400 dark:border-rose-900 text-[8px] font-black uppercase italic">
+                                                                CEPAT {formatDuration(attendance.earlyLeaveMinutes)}
+                                                            </div>
+                                                        )}
+                                                    </div>
+                                                </div>
+
+                                                {/* Scheduled Times */}
+                                                {(attendance.scheduledClockIn || attendance.scheduledClockOut) && (
+                                                    <div className="pt-2 border-t border-slate-100 dark:border-slate-800 flex items-center justify-between text-[8px] font-bold text-slate-400 uppercase tracking-widest">
+                                                        <div className="flex items-center space-x-1">
+                                                            <span>Jadwal:</span>
+                                                            <span className="text-slate-600 dark:text-slate-300">
+                                                                {attendance.scheduledClockIn ? new Date(attendance.scheduledClockIn).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                                                -
+                                                                {attendance.scheduledClockOut ? new Date(attendance.scheduledClockOut).toLocaleTimeString('id-ID', { hour: '2-digit', minute: '2-digit', timeZone: TIMEZONE }) : '--:--'}
+                                                            </span>
+                                                        </div>
+                                                        <div className="flex items-center space-x-2">
+                                                            <span className="text-slate-400 uppercase">Perf:</span>
+                                                            <span className={cn("text-[9px] font-black", perfScore >= 90 ? "text-emerald-600" : "text-amber-600")}>{perfScore}%</span>
+                                                        </div>
+                                                    </div>
+                                                )}
                                             </div>
 
                                             <div className="flex items-center justify-between pt-1">
