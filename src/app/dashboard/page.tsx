@@ -3,13 +3,11 @@ import {
     Users,
     UserCheck,
     Clock,
-    MapPin,
     ShieldCheck,
     Calendar,
     FileText,
     UserPlus,
     Activity,
-    CheckCircle2,
     ChevronRight,
     TrendingUp
 } from "lucide-react";
@@ -29,7 +27,6 @@ import DigitalClock from '@/components/DigitalClock';
 import IncidentReportDialog from '@/components/IncidentReportDialog';
 import ReviewIncidents from '@/components/ReviewIncidents';
 import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
-import Image from 'next/image';
 import { IncidentReport } from '@/types/incident';
 import UserAvatar from '@/components/UserAvatar';
 
@@ -42,9 +39,9 @@ export default async function DashboardPage() {
     const isPowerful = session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT';
     const isFieldRole = ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'].includes(session.role);
 
-    // Date for 7 days ago (Jakarta Time)
-    const sevenDaysAgo = getStartOfDayJakarta();
-    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    // Date for 3 days ago (Jakarta Time)
+    const threeDaysAgo = getStartOfDayJakarta();
+    threeDaysAgo.setDate(threeDaysAgo.getDate() - 3);
 
 
 
@@ -89,7 +86,7 @@ export default async function DashboardPage() {
     const teamAttendanceRaw = await prisma.attendance.findMany({
         where: {
             ...(isFieldRole ? { userId: session.userId } : {}),
-            clockIn: { gte: sevenDaysAgo }
+            clockIn: { gte: threeDaysAgo }
         },
         include: {
             user: { select: { id: true, name: true, employeeId: true, role: true } }
@@ -174,12 +171,13 @@ export default async function DashboardPage() {
     const settingsMap: Record<string, string> = {};
     settings.forEach(s => settingsMap[s.key] = s.value);
 
-    const getDutyForRole = (role: string) => {
+
+    /* const getDutyForRole = (role: string) => {
         if (role === 'SECURITY') return settingsMap.DUTY_SECURITY;
         if (role === 'KEBERSIHAN') return settingsMap.DUTY_KEBERSIHAN;
         if (role === 'LINGKUNGAN') return settingsMap.DUTY_LINGKUNGAN;
         return null;
-    };
+    }; */
 
 
 
@@ -461,7 +459,7 @@ export default async function DashboardPage() {
                         <div className="px-6 md:px-8 py-6 border-b border-slate-100 dark:border-slate-800 flex items-center justify-between">
                             <div className="flex items-center space-x-3">
                                 <div className="w-1 h-6 bg-indigo-600 rounded-full" />
-                                <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Riwayat Absensi (7 Hari)</h2>
+                                <h2 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest">Riwayat Absensi (3 Hari)</h2>
                             </div>
                             <Link href="/history" className="text-[10px] font-black text-indigo-600 uppercase tracking-widest hover:underline flex items-center space-x-1">
                                 <span>Semua</span>

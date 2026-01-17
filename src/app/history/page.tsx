@@ -39,13 +39,16 @@ interface VirtualAttendance {
     };
 }
 
-export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ userId?: string, startDate?: string, endDate?: string }> }) {
+export default async function HistoryPage({ searchParams }: { searchParams: Promise<{ userId?: string, startDate?: string, endDate?: string, page?: string, limit?: string }> }) {
     const session = await getSession();
     if (!session) {
         redirect('/login');
     }
 
     const params = await searchParams;
+    const page = parseInt(params.page || '1');
+    const limit = parseInt(params.limit || '15');
+    const skip = (page - 1) * limit;
 
     // Fetch users for filter (Admin/PIC only)
     let filterUsers;
@@ -72,11 +75,17 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
         return isNaN(date.getTime()) ? undefined : date;
     };
 
-    const startDate = parseDate(params.startDate) || getStartOfDayJakarta(new Date('2026-01-12'));
+    // Performance optimization: default to last 30 days if no range provided
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+
+    const startDate = parseDate(params.startDate) || getStartOfDayJakarta(thirtyDaysAgo);
     const endDate = parseDate(params.endDate) || getEndOfDayJakarta(new Date());
 
-    // 1. Fetch Actual Attendances
-    const actualAttendances = await getAttendances(targetUserId, startDate, endDate);
+    // 1. Fetch Actual Attendances 
+    // We fetch a larger batch because we need to merge with virtual records before slicing
+    // But we limit it to 1000 if no specific dates are given to avoid crashing
+    const actualAttendances = await getAttendances(targetUserId, startDate, endDate, 0, 1000);
 
     // 2. Fetch Users to check for absence
     const usersForAbsence = await prisma.user.findMany({
@@ -183,9 +192,13 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     }
 
     // 4. Merge and Sort
-    const attendances = [...actualAttendances, ...virtualRecords].sort((a, b) =>
+    const allAttendances = [...actualAttendances, ...virtualRecords].sort((a, b) =>
         new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime()
     );
+
+    // 5. Paginate on Server
+    const totalItems = allAttendances.length;
+    const paginatedAttendances = allAttendances.slice(skip, skip + limit);
 
     // Get filter info for export
     const selectedUser = filterUsers?.find(u => u.id === targetUserId);
@@ -214,12 +227,17 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                     </p>
                 </div>
 
-                <ExportButtons attendances={attendances} filterInfo={filterInfo} />
+                <ExportButtons attendances={allAttendances} filterInfo={filterInfo} />
             </div>
 
             <HistoryFilter users={filterUsers} />
 
-            <AttendanceHistoryTable initialAttendances={attendances as React.ComponentProps<typeof AttendanceHistoryTable>['initialAttendances']} />
+            <AttendanceHistoryTable
+                initialAttendances={paginatedAttendances as VirtualAttendance[]}
+                totalCount={totalItems}
+                currentPage={page}
+                pageSize={limit}
+            />
         </div>
     );
 }

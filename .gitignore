@@ -82,3 +82,9 @@ Thumbs.db
 # Keep placeholder images
 !/public/default-avatar.png
 !/public/images/.gitkeep
+
+# PWA
+/public/sw.js
+/public/sw.js.map
+/public/workbox-*.js
+/public/workbox-*.js.map

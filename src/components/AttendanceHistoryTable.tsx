@@ -1,7 +1,8 @@
 'use client';
 
-import React, { useState } from 'react';
-import { Calendar, MapPin, CheckCircle2, XCircle, Clock } from 'lucide-react';
+import React from 'react';
+import { Calendar, MapPin, XCircle, Clock } from 'lucide-react';
+import { useRouter, useSearchParams } from 'next/navigation';
 import { cn } from '@/lib/utils';
 import { TIMEZONE } from '@/lib/date-utils';
 import UserAvatar from '@/components/UserAvatar';
@@ -37,17 +38,27 @@ interface VirtualAttendance {
 
 interface AttendanceHistoryTableProps {
     initialAttendances: VirtualAttendance[];
+    totalCount: number;
+    currentPage: number;
+    pageSize: number;
 }
 
-export default function AttendanceHistoryTable({ initialAttendances }: AttendanceHistoryTableProps) {
-    const [currentPage, setCurrentPage] = useState(1);
-    const ITEMS_PER_PAGE = 15;
+export default function AttendanceHistoryTable({
+    initialAttendances,
+    totalCount,
+    currentPage,
+    pageSize
+}: AttendanceHistoryTableProps) {
+    const router = useRouter();
+    const searchParams = useSearchParams();
 
-    const totalPages = Math.ceil(initialAttendances.length / ITEMS_PER_PAGE);
-    const paginatedAttendances = initialAttendances.slice(
-        (currentPage - 1) * ITEMS_PER_PAGE,
-        currentPage * ITEMS_PER_PAGE
-    );
+    const totalPages = Math.ceil(totalCount / pageSize);
+
+    const handlePageChange = (page: number) => {
+        const params = new URLSearchParams(searchParams.toString());
+        params.set('page', page.toString());
+        router.push(`/history?${params.toString()}`);
+    };
 
     const getStatusColor = (status: string) => {
         switch (status) {
@@ -74,21 +85,21 @@ export default function AttendanceHistoryTable({ initialAttendances }: Attendanc
             <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={initialAttendances.length}
-                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={handlePageChange}
+                totalItems={totalCount}
+                itemsPerPage={pageSize}
                 className="mb-0 pt-0"
             />
 
             {/* Mobile Card View */}
             <div className="md:hidden space-y-3">
-                {paginatedAttendances.length === 0 ? (
+                {initialAttendances.length === 0 ? (
                     <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-lg p-12 text-center text-slate-400">
                         <Clock size={48} className="mx-auto mb-2 opacity-20" />
                         <span className="text-[10px] font-bold uppercase tracking-widest">Belum ada riwayat absensi</span>
                     </div>
                 ) : (
-                    paginatedAttendances.map((attendance) => (
+                    initialAttendances.map((attendance) => (
                         <div key={attendance.id} className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-lg p-4 space-y-3">
                             {/* Header: User Info & Status */}
                             <div className="flex items-start justify-between">
@@ -202,7 +213,7 @@ export default function AttendanceHistoryTable({ initialAttendances }: Attendanc
                             </tr>
                         </thead>
                         <tbody>
-                            {paginatedAttendances.length === 0 ? (
+                            {initialAttendances.length === 0 ? (
                                 <tr>
                                     <td colSpan={7} className="h-64 text-center text-slate-300">
                                         <Clock size={48} className="mx-auto mb-2 opacity-20" />
@@ -210,7 +221,7 @@ export default function AttendanceHistoryTable({ initialAttendances }: Attendanc
                                     </td>
                                 </tr>
                             ) : (
-                                paginatedAttendances.map((attendance) => (
+                                initialAttendances.map((attendance) => (
                                     <tr key={attendance.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-b border-slate-50 dark:border-slate-800 transition-colors">
                                         <td className="px-6 py-4">
                                             <div className="flex items-center space-x-3">
@@ -308,9 +319,9 @@ export default function AttendanceHistoryTable({ initialAttendances }: Attendanc
             <Pagination
                 currentPage={currentPage}
                 totalPages={totalPages}
-                onPageChange={setCurrentPage}
-                totalItems={initialAttendances.length}
-                itemsPerPage={ITEMS_PER_PAGE}
+                onPageChange={handlePageChange}
+                totalItems={totalCount}
+                itemsPerPage={pageSize}
                 className="mt-6"
             />
         </div>

@@ -417,7 +417,7 @@ export async function getTodayUserShift(userId: string) {
     }
 }
 
-export async function getAttendances(userId?: string, startDate?: Date, endDate?: Date) {
+export async function getAttendances(userId?: string, startDate?: Date, endDate?: Date, skip?: number, take?: number) {
     try {
         const where: { userId?: string, clockIn?: { gte?: Date, lte?: Date } } = {};
         if (userId) where.userId = userId;
@@ -450,7 +450,8 @@ export async function getAttendances(userId?: string, startDate?: Date, endDate?
             orderBy: {
                 clockIn: 'desc'
             },
-            take: (startDate || endDate) ? 1000 : 100 // Higher limit when filtering by date
+            skip,
+            take: take ?? ((startDate || endDate) ? 1000 : 100)
         });
     } catch (error) {
         console.error('Get attendances error:', error);
