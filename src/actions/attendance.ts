@@ -12,7 +12,7 @@ import { sendWhatsAppMessage, WhatsAppProvider } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
-export async function clockIn(userId: string, location: { lat: number, lng: number, address: string }, image: string) {
+export async function clockIn(userId: string, location: { lat: number, lng: number, address: string }, imagePath: string) {
     try {
         const now = new Date();
         // Use Jakarta timezone to determine the start of "today"
@@ -97,7 +97,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
             }
         }
 
-        // ✅ Simpan base64 langsung ke database (Vercel compatible)
+        // ✅ Simpan file path ke database (foto disimpan di public/image/attendance)
         const attendance = await prisma.attendance.create({
             data: {
                 userId,
@@ -105,7 +105,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                 latitude: location.lat,
                 longitude: location.lng,
                 address: location.address,
-                image: image, // Simpan base64 langsung
+                image: imagePath, // Simpan file path (e.g., /image/attendance/userId_timestamp.webp)
                 status: isLate ? 'LATE' : 'PRESENT',
                 shiftType: shiftCode,
                 scheduledClockIn: scheduledStart,
@@ -173,7 +173,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
     }
 }
 
-export async function clockOut(attendanceId: string) {
+export async function clockOut(attendanceId: string, imageOutPath?: string) {
     try {
         const now = new Date();
         const existingAttendance = await prisma.attendance.findUnique({ where: { id: attendanceId } });
@@ -214,6 +214,7 @@ export async function clockOut(attendanceId: string) {
             where: { id: attendanceId },
             data: {
                 clockOut: now,
+                imageOut: imageOutPath, // Simpan foto clock out
                 isEarlyLeave,
                 earlyLeaveMinutes
             },

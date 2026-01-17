@@ -87,6 +87,7 @@ model Attendance {
   clockOut          DateTime?
   status            AttendanceStatus @default(PRESENT)
   image             String?
+  imageOut          String? // Foto saat clock out
   latitude          Float?
   longitude         Float?
   address           String?

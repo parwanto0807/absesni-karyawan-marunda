@@ -69,3 +69,16 @@ test-dist.js
 # OS
 .DS_Store
 Thumbs.db
+
+# User uploaded images (privacy & security)
+/public/images/attendance/
+/public/images/users/
+/uploads/
+*.jpg
+*.jpeg
+*.png
+*.gif
+*.webp
+# Keep placeholder images
+!/public/default-avatar.png
+!/public/images/.gitkeep

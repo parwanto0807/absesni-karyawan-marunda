@@ -234,6 +234,32 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
         return null;
     };
 
+    const uploadPhoto = async (imageData: string): Promise<string | null> => {
+        try {
+            const response = await fetch('/api/upload-attendance-photo', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                },
+                body: JSON.stringify({
+                    image: imageData,
+                    userId: user.userId
+                })
+            });
+
+            if (!response.ok) {
+                throw new Error('Failed to upload photo');
+            }
+
+            const data = await response.json();
+            return data.path;
+        } catch (error) {
+            console.error('Error uploading photo:', error);
+            toast.error("Gagal Upload Foto", { description: "Silakan coba lagi." });
+            return null;
+        }
+    };
+
     const handleAction = async () => {
         if (user.role === 'ADMIN' || user.role === 'PIC' || user.role === 'RT') {
             toast.error("Emang situ Karyawan Mau Absen Juga ? 😀", {
@@ -264,8 +290,27 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
 
         try {
             if (currentAttendance && !currentAttendance.clockOut) {
-                // Handle Clock Out
-                const result = await clockOut(currentAttendance.id);
+                // Handle Clock Out - Capture and upload photo
+                let imageToSubmit = capturedImage;
+                if (!imageToSubmit) {
+                    imageToSubmit = captureImage();
+                }
+
+                if (!imageToSubmit) {
+                    toast.error("Foto Diperlukan", { description: "Gagal mengambil foto dari kamera." });
+                    setLoading(false);
+                    return;
+                }
+
+                // Upload photo and get file path
+                const photoPath = await uploadPhoto(imageToSubmit);
+                if (!photoPath) {
+                    toast.error("Gagal Upload Foto", { description: "Silakan coba lagi." });
+                    setLoading(false);
+                    return;
+                }
+
+                const result = await clockOut(currentAttendance.id, photoPath);
                 if (result.success) {
                     toast.success('Hati-hati di Jalan!', { description: result.message });
                     setStatus('success');
@@ -292,7 +337,15 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
                     return;
                 }
 
-                const result = await clockIn(user.userId, location, imageToSubmit);
+                // Upload photo and get file path
+                const photoPath = await uploadPhoto(imageToSubmit);
+                if (!photoPath) {
+                    toast.error("Gagal Upload Foto", { description: "Silakan coba lagi." });
+                    setLoading(false);
+                    return;
+                }
+
+                const result = await clockIn(user.userId, location, photoPath);
                 if (result.success) {
                     toast.success('Selamat Bekerja!', { description: result.message });
                     setStatus('success');

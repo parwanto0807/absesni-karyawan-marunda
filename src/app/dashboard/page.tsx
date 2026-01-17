@@ -10,7 +10,8 @@ import {
     UserPlus,
     Activity,
     CheckCircle2,
-    ChevronRight
+    ChevronRight,
+    TrendingUp
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
@@ -53,6 +54,36 @@ export default async function DashboardPage() {
         return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
     };
 
+    // Calculate performance for field personnel - OPTIMIZED
+    let myPerformance: { score: number; totalAttendance: number } | null = null;
+
+    if (isFieldRole) {
+        const now = new Date();
+        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
+        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+        startOfMonth.setHours(0, 0, 0, 0);
+
+        const myAttendances = await prisma.attendance.findMany({
+            where: {
+                userId: session.userId,
+                clockIn: { gte: startOfMonth, lte: endOfMonth },
+                status: { in: ['PRESENT', 'LATE'] }
+            },
+            select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
+        });
+
+        if (myAttendances.length > 0) {
+            const totalScore = myAttendances.reduce((sum, att) => sum + calculateDailyPerformance(att), 0);
+            const averageScore = totalScore / myAttendances.length;
+            myPerformance = {
+                score: Math.round(averageScore),
+                totalAttendance: myAttendances.length
+            };
+        } else {
+            myPerformance = { score: 0, totalAttendance: 0 };
+        }
+    }
+
     // 1. Data untuk Security/Lingkungan: History 7 hari rekan kerja
     const teamAttendanceRaw = await prisma.attendance.findMany({
         where: {
@@ -60,20 +91,17 @@ export default async function DashboardPage() {
             clockIn: { gte: sevenDaysAgo }
         },
         include: {
-            user: { select: { id: true, name: true, employeeId: true, role: true, image: true } }
+            user: { select: { id: true, name: true, employeeId: true, role: true } }
         },
         orderBy: { clockIn: 'desc' },
-        take: 50
+        take: isFieldRole ? 15 : 30
     });
 
     const teamAttendance = teamAttendanceRaw.map(record => ({
         ...record,
-        image: undefined, // Strip base64
-        evidenceImageUrl: record.image ? `/api/images/attendance/${record.id}` : null,
         user: {
             ...record.user,
-            image: undefined, // Strip base64
-            imageUrl: record.user.image ? `/api/images/users/${record.user.id}` : null
+            imageUrl: `/api/images/users/${record.user.id}`
         }
     }));
 
@@ -86,7 +114,7 @@ export default async function DashboardPage() {
             user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
         },
         include: {
-            user: { select: { id: true, name: true, role: true, employeeId: true, image: true } }
+            user: { select: { id: true, name: true, role: true, employeeId: true } }
         },
         orderBy: [
             { userId: 'asc' },
@@ -97,8 +125,7 @@ export default async function DashboardPage() {
 
     const securityEmployees = presentSecurityRaw.map(a => ({
         ...a.user,
-        image: undefined, // Strip base64
-        imageUrl: a.user.image ? `/api/images/users/${a.user.id}` : null
+        imageUrl: `/api/images/users/${a.user.id}`
     }));
 
     const currentAttendance = await prisma.attendance.findFirst({
@@ -140,7 +167,9 @@ export default async function DashboardPage() {
         })
     };
 
-    const settings = await prisma.setting.findMany();
+    const settings = await prisma.setting.findMany({
+        select: { key: true, value: true }
+    });
     const settingsMap: Record<string, string> = {};
     settings.forEach(s => settingsMap[s.key] = s.value);
 
@@ -178,6 +207,155 @@ export default async function DashboardPage() {
                     )}
                 </div>
             </div>
+
+            {/* --- PERFORMANCE CARD FOR FIELD PERSONNEL --- */}
+            {isFieldRole && myPerformance && (
+                <>
+                    {/* Mobile Compact Version - Full Width */}
+                    <div className="md:hidden">
+                        <div className="bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-2xl border-2 border-white/20 shadow-xl p-3 relative overflow-hidden">
+                            <div className="absolute inset-0 opacity-10">
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-white rounded-full blur-2xl" />
+                            </div>
+                            <div className="relative flex items-center justify-between">
+                                {/* Left: Circular Progress + Score */}
+                                <div className="flex items-center space-x-3">
+                                    <div className="relative w-10 h-10 shrink-0">
+                                        <svg className="transform -rotate-90 w-full h-full">
+                                            <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.2)" strokeWidth="3" fill="none" />
+                                            <circle
+                                                cx="50%" cy="50%" r="45%"
+                                                stroke="white" strokeWidth="3" fill="none"
+                                                strokeDasharray={`${2 * Math.PI * 45} ${2 * Math.PI * 45}`}
+                                                strokeDashoffset={`${2 * Math.PI * 45 * (1 - myPerformance.score / 100)}`}
+                                                strokeLinecap="round"
+                                            />
+                                        </svg>
+                                        <div className="absolute inset-0 flex items-center justify-center">
+                                            <span className="text-xs font-black text-white">{myPerformance.score}%</span>
+                                        </div>
+                                    </div>
+                                    <div className="flex flex-col">
+                                        <span className="text-[8px] font-black text-white/70 uppercase tracking-widest">Performance Kehadiran</span>
+                                        <span className="text-sm font-black text-white uppercase tracking-tight leading-tight">
+                                            {myPerformance.score >= 98 ? '🏆 Teladan' :
+                                                myPerformance.score >= 95 ? '⭐ Sangat Disiplin' :
+                                                    myPerformance.score >= 90 ? '✅ Standar' :
+                                                        myPerformance.score >= 85 ? '⚠️ Butuh Perhatian' :
+                                                            '🚨 Peringatan'}
+                                        </span>
+                                        <span className="text-[7px] font-bold text-white/60 italic mt-0.5">
+                                            {myPerformance.score >= 98 ? 'Pertahankan dedikasi sebagai penjaga terbaik!' :
+                                                myPerformance.score >= 95 ? 'Kehadiran Anda bantu stabilitas keamanan!' :
+                                                    myPerformance.score >= 90 ? 'Kurangi keterlambatan agar makin prima!' :
+                                                        myPerformance.score >= 85 ? 'Tingkatkan kedisiplinan demi penghuni!' :
+                                                            'Segera koordinasi dengan komandan regu!'}
+                                        </span>
+                                    </div>
+                                </div>
+                                {/* Right: Days */}
+                                <div className="text-right">
+                                    <span className="text-xl font-black text-white">{myPerformance.totalAttendance}</span>
+                                    <span className="text-[8px] font-bold text-white/70 uppercase block">Hari Hadir</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    {/* Desktop Full Version */}
+                    <div className="hidden md:block bg-gradient-to-br from-indigo-500 via-purple-500 to-pink-500 rounded-[2.5rem] border-2 border-white/20 shadow-2xl overflow-hidden relative">
+                        {/* Background Pattern */}
+                        <div className="absolute inset-0 opacity-10">
+                            <div className="absolute top-0 right-0 w-64 h-64 bg-white rounded-full blur-3xl transform translate-x-1/2 -translate-y-1/2" />
+                            <div className="absolute bottom-0 left-0 w-48 h-48 bg-white rounded-full blur-3xl transform -translate-x-1/2 translate-y-1/2" />
+                        </div>
+
+                        <div className="relative p-8">
+                            <div className="flex items-center justify-between gap-6">
+                                {/* Left: Performance Score */}
+                                <div className="flex items-center space-x-6">
+                                    <div className="relative">
+                                        {/* Circular Progress */}
+                                        <div className="relative w-32 h-32">
+                                            <svg className="transform -rotate-90 w-full h-full">
+                                                <circle cx="50%" cy="50%" r="45%" stroke="rgba(255,255,255,0.2)" strokeWidth="8" fill="none" />
+                                                <circle
+                                                    cx="50%" cy="50%" r="45%"
+                                                    stroke="white" strokeWidth="8" fill="none"
+                                                    strokeDasharray={`${2 * Math.PI * 45} ${2 * Math.PI * 45}`}
+                                                    strokeDashoffset={`${2 * Math.PI * 45 * (1 - myPerformance.score / 100)}`}
+                                                    strokeLinecap="round"
+                                                    className="transition-all duration-1000"
+                                                />
+                                            </svg>
+                                            <div className="absolute inset-0 flex flex-col items-center justify-center">
+                                                <span className="text-4xl font-black text-white">{myPerformance.score}%</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-2">
+                                        <div className="inline-flex items-center space-x-2 px-3 py-1 rounded-full bg-white/20 backdrop-blur-sm border border-white/30">
+                                            <Activity size={14} className="text-white" />
+                                            <span className="text-[10px] font-black text-white uppercase tracking-widest">Performance Bulan Ini</span>
+                                        </div>
+                                        <h2 className="text-3xl font-black text-white uppercase tracking-tight leading-tight">
+                                            {myPerformance.score >= 98 ? '🏆 Teladan' :
+                                                myPerformance.score >= 95 ? '⭐ Sangat Disiplin' :
+                                                    myPerformance.score >= 90 ? '✅ Standar' :
+                                                        myPerformance.score >= 85 ? '⚠️ Butuh Perhatian' :
+                                                            '🚨 Peringatan'}
+                                        </h2>
+                                        <p className="text-base text-white/90 font-bold">
+                                            {myPerformance.totalAttendance} hari hadir bulan ini
+                                        </p>
+                                    </div>
+                                </div>
+
+                                {/* Right: Motivational Message */}
+                                <div className="bg-white/10 backdrop-blur-md rounded-2xl p-6 border border-white/20 max-w-md">
+                                    <div className="flex items-start space-x-3">
+                                        <div className="shrink-0 w-10 h-10 rounded-xl bg-white/20 flex items-center justify-center">
+                                            <TrendingUp size={20} className="text-white" />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <h3 className="text-sm font-black text-white uppercase tracking-wide">
+                                                {myPerformance.score >= 98 ? 'Anda adalah Teladan!' :
+                                                    myPerformance.score >= 95 ? 'Disiplin Luar Biasa!' :
+                                                        myPerformance.score >= 90 ? 'Pertahankan Standar!' :
+                                                            myPerformance.score >= 85 ? 'Perlu Perbaikan!' :
+                                                                'Perhatian Khusus Diperlukan!'}
+                                            </h3>
+                                            <p className="text-sm text-white/80 leading-relaxed font-medium">
+                                                {myPerformance.score >= 98 ? 'Luar biasa! Pertahankan dedikasi Anda sebagai penjaga keamanan terbaik.' :
+                                                    myPerformance.score >= 95 ? 'Kerja bagus! Kehadiran Anda sangat membantu stabilitas keamanan cluster.' :
+                                                        myPerformance.score >= 90 ? 'Kehadiran cukup baik. Yuk, kurangi keterlambatan agar performa makin prima.' :
+                                                            myPerformance.score >= 85 ? 'Mohon tingkatkan kedisiplinan Anda demi kenyamanan penghuni cluster.' :
+                                                                'Segera koordinasi dengan komandan regu terkait kendala kehadiran Anda.'}
+                                            </p>
+                                            <div className="flex items-center space-x-2 pt-2">
+                                                <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
+                                                    <div
+                                                        className="h-full bg-white rounded-full transition-all duration-1000"
+                                                        style={{ width: `${myPerformance.score}%` }}
+                                                    />
+                                                </div>
+                                                <span className="text-xs font-black text-white">
+                                                    {myPerformance.score >= 98 ? 'Target: 100% (Sempurna)' :
+                                                        myPerformance.score >= 95 ? 'Target: 98% (Teladan)' :
+                                                            myPerformance.score >= 90 ? 'Target: 95% (Sangat Disiplin)' :
+                                                                myPerformance.score >= 85 ? 'Target: 90% (Standar)' :
+                                                                    'Target: 85% (Minimal)'}
+                                                </span>
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </>
+            )}
 
             {/* --- MOBILE SHORTCUTS --- */}
             <div className="grid grid-cols-5 gap-4 md:hidden">
@@ -302,7 +480,7 @@ export default async function DashboardPage() {
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Waktu Absen</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Lokasi / GPS</th>
                                         <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400">Performance</th>
-                                        {/* <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Foto</th> */}
+                                        <th className="px-6 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Foto</th>
                                         <th className="px-8 py-5 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
                                     </tr>
                                 </thead>
@@ -391,16 +569,12 @@ export default async function DashboardPage() {
                                                     {/* Lokasi / GPS Component */}
                                                     <td className="px-6 py-6 border-r border-slate-50/50 last:border-r-0">
                                                         {attendance.latitude && attendance.longitude ? (
-                                                            <div className="flex items-center space-x-2 text-[10px] font-bold text-slate-400">
-                                                                <MapPin size={12} className="text-rose-500" />
-                                                                <span className="uppercase tracking-tighter">
-                                                                    Lokasi GPS: {attendance.latitude.toFixed(6)}, {attendance.longitude.toFixed(6)}
-                                                                </span>
-                                                                <CheckCircle2 size={12} className="text-emerald-500" />
-                                                            </div>
+                                                            <span className="text-[10px] font-bold text-slate-500 uppercase tracking-tighter">
+                                                                {attendance.latitude.toFixed(6)}, {attendance.longitude.toFixed(6)}
+                                                            </span>
                                                         ) : (
                                                             <span className="text-[10px] text-slate-300 uppercase italic">
-                                                                Tanpa Koordinat GPS
+                                                                -
                                                             </span>
                                                         )}
                                                     </td>
@@ -421,7 +595,7 @@ export default async function DashboardPage() {
                                                     </td>
 
                                                     {/* Foto Component */}
-                                                    {/* <td className="px-6 py-6 text-center">
+                                                    <td className="px-6 py-6 text-center">
                                                         {attendance.image ? (
                                                             <ImageModal src={attendance.image} alt={`Foto ${attendance.user.name}`} />
                                                         ) : (
@@ -429,7 +603,7 @@ export default async function DashboardPage() {
                                                                 <UserCheck size={16} />
                                                             </div>
                                                         )}
-                                                    </td> */}
+                                                    </td>
 
                                                     {/* Status Component */}
                                                     <td className="px-8 py-6 text-center">
@@ -545,14 +719,14 @@ export default async function DashboardPage() {
                                             </div>
 
                                             <div className="flex items-center justify-between pt-1">
-                                                <a href={`https://www.google.com/maps?q=${attendance.latitude},${attendance.longitude}`} target="_blank"
-                                                    className="flex items-center space-x-1.5 px-3 py-2 bg-slate-50 dark:bg-slate-800 rounded-lg text-[9px] font-black text-slate-600 uppercase tracking-widest hover:bg-slate-100 transition-colors">
-                                                    <MapPin size={12} className="text-rose-500" />
-                                                    <span>Lokasi GPS</span>
-                                                </a>
+                                                <span className="text-[9px] font-bold text-slate-500 uppercase tracking-tight">
+                                                    {attendance.latitude && attendance.longitude
+                                                        ? `${attendance.latitude.toFixed(6)}, ${attendance.longitude.toFixed(6)}`
+                                                        : '-'}
+                                                </span>
                                                 <div className="flex items-center space-x-2">
                                                     <span className="text-[8px] font-black text-slate-400 uppercase">FOTO ABSEN:</span>
-                                                    <ImageModal src={attendance.evidenceImageUrl || ''} alt="Absen" />
+                                                    <ImageModal src={attendance.image || ''} alt="Absen" />
                                                 </div>
                                             </div>
                                         </div>

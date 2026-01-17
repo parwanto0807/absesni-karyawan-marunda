@@ -1,13 +1,20 @@
 'use client';
 
-import React, { useState, useRef } from 'react';
-import { Database, Download, Upload, Loader2, AlertTriangle, CheckCircle2, History } from 'lucide-react';
+import React, { useState, useRef, useEffect } from 'react';
+import { Database, Download, Upload, Loader2, AlertTriangle, CheckCircle2, History, Image } from 'lucide-react';
 import { toast } from 'sonner';
 import { backupDatabase, restoreDatabase } from '@/actions/database';
 
 export default function DatabaseTab() {
     const [loading, setLoading] = useState(false);
     const [lastBackup, setLastBackup] = useState<{ name: string; date: Date } | null>(null);
+    const [migrationLoading, setMigrationLoading] = useState(false);
+    const [migrationStatus, setMigrationStatus] = useState<{
+        needsMigration: number;
+        total: number;
+        base64ClockIn: number;
+        base64ClockOut: number;
+    } | null>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
 
     const handleBackup = async () => {
@@ -78,6 +85,54 @@ export default function DatabaseTab() {
         } finally {
             setLoading(false);
             event.target.value = '';
+        }
+    };
+
+    useEffect(() => {
+        checkMigrationStatus();
+    }, []);
+
+    const checkMigrationStatus = async () => {
+        try {
+            const response = await fetch('/api/migrate-photos');
+            if (response.ok) {
+                const data = await response.json();
+                setMigrationStatus(data);
+            }
+        } catch (error) {
+            console.error('Error checking migration status:', error);
+        }
+    };
+
+    const handleMigratePhotos = async () => {
+        if (!confirm('Apakah Anda yakin ingin mengkonversi semua foto base64 ke file WebP? Proses ini mungkin memakan waktu beberapa menit.')) {
+            return;
+        }
+
+        setMigrationLoading(true);
+        try {
+            const response = await fetch('/api/migrate-photos', {
+                method: 'POST'
+            });
+
+            const result = await response.json();
+
+            if (result.success) {
+                toast.success('Migrasi Berhasil', {
+                    description: result.message
+                });
+                // Refresh status
+                await checkMigrationStatus();
+            } else {
+                throw new Error(result.message);
+            }
+        } catch (error: unknown) {
+            const err = error as Error;
+            toast.error('Migrasi Gagal', {
+                description: err.message || 'Terjadi kesalahan saat migrasi'
+            });
+        } finally {
+            setMigrationLoading(false);
         }
     };
 
@@ -164,6 +219,55 @@ export default function DatabaseTab() {
                                 {loading ? 'Memproses...' : 'Upload & Restore'}
                             </button>
                         </div>
+                    </div>
+
+                    {/* Photo Migration Section */}
+                    <div className="space-y-4 p-5 rounded-2xl bg-gradient-to-br from-violet-50 to-purple-50 dark:from-violet-900/10 dark:to-purple-900/10 border border-violet-200 dark:border-violet-800/50">
+                        <div className="flex items-center gap-2 text-violet-600 dark:text-violet-400">
+                            <Image size={20} />
+                            <h3 className="font-bold text-sm uppercase tracking-wide">Migrasi Foto Absensi</h3>
+                        </div>
+                        <p className="text-xs text-slate-600 dark:text-slate-400 leading-relaxed">
+                            Konversi foto base64 lama ke file WebP (100-200KB) untuk mengurangi ukuran database dan meningkatkan performa.
+                        </p>
+
+                        {migrationStatus && (
+                            <div className="space-y-2">
+                                <div className="grid grid-cols-2 gap-2 text-[10px]">
+                                    <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-violet-100 dark:border-violet-800/30">
+                                        <div className="text-slate-500 dark:text-slate-400 font-medium">Total Records</div>
+                                        <div className="text-lg font-black text-violet-600 dark:text-violet-400">{migrationStatus.total}</div>
+                                    </div>
+                                    <div className="p-2 rounded-lg bg-white dark:bg-slate-900 border border-violet-100 dark:border-violet-800/30">
+                                        <div className="text-slate-500 dark:text-slate-400 font-medium">Perlu Migrasi</div>
+                                        <div className="text-lg font-black text-amber-600 dark:text-amber-400">{migrationStatus.needsMigration}</div>
+                                    </div>
+                                </div>
+
+                                {migrationStatus.needsMigration > 0 ? (
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 border border-amber-200 dark:border-amber-800/50">
+                                        <AlertTriangle size={14} />
+                                        <span className="text-[10px] font-bold uppercase tracking-tight">
+                                            {migrationStatus.base64ClockIn} Clock In + {migrationStatus.base64ClockOut} Clock Out
+                                        </span>
+                                    </div>
+                                ) : (
+                                    <div className="flex items-center gap-2 px-3 py-2 rounded-lg bg-emerald-50 dark:bg-emerald-900/20 text-emerald-600 dark:text-emerald-400 border border-emerald-100 dark:border-emerald-800/50">
+                                        <CheckCircle2 size={14} />
+                                        <span className="text-[10px] font-bold uppercase tracking-tight">Semua foto sudah migrated!</span>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <button
+                            onClick={handleMigratePhotos}
+                            disabled={migrationLoading || (migrationStatus?.needsMigration === 0)}
+                            className="w-full h-12 rounded-xl bg-violet-600 hover:bg-violet-700 disabled:bg-slate-400 text-white font-bold text-xs uppercase tracking-widest flex items-center justify-center gap-2 transition-all active:scale-95 shadow-lg shadow-violet-200 dark:shadow-none"
+                        >
+                            {migrationLoading ? <Loader2 size={18} className="animate-spin" /> : <Image size={18} />}
+                            {migrationLoading ? 'Memproses Migrasi...' : 'Migrate Foto ke WebP'}
+                        </button>
                     </div>
 
                     {/* Quick History / Info */}

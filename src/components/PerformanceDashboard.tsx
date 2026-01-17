@@ -4,7 +4,6 @@ import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor 
 import { TrendingUp, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getJakartaTime } from '@/lib/date-utils';
-import Image from 'next/image';
 
 interface AttendanceRecord {
     lateMinutes: number | null;
@@ -16,7 +15,6 @@ interface EmployeeRecord {
     id: string;
     name: string;
     role: string;
-    image: string | null;
     employeeId: string;
     attendances: AttendanceRecord[];
 }
@@ -35,7 +33,7 @@ export default async function PerformanceDashboard() {
     const employees = await prisma.user.findMany({
         where: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } },
         select: {
-            id: true, name: true, role: true, image: true, employeeId: true,
+            id: true, name: true, role: true, employeeId: true,
             attendances: {
                 where: { clockIn: { gte: startOfMonth, lte: endOfMonth }, status: { in: ['PRESENT', 'LATE'] } },
                 select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
@@ -92,15 +90,21 @@ export default async function PerformanceDashboard() {
                                     <td className="px-3 py-2">
                                         <div className="flex items-center space-x-2">
                                             <div className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[9px] uppercase overflow-hidden shrink-0 relative">
-                                                {emp.image ? (
-                                                    <Image
-                                                        src={emp.image}
-                                                        alt={emp.name}
-                                                        fill
-                                                        unoptimized
-                                                        className="object-cover"
-                                                    />
-                                                ) : emp.name.charAt(0)}
+                                                <img
+                                                    src={`/api/images/users/${emp.id}`}
+                                                    alt={emp.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        const target = e.target as HTMLImageElement;
+                                                        target.style.display = 'none';
+                                                        if (target.nextSibling) {
+                                                            (target.nextSibling as HTMLElement).style.display = 'flex';
+                                                        }
+                                                    }}
+                                                />
+                                                <div className="absolute inset-0 hidden items-center justify-center">
+                                                    {emp.name.charAt(0)}
+                                                </div>
                                             </div>
                                             <div className="min-w-0">
                                                 <div className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[80px] md:max-w-none">{emp.name}</div>
