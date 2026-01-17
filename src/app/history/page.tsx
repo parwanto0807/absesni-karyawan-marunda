@@ -205,8 +205,8 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     const paginatedAttendances = allAttendances
         .slice(skip, skip + limit)
         .map(att => {
-            // If image is base64, convert to API proxy URL to keep JSON small
-            if (att.image?.startsWith('data:image')) {
+            // Always use API proxy for all images to handle permission/path issues in production
+            if (att.image) {
                 return {
                     ...att,
                     image: `/api/images/attendance/${att.id}`

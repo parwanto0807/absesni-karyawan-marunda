@@ -100,7 +100,10 @@ export default async function DashboardPage() {
         user: {
             ...record.user,
             imageUrl: `/api/images/users/${record.user.id}`
-        }
+        },
+        // Proxy attendance image through API
+        image: record.image ? `/api/images/attendance/${record.id}` : null,
+        imageOut: record.imageOut ? `/api/images/attendance/${record.id}?type=out` : null
     }));
 
     const activeWindow = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
