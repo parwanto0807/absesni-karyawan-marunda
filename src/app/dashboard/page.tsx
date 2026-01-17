@@ -31,6 +31,7 @@ import ReviewIncidents from '@/components/ReviewIncidents';
 import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import Image from 'next/image';
 import { IncidentReport } from '@/types/incident';
+import UserAvatar from '@/components/UserAvatar';
 
 export default async function DashboardPage() {
     const session = await getSession();
@@ -424,13 +425,11 @@ export default async function DashboardPage() {
                                 securityEmployees.map((emp) => (
                                     <div key={emp.employeeId} className="flex items-center justify-between group">
                                         <div className="flex items-center space-x-3">
-                                            <div className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-50 dark:border-slate-800 group-hover:border-indigo-100 transition-colors shadow-sm">
-                                                <img
-                                                    src={emp.imageUrl || '/default-avatar.png'}
-                                                    alt={emp.name}
-                                                    className="w-full h-full object-cover"
-                                                />
-                                            </div>
+                                            <UserAvatar
+                                                userId={emp.id}
+                                                userName={emp.name}
+                                                className="w-10 h-10 rounded-full overflow-hidden border-2 border-slate-50 dark:border-slate-800 group-hover:border-indigo-100 transition-colors shadow-sm"
+                                            />
                                             <div className="flex flex-col">
                                                 <span className="text-xs font-black uppercase tracking-tight text-slate-700 dark:text-slate-300">{emp.name}</span>
                                                 <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">{emp.role}</span>
@@ -500,9 +499,11 @@ export default async function DashboardPage() {
                                                     {/* Karyawan Component */}
                                                     <td className="px-8 py-6">
                                                         <div className="flex items-center space-x-4">
-                                                            <div className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm shrink-0">
-                                                                <img src={attendance.user.imageUrl || '/default-avatar.png'} alt={attendance.user.name} className="w-full h-full object-cover" />
-                                                            </div>
+                                                            <UserAvatar
+                                                                userId={attendance.user.id}
+                                                                userName={attendance.user.name}
+                                                                className="w-12 h-12 rounded-full overflow-hidden border-2 border-white dark:border-slate-800 shadow-sm shrink-0"
+                                                            />
                                                             <div className="flex flex-col">
                                                                 <span className="text-sm font-black uppercase tracking-tight text-slate-900 dark:text-white leading-tight">
                                                                     {attendance.user.name}
@@ -635,9 +636,11 @@ export default async function DashboardPage() {
                                         <div key={i} className="p-5 space-y-4">
                                             <div className="flex items-center justify-between">
                                                 <div className="flex items-center space-x-3">
-                                                    <div className="w-10 h-10 rounded-full overflow-hidden shadow-sm border border-slate-100">
-                                                        <img src={attendance.user.imageUrl || '/default-avatar.png'} alt={attendance.user.name} className="w-full h-full object-cover" />
-                                                    </div>
+                                                    <UserAvatar
+                                                        userId={attendance.user.id}
+                                                        userName={attendance.user.name}
+                                                        className="w-10 h-10 rounded-full overflow-hidden shadow-sm border border-slate-100"
+                                                    />
                                                     <div className="flex flex-col">
                                                         <span className="text-xs font-black uppercase text-slate-900 dark:text-white leading-tight">{attendance.user.name}</span>
                                                         <span className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">{attendance.user.employeeId}</span>

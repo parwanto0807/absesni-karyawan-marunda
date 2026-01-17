@@ -112,7 +112,14 @@ export default function LoginPage() {
                     {/* Header */}
                     <div className="space-y-3 pt-12 lg:pt-0">
                         <div className="lg:hidden flex items-center space-x-2 mb-6">
-                            <img src="/logo_marunda.png" alt="Logo" className="w-8 h-8 object-contain" />
+                            <img
+                                src="/logo_marunda.png"
+                                alt="Logo"
+                                className="w-8 h-8 object-contain"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/no-image.png';
+                                }}
+                            />
                             <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter leading-none">RT 003/004 | RW 26 Metland Cibitung</span>
                         </div>
 

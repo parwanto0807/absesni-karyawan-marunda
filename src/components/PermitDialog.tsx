@@ -165,6 +165,9 @@ export default function PermitDialog({ userId }: { userId: string }) {
                                                         src={imagePreview}
                                                         alt="Preview"
                                                         className="w-full h-auto max-h-48 md:max-h-64 object-contain bg-slate-50 dark:bg-slate-800"
+                                                        onError={(e) => {
+                                                            (e.target as HTMLImageElement).src = '/no-image.png';
+                                                        }}
                                                     />
                                                 </div>
                                                 <button

@@ -206,7 +206,14 @@ export default function LandingPage({ settings = {}, activities = [], services =
             <nav className="fixed top-0 left-0 right-0 z-50 bg-white/80 backdrop-blur-xl border-b border-slate-100 px-4 md:px-6 py-4 flex items-center justify-between">
                 <div className="flex items-center space-x-2 md:space-x-3 overflow-hidden">
                     <div className="relative w-10 h-10 md:w-12 md:h-12 shrink-0">
-                        <NextImage src="/logo_marunda.png" alt="Logo Taman Marunda" fill className="object-contain" unoptimized />
+                        <img
+                            src="/logo_marunda.png"
+                            alt="Logo Taman Marunda"
+                            className="w-full h-full object-contain"
+                            onError={(e) => {
+                                (e.target as HTMLImageElement).src = '/no-image.png';
+                            }}
+                        />
                     </div>
                     <div className="min-w-0">
                         <span className="text-[11px] md:text-base font-black text-slate-900 uppercase tracking-tighter leading-tight block truncate">Cluster Taman Marunda</span>
@@ -274,12 +281,13 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                 style={{ y: useTransform(scrollY, [0, 1000], [-40, 40]) }}
                                 className="w-full h-full relative scale-125"
                             >
-                                <NextImage
+                                <img
                                     src={heroImage}
                                     alt="Keharmonisan Suku Bangsa di Metland"
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/no-image.png';
+                                    }}
                                 />
                             </motion.div>
 
@@ -342,12 +350,13 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                 style={{ y: yBanner }}
                                 className="w-full h-full relative scale-125"
                             >
-                                <NextImage
+                                <img
                                     src="/metland_service_banner.png"
                                     alt="Cluster Hijau Asri"
-                                    fill
-                                    className="object-cover"
-                                    unoptimized
+                                    className="w-full h-full object-cover"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/no-image.png';
+                                    }}
                                 />
                             </motion.div>
                             <div className="absolute inset-0 bg-gradient-to-t from-slate-900/80 via-slate-900/20 to-transparent flex flex-col justify-end p-8 md:p-16 text-left group-hover:via-slate-900/40 transition-all duration-700">
@@ -397,12 +406,13 @@ export default function LandingPage({ settings = {}, activities = [], services =
                 >
                     <div className="order-2 lg:order-1 relative">
                         <div className="relative aspect-square md:aspect-video lg:aspect-square rounded-[2.5rem] md:rounded-[4rem] overflow-hidden border-4 md:border-8 border-white shadow-2xl">
-                            <NextImage
+                            <img
                                 src={activityImage}
                                 alt="Kegiatan Bersama Suku Bangsa"
-                                fill
-                                className="object-cover transition-transform duration-1000 hover:scale-105"
-                                unoptimized
+                                className="w-full h-full object-cover transition-transform duration-1000 hover:scale-105"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/no-image.png';
+                                }}
                             />
                         </div>
                         {/* Event Float Card */}
@@ -438,8 +448,15 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                         className={`flex flex-col p-5 md:p-6 bg-white rounded-3xl border border-slate-100 shadow-sm transition-all hover:translate-y-[-4px] hover:shadow-xl hover:shadow-indigo-500/5 ${hasDetail ? 'md:col-span-2 flex-row gap-5 cursor-pointer active:scale-[0.98]' : ''}`}
                                     >
                                         {item.image && (
-                                            <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden shrink-0 border border-slate-100 relative">
-                                                <NextImage src={item.image} alt={item.title} fill className="object-cover" unoptimized />
+                                            <div className="w-20 h-20 md:w-28 md:h-28 rounded-2xl overflow-hidden shrink-0 border border-slate-100 relative bg-slate-100">
+                                                <img
+                                                    src={item.image}
+                                                    alt={item.title}
+                                                    className="w-full h-full object-cover"
+                                                    onError={(e) => {
+                                                        (e.target as HTMLImageElement).src = '/no-image.png';
+                                                    }}
+                                                />
                                             </div>
                                         )}
                                         <div className="flex flex-col justify-center">
@@ -499,12 +516,13 @@ export default function LandingPage({ settings = {}, activities = [], services =
                     <div className="relative">
                         <div className="absolute -inset-10 md:-inset-20 bg-indigo-500/10 blur-[100px] rounded-full" />
                         <div className="relative aspect-square md:aspect-video lg:aspect-square rounded-[2.5rem] md:rounded-[4rem] overflow-hidden border-4 md:border-8 border-slate-800 shadow-2xl">
-                            <NextImage
+                            <img
                                 src={securityImage}
                                 alt="Sistem Keamanan RFID Gate Marunda"
-                                fill
-                                className="object-cover"
-                                unoptimized
+                                className="w-full h-full object-cover"
+                                onError={(e) => {
+                                    (e.target as HTMLImageElement).src = '/no-image.png';
+                                }}
                             />
                         </div>
                     </div>
@@ -517,7 +535,14 @@ export default function LandingPage({ settings = {}, activities = [], services =
                     <div className="space-y-4">
                         <div className="flex items-center justify-center space-x-3">
                             <div className="relative w-14 h-14 md:w-20 md:h-20 shrink-0">
-                                <NextImage src="/logo_marunda.png" alt="Logo Taman Marunda" fill className="object-contain" unoptimized />
+                                <img
+                                    src="/logo_marunda.png"
+                                    alt="Logo Taman Marunda"
+                                    className="w-full h-full object-contain"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/no-image.png';
+                                    }}
+                                />
                             </div>
                             <div className="text-left">
                                 <span className="text-lg md:text-2xl font-black text-slate-900 uppercase tracking-tighter block leading-none">Cluster Taman Marunda</span>
@@ -583,12 +608,13 @@ export default function LandingPage({ settings = {}, activities = [], services =
                             <div className="max-h-[85vh] overflow-y-auto no-scrollbar">
                                 {selectedActivity.image && (
                                     <div className="aspect-video w-full overflow-hidden border-b border-slate-50 relative">
-                                        <NextImage
+                                        <img
                                             src={selectedActivity.image}
                                             alt={selectedActivity.title}
-                                            fill
-                                            className="object-cover"
-                                            unoptimized
+                                            className="w-full h-full object-cover"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = '/no-image.png';
+                                            }}
                                         />
                                     </div>
                                 )}

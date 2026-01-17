@@ -153,7 +153,14 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                 <div className="h-20 w-20 rounded-[1.5rem] bg-slate-50 dark:bg-slate-800 border-2 border-dashed border-slate-200 dark:border-slate-700 flex items-center justify-center overflow-hidden ring-4 ring-white dark:ring-slate-900 shadow-lg">
                                     {preview ? (
                                         <div className="relative h-full w-full">
-                                            <NextImage src={preview} alt="Preview" fill className="object-cover" unoptimized />
+                                            <img
+                                                src={preview}
+                                                alt="Preview"
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = '/no-image.png';
+                                                }}
+                                            />
                                         </div>
                                     ) : (
                                         <UserIcon size={28} className="text-slate-300" />

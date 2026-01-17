@@ -441,8 +441,15 @@ export default function LandingSettingsTab() {
                             <div key={act.id} className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 flex items-start justify-between">
                                 <div className="flex gap-3">
                                     {act.image && (
-                                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-100 relative">
-                                            <NextImage src={act.image} alt="" fill className="object-cover" unoptimized />
+                                        <div className="w-12 h-12 rounded-lg overflow-hidden shrink-0 border border-slate-100 relative bg-slate-100">
+                                            <img
+                                                src={act.image}
+                                                alt=""
+                                                className="w-full h-full object-cover"
+                                                onError={(e) => {
+                                                    (e.target as HTMLImageElement).src = '/no-image.png';
+                                                }}
+                                            />
                                         </div>
                                     )}
                                     <div className="min-w-0">

@@ -625,7 +625,14 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
                         {!isFinished && (
                             <div className="w-full aspect-[3/4] max-w-[220px] md:max-w-[280px] rounded-[1.5rem] md:rounded-[2rem] bg-slate-100 dark:bg-slate-800 border-2 border-dashed border-slate-300 dark:border-slate-700 flex flex-col items-center justify-center text-slate-400 relative group overflow-hidden shadow-inner">
                                 {capturedImage ? (
-                                    <NextImage src={capturedImage} fill unoptimized className="object-cover rounded-[1.5rem] md:rounded-[2rem]" alt="Captured" />
+                                    <img
+                                        src={capturedImage}
+                                        className="w-full h-full object-cover rounded-[1.5rem] md:rounded-[2rem]"
+                                        alt="Captured"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = '/no-image.png';
+                                        }}
+                                    />
                                 ) : (
                                     <video
                                         ref={videoRef}

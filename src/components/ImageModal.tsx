@@ -10,6 +10,7 @@ interface ImageModalProps {
 
 export function ImageModal({ src, alt }: ImageModalProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [imgSrc, setImgSrc] = useState(src);
 
     if (!src) return null;
 
@@ -19,7 +20,12 @@ export function ImageModal({ src, alt }: ImageModalProps) {
                 onClick={() => setIsOpen(true)}
                 className="block w-12 h-12 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 hover:ring-2 hover:ring-indigo-500 transition-all focus:outline-none"
             >
-                <img src={src} alt={alt} className="w-full h-full object-cover" />
+                <img
+                    src={imgSrc}
+                    alt={alt}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgSrc('/no-image.png')}
+                />
             </button>
 
             {isOpen && (
@@ -35,10 +41,11 @@ export function ImageModal({ src, alt }: ImageModalProps) {
                             <X size={32} />
                         </button>
                         <img
-                            src={src}
+                            src={imgSrc}
                             alt={alt}
                             className="max-w-full max-h-[85vh] rounded-2xl shadow-2xl object-contain border border-white/10"
                             onClick={(e) => e.stopPropagation()}
+                            onError={() => setImgSrc('/no-image.png')}
                         />
                     </div>
                 </div>
@@ -49,6 +56,7 @@ export function ImageModal({ src, alt }: ImageModalProps) {
 
 export function ImageModalMobile({ src, alt }: ImageModalProps) {
     const [isOpen, setIsOpen] = useState(false);
+    const [imgSrc, setImgSrc] = useState(src);
 
     if (!src) return null;
 
@@ -58,7 +66,12 @@ export function ImageModalMobile({ src, alt }: ImageModalProps) {
                 onClick={() => setIsOpen(true)}
                 className="block w-10 h-10 rounded-lg overflow-hidden border border-slate-200 dark:border-slate-800 hover:ring-2 hover:ring-indigo-500 transition-all shrink-0 focus:outline-none"
             >
-                <img src={src} alt={alt} className="w-full h-full object-cover" />
+                <img
+                    src={imgSrc}
+                    alt={alt}
+                    className="w-full h-full object-cover"
+                    onError={() => setImgSrc('/no-image.png')}
+                />
             </button>
 
             {isOpen && (
@@ -74,10 +87,11 @@ export function ImageModalMobile({ src, alt }: ImageModalProps) {
                             <X size={24} />
                         </button>
                         <img
-                            src={src}
+                            src={imgSrc}
                             alt={alt}
                             className="max-w-full max-h-[80vh] rounded-xl shadow-2xl object-contain"
                             onClick={(e) => e.stopPropagation()}
+                            onError={() => setImgSrc('/no-image.png')}
                         />
                     </div>
                 </div>

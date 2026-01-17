@@ -395,8 +395,15 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                                 </div>
 
                                 {capturedImage && (
-                                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 group border border-slate-200 dark:border-slate-800">
-                                        <img src={capturedImage} className="w-full h-full object-contain" alt="Bukti Kejadian" />
+                                    <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 group border border-slate-200 dark:border-slate-800 flex items-center justify-center">
+                                        <img
+                                            src={capturedImage}
+                                            className="max-w-full max-h-full object-contain"
+                                            alt="Bukti Kejadian"
+                                            onError={(e) => {
+                                                (e.target as HTMLImageElement).src = '/no-image.png';
+                                            }}
+                                        />
                                         <button
                                             onClick={() => setCapturedImage(null)}
                                             className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors backdrop-blur-sm"

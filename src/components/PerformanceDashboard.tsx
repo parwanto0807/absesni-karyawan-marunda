@@ -4,6 +4,7 @@ import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor 
 import { TrendingUp, Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getJakartaTime } from '@/lib/date-utils';
+import UserAvatar from '@/components/UserAvatar';
 
 interface AttendanceRecord {
     lateMinutes: number | null;
@@ -89,23 +90,11 @@ export default async function PerformanceDashboard() {
                                     </td>
                                     <td className="px-3 py-2">
                                         <div className="flex items-center space-x-2">
-                                            <div className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[9px] uppercase overflow-hidden shrink-0 relative">
-                                                <img
-                                                    src={`/api/images/users/${emp.id}`}
-                                                    alt={emp.name}
-                                                    className="w-full h-full object-cover"
-                                                    onError={(e) => {
-                                                        const target = e.target as HTMLImageElement;
-                                                        target.style.display = 'none';
-                                                        if (target.nextSibling) {
-                                                            (target.nextSibling as HTMLElement).style.display = 'flex';
-                                                        }
-                                                    }}
-                                                />
-                                                <div className="absolute inset-0 hidden items-center justify-center">
-                                                    {emp.name.charAt(0)}
-                                                </div>
-                                            </div>
+                                            <UserAvatar
+                                                userId={emp.id}
+                                                userName={emp.name}
+                                                className="h-7 w-7 rounded-lg bg-slate-100 dark:bg-slate-800 text-slate-500 flex items-center justify-center font-bold text-[9px] uppercase overflow-hidden shrink-0"
+                                            />
                                             <div className="min-w-0">
                                                 <div className="text-[9px] font-black text-slate-900 dark:text-white uppercase tracking-tight truncate max-w-[80px] md:max-w-none">{emp.name}</div>
                                                 <div className="text-[7px] font-bold text-slate-400 uppercase tracking-widest">{emp.role}</div>

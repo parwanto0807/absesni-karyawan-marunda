@@ -7,6 +7,7 @@ import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 import { TIMEZONE } from '@/lib/date-utils';
 import NextImage from 'next/image';
+import UserAvatar from './UserAvatar';
 
 interface User {
     name: string;
@@ -120,13 +121,11 @@ export default function PermitTable({ permits, currentUser }: PermitTableProps) 
                                 {/* Header: User Info & Status */}
                                 <div className="flex items-start justify-between">
                                     <div className="flex items-center space-x-3">
-                                        <div className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-xs overflow-hidden">
-                                            {permit.user.image ? (
-                                                <img src={permit.user.image} alt={permit.user.name} className="h-full w-full object-cover" />
-                                            ) : (
-                                                permit.user.name.charAt(0)
-                                            )}
-                                        </div>
+                                        <UserAvatar
+                                            userId={permit.userId}
+                                            userName={permit.user.name}
+                                            className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-xs overflow-hidden"
+                                        />
                                         <div>
                                             <div className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">{permit.user.name}</div>
                                             <div className="text-[8px] font-bold text-slate-400 uppercase tracking-widest">
@@ -312,13 +311,11 @@ export default function PermitTable({ permits, currentUser }: PermitTableProps) 
                                 <tr key={permit.id} className="hover:bg-slate-50/50 dark:hover:bg-slate-800/50 border-b border-slate-50 dark:border-slate-800 transition-colors">
                                     <td className="px-5 py-3">
                                         <div className="flex items-center space-x-3">
-                                            <div className="h-9 w-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-xs md:text-base overflow-hidden relative">
-                                                {permit.user.image ? (
-                                                    <NextImage src={permit.user.image} alt={permit.user.name} fill className="object-cover" unoptimized />
-                                                ) : (
-                                                    permit.user.name.charAt(0)
-                                                )}
-                                            </div>
+                                            <UserAvatar
+                                                userId={permit.userId}
+                                                userName={permit.user.name}
+                                                className="h-9 w-9 rounded-lg bg-indigo-50 dark:bg-indigo-900/10 text-indigo-600 flex items-center justify-center font-black text-xs md:text-base overflow-hidden relative"
+                                            />
                                             <div>
                                                 <div className="text-xs md:text-base font-black text-slate-900 dark:text-white uppercase tracking-tight">{permit.user.name}</div>
                                                 <div className="text-[9px] md:text-base font-bold text-slate-400 uppercase tracking-widest">

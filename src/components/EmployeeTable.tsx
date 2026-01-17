@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, User, Edit2, Trash2, X, Clock } from 'lucide-react';
+import { Shield, User, Edit2, Trash2, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
 import { User as UserType } from '@/types/attendance';
 import { deleteUser } from '@/actions/employees';
 import EmployeeDialog from './EmployeeDialog';
@@ -9,6 +9,7 @@ import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
 import Image from 'next/image';
+import Pagination from './Pagination';
 
 interface EmployeeTableProps {
     employees: UserType[];
@@ -18,8 +19,21 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
     const [editingEmployee, setEditingEmployee] = useState<UserType | null>(null);
     const [previewImage, setPreviewImage] = useState<{ url: string, name: string } | null>(null);
     const [isDeleting, setIsDeleting] = useState<string | null>(null);
+    const [imageErrors, setImageErrors] = useState<Record<string, boolean>>({});
+    const [previewError, setPreviewError] = useState(false);
+    const [currentPage, setCurrentPage] = useState(1);
+    const ITEMS_PER_PAGE = 15;
 
     const handleDelete = async (id: string) => {
+        setPreviewError(false); // Reset preview error when switching or closing
+    };
+
+    const handlePreviewImage = (url: string, name: string) => {
+        setPreviewError(false);
+        setPreviewImage({ url, name });
+    };
+
+    const handleDeleteUser = async (id: string) => {
         if (confirm('Apakah Anda yakin ingin menghapus karyawan ini? Seluruh data absensi terkait juga akan dihapus.')) {
             setIsDeleting(id);
             await deleteUser(id);
@@ -43,8 +57,24 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
         return a.name.localeCompare(b.name);
     });
 
+    const totalPages = Math.ceil(sortedEmployees.length / ITEMS_PER_PAGE);
+    const paginatedEmployees = sortedEmployees.slice(
+        (currentPage - 1) * ITEMS_PER_PAGE,
+        currentPage * ITEMS_PER_PAGE
+    );
+
     return (
         <>
+            {/* Top Pagination */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={sortedEmployees.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                className="mb-4"
+            />
+
             {/* Desktop Table View */}
             <div className="hidden md:block overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
                 <table className="w-full text-left text-sm">
@@ -58,7 +88,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                         </tr>
                     </thead>
                     <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                        {sortedEmployees.map((emp) => (
+                        {paginatedEmployees.map((emp) => (
                             <tr key={emp.id} className={cn(
                                 "group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors",
                                 isDeleting === emp.id && "opacity-50 pointer-events-none"
@@ -66,16 +96,24 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                 <td className="px-6 py-4">
                                     <div className="flex items-center space-x-3">
                                         <div
-                                            onClick={() => emp.image && setPreviewImage({ url: emp.image, name: emp.name })}
+                                            onClick={() => emp.image && handlePreviewImage(emp.image, emp.name)}
                                             className={cn(
                                                 "h-10 w-10 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 transition-all overflow-hidden relative",
                                                 emp.image && "cursor-zoom-in hover:ring-2 hover:ring-indigo-500 hover:ring-offset-2 dark:hover:ring-offset-slate-900"
                                             )}
                                         >
-                                            {emp.image ? (
-                                                <Image src={emp.image} alt={emp.name} fill className="object-cover" unoptimized />
+                                            {emp.image && !imageErrors[emp.id] ? (
+                                                <img
+                                                    src={emp.image}
+                                                    alt={emp.name}
+                                                    className="w-full h-full object-cover"
+                                                    onError={() => setImageErrors(prev => ({ ...prev, [emp.id]: true }))}
+                                                />
                                             ) : (
-                                                <User size={20} />
+                                                <div className="flex flex-col items-center justify-center space-y-1 text-slate-300">
+                                                    <User size={20} />
+                                                    <span className="text-[6px] font-bold uppercase">No Photo</span>
+                                                </div>
                                             )}
                                         </div>
                                         <div className="flex flex-col">
@@ -142,23 +180,31 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
 
             {/* Mobile/Tablet Card View */}
             <div className="md:hidden space-y-3">
-                {sortedEmployees.map((emp) => (
+                {paginatedEmployees.map((emp) => (
                     <div key={emp.id} className={cn(
                         "bg-white dark:bg-slate-900 rounded-2xl p-4 border border-slate-200 dark:border-slate-800 shadow-sm relative overflow-hidden",
                         isDeleting === emp.id && "opacity-50 pointer-events-none"
                     )}>
                         <div className="flex items-start space-x-3">
                             <div
-                                onClick={() => emp.image && setPreviewImage({ url: emp.image, name: emp.name })}
+                                onClick={() => emp.image && handlePreviewImage(emp.image, emp.name)}
                                 className={cn(
                                     "h-12 w-12 flex items-center justify-center rounded-xl bg-slate-100 text-slate-400 dark:bg-slate-800 transition-all overflow-hidden shrink-0 relative",
                                     emp.image && "active:scale-95"
                                 )}
                             >
-                                {emp.image ? (
-                                    <Image src={emp.image} alt={emp.name} fill className="object-cover" unoptimized />
+                                {emp.image && !imageErrors[emp.id] ? (
+                                    <img
+                                        src={emp.image}
+                                        alt={emp.name}
+                                        className="w-full h-full object-cover"
+                                        onError={() => setImageErrors(prev => ({ ...prev, [emp.id]: true }))}
+                                    />
                                 ) : (
-                                    <User size={24} />
+                                    <div className="flex flex-col items-center justify-center space-y-1 text-slate-300">
+                                        <User size={24} />
+                                        <span className="text-[6px] font-bold uppercase">No Photo</span>
+                                    </div>
                                 )}
                             </div>
                             <div className="flex-1 min-w-0">
@@ -214,6 +260,16 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                 ))}
             </div>
 
+            {/* Pagination */}
+            <Pagination
+                currentPage={currentPage}
+                totalPages={totalPages}
+                onPageChange={setCurrentPage}
+                totalItems={sortedEmployees.length}
+                itemsPerPage={ITEMS_PER_PAGE}
+                className="mt-6"
+            />
+
             {/* Image Preview Modal */}
             {previewImage && (
                 <div
@@ -230,13 +286,12 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                         >
                             <X size={24} />
                         </button>
-                        <div className="relative w-full aspect-square md:aspect-video">
-                            <Image
-                                src={previewImage.url}
+                        <div className="relative w-full aspect-square md:aspect-video bg-slate-950 flex items-center justify-center">
+                            <img
+                                src={previewError ? '/no-image.png' : previewImage.url}
                                 alt={previewImage.name}
-                                fill
-                                className="object-contain bg-slate-950"
-                                unoptimized
+                                className="max-w-full max-h-full object-contain"
+                                onError={() => setPreviewError(true)}
                             />
                         </div>
                         <div className="p-6 text-center">
