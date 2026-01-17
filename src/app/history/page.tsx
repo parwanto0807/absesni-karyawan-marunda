@@ -219,7 +219,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
             <HistoryFilter users={filterUsers} />
 
-            <AttendanceHistoryTable initialAttendances={attendances as any} />
+            <AttendanceHistoryTable initialAttendances={attendances as React.ComponentProps<typeof AttendanceHistoryTable>['initialAttendances']} />
         </div>
     );
 }

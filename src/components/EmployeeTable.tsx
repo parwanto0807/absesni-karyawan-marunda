@@ -1,14 +1,14 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Shield, User, Edit2, Trash2, X, Clock, ChevronLeft, ChevronRight } from 'lucide-react';
+import { Shield, User, Edit2, Trash2, X, Clock } from 'lucide-react';
 import { User as UserType } from '@/types/attendance';
 import { deleteUser } from '@/actions/employees';
 import EmployeeDialog from './EmployeeDialog';
 import { cn } from '@/lib/utils';
 import { formatDistanceToNow } from 'date-fns';
 import { id } from 'date-fns/locale';
-import Image from 'next/image';
+// Image is not used here anymore as we use img for fallback support
 import Pagination from './Pagination';
 
 interface EmployeeTableProps {
@@ -24,16 +24,14 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
     const [currentPage, setCurrentPage] = useState(1);
     const ITEMS_PER_PAGE = 15;
 
-    const handleDelete = async (id: string) => {
-        setPreviewError(false); // Reset preview error when switching or closing
-    };
+
 
     const handlePreviewImage = (url: string, name: string) => {
         setPreviewError(false);
         setPreviewImage({ url, name });
     };
 
-    const handleDeleteUser = async (id: string) => {
+    const handleDelete = async (id: string) => {
         if (confirm('Apakah Anda yakin ingin menghapus karyawan ini? Seluruh data absensi terkait juga akan dihapus.')) {
             setIsDeleting(id);
             await deleteUser(id);
