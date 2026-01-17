@@ -62,29 +62,35 @@ export default async function RootLayout({
   let sidebarUser: { id: string; name: string; role: string; image: string | null } | null = null;
 
   if (session?.userId) {
-    const dbUser = await prisma.user.findUnique({
-      where: { id: session.userId },
-      select: { name: true, role: true, username: true, image: true }
-    });
-    if (dbUser) {
-      // safe spread since dbUser fields match SessionPayload structure (except image is string|null vs optional)
-      currentUser = {
-        userId: session.userId,
-        // Ensure role is cast correctly or validated. 
-        // dbUser.role is from Prisma options, should match UserRole.
-        role: dbUser.role as unknown as UserRole,
-        username: dbUser.username,
-        image: dbUser.image,
-        iat: session.iat
-      };
+    try {
+      const dbUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { name: true, role: true, username: true, image: true }
+      });
+      if (dbUser) {
+        // safe spread since dbUser fields match SessionPayload structure (except image is string|null vs optional)
+        currentUser = {
+          userId: session.userId,
+          // Ensure role is cast correctly or validated. 
+          // dbUser.role is from Prisma options, should match UserRole.
+          role: dbUser.role as unknown as UserRole,
+          username: dbUser.username,
+          image: dbUser.image,
+          iat: session.iat
+        };
 
-      // Create sidebar-compatible user object
-      sidebarUser = {
-        id: session.userId,
-        name: dbUser.name,
-        role: dbUser.role,
-        image: dbUser.image
-      };
+        // Create sidebar-compatible user object
+        sidebarUser = {
+          id: session.userId,
+          name: dbUser.name,
+          role: dbUser.role,
+          image: dbUser.image
+        };
+      }
+    } catch (error) {
+      console.error("Error fetching user from database during layout render:", error);
+      // Keep sidebarUser as null and currentUser as the session data
+      currentUser = session;
     }
   }
 

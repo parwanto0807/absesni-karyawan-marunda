@@ -6,19 +6,24 @@ import { revalidatePath } from 'next/cache';
 // --- Generic Settings (Hero Title, Subtitle, Images, etc) ---
 
 export async function getLandingSettings() {
-    const settings = await prisma.setting.findMany({
-        where: {
-            key: {
-                startsWith: 'landing_'
+    try {
+        const settings = await prisma.setting.findMany({
+            where: {
+                key: {
+                    startsWith: 'landing_'
+                }
             }
-        }
-    });
+        });
 
-    // Convert list to object for easier use
-    return settings.reduce((acc, curr) => {
-        acc[curr.key] = curr.value;
-        return acc;
-    }, {} as Record<string, string>);
+        // Convert list to object for easier use
+        return settings.reduce((acc, curr) => {
+            acc[curr.key] = curr.value;
+            return acc;
+        }, {} as Record<string, string>);
+    } catch (error) {
+        console.error('Error fetching landing settings:', error);
+        return {} as Record<string, string>;
+    }
 }
 
 export async function updateLandingSetting(key: string, value: string) {
@@ -34,9 +39,14 @@ export async function updateLandingSetting(key: string, value: string) {
 // --- Activities ---
 
 export async function getLandingActivities() {
-    return await prisma.landingActivity.findMany({
-        orderBy: { order: 'asc' }
-    });
+    try {
+        return await prisma.landingActivity.findMany({
+            orderBy: { order: 'asc' }
+        });
+    } catch (error) {
+        console.error('Error fetching landing activities:', error);
+        return [];
+    }
 }
 
 export async function addLandingActivity(title: string, time: string, description?: string, image?: string) {
@@ -57,9 +67,14 @@ export async function deleteLandingActivity(id: string) {
 // --- Services ---
 
 export async function getLandingServices() {
-    return await prisma.landingService.findMany({
-        orderBy: { order: 'asc' }
-    });
+    try {
+        return await prisma.landingService.findMany({
+            orderBy: { order: 'asc' }
+        });
+    } catch (error) {
+        console.error('Error fetching landing services:', error);
+        return [];
+    }
 }
 
 export async function addLandingService(icon: string, title: string, description: string) {
