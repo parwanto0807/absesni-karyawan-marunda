@@ -443,7 +443,6 @@ export async function getAttendances(userId?: string, startDate?: Date, endDate?
                         name: true,
                         employeeId: true,
                         role: true,
-                        image: true,
                     }
                 }
             },

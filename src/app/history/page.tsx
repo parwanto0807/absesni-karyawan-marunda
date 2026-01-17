@@ -6,7 +6,7 @@ import { Clock } from 'lucide-react';
 import { fromZonedTime } from 'date-fns-tz';
 import { prisma } from '@/lib/db';
 import HistoryFilter from '@/components/HistoryFilter';
-import ExportButtons from '@/components/ExportButtons';
+import ExportButtons, { AttendanceExportData } from '@/components/ExportButtons';
 import { getShiftForDate, getStaticSchedule, getShiftTimings } from '@/lib/schedule-utils';
 import { getStartOfDayJakarta, getEndOfDayJakarta, TIMEZONE } from '@/lib/date-utils';
 import AttendanceHistoryTable from '@/components/AttendanceHistoryTable';
@@ -35,7 +35,6 @@ interface VirtualAttendance {
         name: string;
         employeeId: string;
         role: string;
-        image: string | null;
     };
 }
 
@@ -181,7 +180,6 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                                     name: user.name,
                                     employeeId: user.employeeId,
                                     role: user.role,
-                                    image: user.image
                                 }
                             });
                         }
@@ -198,7 +196,24 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
 
     // 5. Paginate on Server
     const totalItems = allAttendances.length;
-    const paginatedAttendances = allAttendances.slice(skip, skip + limit);
+
+    // 6. Lighten the payload for the client
+    // Strip images for export (csv/pdf don't need them)
+    // and convert base64 to API URLs for the paginated table
+    const exportData = allAttendances.map(({ image: _image, ...rest }) => rest);
+
+    const paginatedAttendances = allAttendances
+        .slice(skip, skip + limit)
+        .map(att => {
+            // If image is base64, convert to API proxy URL to keep JSON small
+            if (att.image?.startsWith('data:image')) {
+                return {
+                    ...att,
+                    image: `/api/images/attendance/${att.id}`
+                };
+            }
+            return att;
+        });
 
     // Get filter info for export
     const selectedUser = filterUsers?.find(u => u.id === targetUserId);
@@ -227,7 +242,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                     </p>
                 </div>
 
-                <ExportButtons attendances={allAttendances} filterInfo={filterInfo} />
+                <ExportButtons attendances={exportData as AttendanceExportData[]} filterInfo={filterInfo} />
             </div>
 
             <HistoryFilter users={filterUsers} />

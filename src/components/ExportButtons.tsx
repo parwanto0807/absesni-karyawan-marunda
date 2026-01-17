@@ -11,7 +11,7 @@ interface JsPDFCustom extends jsPDF {
     };
 }
 
-interface AttendanceExportData {
+export interface AttendanceExportData {
     id: string;
     user: {
         name: string;

@@ -15,7 +15,7 @@ interface VirtualAttendance {
     userId: string;
     clockIn: Date;
     clockOut: Date | null;
-    status: 'PRESENT' | 'LATE' | 'ABSENT' | 'SICK' | 'PERMIT' | 'SHIFT_CHANGE';
+    status: string;
     shiftType: string;
     scheduledClockIn?: Date | null;
     scheduledClockOut?: Date | null;
@@ -32,7 +32,6 @@ interface VirtualAttendance {
         name: string;
         employeeId: string;
         role: string;
-        image: string | null;
     };
 }
 
