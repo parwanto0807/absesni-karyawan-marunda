@@ -4,18 +4,20 @@ import { usePathname } from 'next/navigation';
 import { useEffect } from 'react';
 import { logActivity } from '@/actions/activity';
 
-export default function ActivityTracker({ userId }: { userId: string }) {
+export default function ActivityTracker({ userId, username }: { userId: string, username?: string }) {
     const pathname = usePathname();
 
     useEffect(() => {
         if (userId && pathname) {
-            // We use a small delay or ensure this doesn't block the UI
+            // Skip logging for adminit
+            if (username === 'adminit') return;
+
             const log = async () => {
-                await logActivity(userId, 'Buka Menu', pathname);
+                await logActivity(userId, 'Buka Menu', pathname, undefined, undefined, username);
             };
             log();
         }
-    }, [pathname, userId]);
+    }, [pathname, userId, username]);
 
     return null;
 }

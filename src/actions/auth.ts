@@ -35,7 +35,7 @@ export async function login(formData: FormData) {
         });
 
         // Record activity
-        await logActivity(user.id, 'LOGIN', '/login', 'User berhasil login');
+        await logActivity(user.id, 'LOGIN', '/login', 'User berhasil login', undefined, user.username);
 
         // Create the session
         const expires = new Date(Date.now() + 60 * 60 * 2000); // 2 hours

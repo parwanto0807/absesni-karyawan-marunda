@@ -107,7 +107,7 @@ export default async function RootLayout({
           <InstallPWA />
           {currentUser ? (
             <SidebarProvider>
-              <ActivityTracker userId={currentUser.userId} />
+              <ActivityTracker userId={currentUser.userId} username={currentUser.username} />
               <LocationTracker userId={currentUser.userId} role={currentUser.role} />
               <Sidebar user={sidebarUser} />
               <LayoutContent user={currentUser}>
