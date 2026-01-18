@@ -63,7 +63,22 @@ export async function GET(
                         'Cache-Control': 'public, max-age=31536000, immutable',
                     },
                 });
-            } catch (err) {
+            } catch (err: unknown) {
+                if (err && typeof err === 'object' && 'code' in err && err.code === 'ENOENT') {
+                    console.warn(`Attendance image not found locally: ${imageField}. Serving placeholder.`);
+                    try {
+                        const placeholderPath = path.join(process.cwd(), 'public', 'no-image.png');
+                        const placeholderBuffer = await fs.readFile(placeholderPath);
+                        return new NextResponse(placeholderBuffer, {
+                            headers: {
+                                'Content-Type': 'image/png',
+                                'Cache-Control': 'public, max-age=3600',
+                            },
+                        });
+                    } catch {
+                        return new NextResponse(null, { status: 404 });
+                    }
+                }
                 console.error(`Error reading image file ${imageField}:`, err);
                 return new NextResponse(null, { status: 404 });
             }

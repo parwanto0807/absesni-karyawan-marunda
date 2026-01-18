@@ -8,6 +8,7 @@ import { toast } from 'sonner';
 import { TIMEZONE } from '@/lib/date-utils';
 import NextImage from 'next/image';
 import UserAvatar from './UserAvatar';
+import { ImageModal, ImageModalMobile } from './ImageModal';
 
 interface User {
     name: string;
@@ -154,9 +155,9 @@ export default function PermitTable({ permits, currentUser }: PermitTableProps) 
                                     </div>
                                     <div className="flex items-start space-x-2 bg-slate-50 dark:bg-slate-800/50 p-2 rounded-lg">
                                         {permit.image && (
-                                            <a href={permit.image} target="_blank" rel="noreferrer" className="shrink-0 h-6 w-6 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all border border-indigo-200 dark:border-indigo-800">
-                                                <Camera size={12} />
-                                            </a>
+                                            <div className="shrink-0 scale-75 -ml-1 -mt-1">
+                                                <ImageModalMobile src={permit.image} alt="Lampiran Izin" />
+                                            </div>
                                         )}
                                         <p className="text-[9px] font-medium text-slate-500 line-clamp-2 leading-relaxed">
                                             {permit.reason}
@@ -343,9 +344,7 @@ export default function PermitTable({ permits, currentUser }: PermitTableProps) 
                                     <td className="px-5 py-3">
                                         <div className="flex items-center space-x-2">
                                             {permit.image && (
-                                                <a href={permit.image} target="_blank" rel="noreferrer" className="h-8 w-8 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/30 transition-all border border-indigo-200 dark:border-indigo-800 shadow-sm hover:shadow-md" title="Lihat Lampiran">
-                                                    <Camera size={16} />
-                                                </a>
+                                                <ImageModal src={permit.image} alt="Lampiran Izin" />
                                             )}
                                             <span className="text-[9px] md:text-sm font-bold text-slate-500 dark:text-slate-400 text-wrap max-w-[440px]" title={permit.reason}>{permit.reason}</span>
                                         </div>

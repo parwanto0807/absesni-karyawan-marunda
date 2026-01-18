@@ -22,13 +22,25 @@ import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { ImageModal } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor } from '@/lib/performance-utils';
-import { TIMEZONE, getStartOfDayJakarta } from '@/lib/date-utils';
+import { TIMEZONE, getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
+import { getShiftForDate, getStaticSchedule } from '@/lib/schedule-utils';
 import DigitalClock from '@/components/DigitalClock';
 import IncidentReportDialog from '@/components/IncidentReportDialog';
 import ReviewIncidents from '@/components/ReviewIncidents';
 import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import { IncidentReport } from '@/types/incident';
 import UserAvatar from '@/components/UserAvatar';
+
+interface DashboardEmployee {
+    id: string;
+    name: string;
+    role: string;
+    employeeId: string | null;
+    imageUrl: string;
+    status: 'ONLINE' | 'PERMIT';
+    isPending: boolean;
+    permitType?: string;
+}
 
 export default async function DashboardPage() {
     const session = await getSession();
@@ -115,7 +127,7 @@ export default async function DashboardPage() {
             user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
         },
         include: {
-            user: { select: { id: true, name: true, role: true, employeeId: true } }
+            user: { select: { id: true, name: true, role: true, employeeId: true, rotationOffset: true } }
         },
         orderBy: [
             { userId: 'asc' },
@@ -123,11 +135,6 @@ export default async function DashboardPage() {
         ],
         distinct: ['userId']
     });
-
-    const securityEmployees = presentSecurityRaw.map(a => ({
-        ...a.user,
-        imageUrl: `/api/images/users/${a.user.id}`
-    }));
 
     const currentAttendance = await prisma.attendance.findFirst({
         where: {
@@ -137,6 +144,74 @@ export default async function DashboardPage() {
         }
     });
     const isOnDuty = !!currentAttendance;
+
+    // 2. Data Izin Aktif Hari Ini (Jakarta Time)
+    const todayStart = getStartOfDayJakarta();
+    const todayEnd = getEndOfDayJakarta();
+
+    const activePermits = await prisma.permit.findMany({
+        where: {
+            finalStatus: { in: ['APPROVED', 'PENDING'] },
+            startDate: { lte: todayEnd },
+            endDate: { gte: todayStart }
+        },
+        include: {
+            user: { select: { id: true, name: true, role: true, employeeId: true, rotationOffset: true } }
+        }
+    });
+
+    // 3. Data Jadwal Hari Ini untuk filter Izin Pending
+    const todaySchedules = await prisma.schedule.findMany({
+        where: {
+            date: { gte: todayStart, lte: todayEnd }
+        }
+    });
+
+    // Merge Clocked-in and Permits
+    const securityEmployees: DashboardEmployee[] = [
+        ...presentSecurityRaw.map(a => ({
+            ...a.user,
+            imageUrl: `/api/images/users/${a.user.id}`,
+            status: 'ONLINE' as const,
+            isPending: false
+        })),
+        ...activePermits
+            .filter(p => {
+                // Jangan duplikat jika sudah clock in
+                if (presentSecurityRaw.some(a => a.userId === p.userId)) return false;
+
+                // Jika sudah APPROVED, selalu munculkan
+                if (p.finalStatus === 'APPROVED') return true;
+
+                // Jika PENDING, tentukan shift-nya
+                let shift = 'OFF';
+
+                // 1. Cek Jadwal Manual
+                const manual = todaySchedules.find(s => s.userId === p.userId);
+                if (manual) {
+                    shift = manual.shiftCode;
+                } else {
+                    // 2. Jika tidak ada manual, gunakan Rotasi atau Static Schedule
+                    // PENTING: Gunakan raw Date() karena getShiftForDate akan mengonversinya ke Jakarta secara internal
+                    const targetDate = new Date();
+                    if (p.user.role === 'SECURITY') {
+                        shift = getShiftForDate(p.user.rotationOffset, targetDate);
+                    } else if (p.user.role === 'LINGKUNGAN' || p.user.role === 'KEBERSIHAN') {
+                        shift = getStaticSchedule(p.user.role, targetDate);
+                    }
+                }
+
+                // Hanya munculkan jika Shift yang terdeteksi bukan OFF
+                return shift !== 'OFF';
+            })
+            .map(p => ({
+                ...p.user,
+                imageUrl: `/api/images/users/${p.user.id}`,
+                status: 'PERMIT' as const,
+                permitType: p.type,
+                isPending: p.finalStatus === 'PENDING'
+            }))
+    ];
 
     let myRecentIncidents: IncidentReport[] = [];
     if (isPowerful || isFieldRole) {
@@ -148,14 +223,7 @@ export default async function DashboardPage() {
         totalEmployees: await prisma.user.count({
             where: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
         }),
-        presentToday: await prisma.attendance.count({
-            where: {
-                clockIn: { gte: activeWindow },
-                clockOut: null,
-                user: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } },
-                status: { in: ['PRESENT', 'LATE'] }
-            }
-        }),
+        presentToday: securityEmployees.filter(e => e.status === 'ONLINE').length,
         pendingPermits: await prisma.permit.count({ where: { finalStatus: 'PENDING' } }),
         pendingIncidents: await prisma.incidentReport.count({ where: { status: 'PENDING' } }),
         onDutyToday: await prisma.attendance.count({
@@ -437,8 +505,19 @@ export default async function DashboardPage() {
                                             </div>
                                         </div>
                                         <div className="flex flex-col items-end">
-                                            <div className="h-2 w-2 rounded-full bg-emerald-500 shadow-[0_0_8px] shadow-emerald-500/50" />
-                                            <span className="text-[7px] font-black text-emerald-600 uppercase mt-1 tracking-widest">ONLINE</span>
+                                            <div className={cn(
+                                                "h-2 w-2 rounded-full shadow-[0_0_8px]",
+                                                emp.status === 'ONLINE' ? "bg-emerald-500 shadow-emerald-500/50" :
+                                                    emp.isPending ? "bg-rose-500 shadow-rose-500/50 animate-pulse" : "bg-amber-500 shadow-amber-500/50"
+                                            )} />
+                                            <span className={cn(
+                                                "text-[7px] font-black uppercase mt-1 tracking-widest",
+                                                emp.status === 'ONLINE' ? "text-emerald-600" :
+                                                    emp.isPending ? "text-rose-600" : "text-amber-600"
+                                            )}>
+                                                {emp.status === 'ONLINE' ? 'ONLINE' :
+                                                    `${emp.permitType}${emp.isPending ? ' (PENDING)' : ''}`}
+                                            </span>
                                         </div>
                                     </div>
                                 ))

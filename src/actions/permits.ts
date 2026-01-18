@@ -9,23 +9,36 @@ import { sendWhatsAppMessage, WhatsAppProvider } from '@/lib/whatsapp';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { toZonedTime } from 'date-fns-tz';
+import fs from 'fs';
+import { writeFile } from 'fs/promises';
+import { join } from 'path';
 
 export async function createPermit(formData: FormData) {
     try {
         const userId = formData.get('userId') as string;
-
         const type = formData.get('type') as string;
         const startDate = new Date(formData.get('startDate') as string);
         const endDate = new Date(formData.get('endDate') as string);
         const reason = formData.get('reason') as string;
         const file = formData.get('image') as File;
-
-        // ✅ Vercel Compatible: Convert File to Base64
         let imageUrl: string | null = null;
+
         if (file && file.size > 0) {
+            // ✅ Save to local file system instead of Base64
             const bytes = await file.arrayBuffer();
             const buffer = Buffer.from(bytes);
-            imageUrl = `data:${file.type};base64,${buffer.toString('base64')}`;
+
+            const fileName = `${userId}_${Date.now()}_${file.name.replace(/\s+/g, '_')}`;
+            const path = `public/uploads/permits/${fileName}`;
+
+            // Ensure directory exists (extra check)
+            const dir = join(process.cwd(), 'public/uploads/permits');
+            if (!fs.existsSync(dir)) {
+                fs.mkdirSync(dir, { recursive: true });
+            }
+
+            await writeFile(join(process.cwd(), path), buffer);
+            imageUrl = `/uploads/permits/${fileName}`;
         }
 
         // Check for overlapping permits
