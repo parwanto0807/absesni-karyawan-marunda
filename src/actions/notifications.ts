@@ -23,6 +23,31 @@ export async function createNotification(data: {
         return { success: true };
     } catch (error) {
         console.error('Create Notification Error:', error);
+    }
+}
+
+export async function createBroadcastNotification(data: {
+    title: string;
+    message: string;
+    type: 'ATTENDANCE' | 'PERMIT' | 'SYSTEM' | 'INCIDENT';
+    link?: string;
+}) {
+    try {
+        const users = await prisma.user.findMany({ select: { id: true } });
+        const notifications = users.map(user => ({
+            userId: user.id,
+            title: data.title,
+            message: data.message,
+            type: data.type,
+            link: data.link,
+        }));
+
+        await prisma.notification.createMany({
+            data: notifications,
+        });
+        return { success: true };
+    } catch (error) {
+        console.error('Broadcast Notification Error:', error);
         return { success: false };
     }
 }

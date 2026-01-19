@@ -32,6 +32,8 @@ import { IncidentReport } from '@/types/incident';
 import UserAvatar from '@/components/UserAvatar';
 import { getDashboardInfo } from '@/actions/info';
 import InfoCarousel from '@/components/InfoCarousel';
+import VoucherClaim from '@/components/VoucherClaim';
+import { checkVoucherClaimed } from '@/actions/performance';
 
 interface DashboardEmployee {
     id: string;
@@ -68,8 +70,14 @@ export default async function DashboardPage() {
 
     // Calculate performance for field personnel - OPTIMIZED
     let myPerformance: { score: number; totalAttendance: number } | null = null;
+    let currentUserData = null;
 
     if (isFieldRole) {
+        currentUserData = await prisma.user.findUnique({
+            where: { id: session.userId },
+            select: { employeeId: true, rotationOffset: true }
+        });
+
         const now = new Date();
         const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
         const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
@@ -95,6 +103,64 @@ export default async function DashboardPage() {
             myPerformance = { score: 0, totalAttendance: 0 };
         }
     }
+
+    // ... (lines 107-270 unchanged)
+
+    // Voucher Logic Calculation
+    let showVoucher = false;
+    let voucherClaimedAt: Date | null = null;
+    let isAlreadyClaimed = false;
+
+    if (isFieldRole && myPerformance && myPerformance.score === 100 && currentUserData) {
+        const now = new Date();
+        const currentMonth = now.getMonth() + 1;
+        const currentYear = now.getFullYear();
+
+        // 1. Check if already claimed
+        const existingClaim = await prisma.voucherClaim.findUnique({
+            where: {
+                userId_month_year: {
+                    userId: session.userId,
+                    month: currentMonth,
+                    year: currentYear
+                }
+            }
+        });
+
+        if (existingClaim) {
+            showVoucher = true;
+            isAlreadyClaimed = true;
+            voucherClaimedAt = existingClaim.claimedAt;
+        } else {
+            // 2. If not claimed, check eligibility (End of Month & After Shift)
+            const lastDay = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+            const isLastDay = now.getDate() === lastDay.getDate();
+
+            if (isLastDay) {
+                let shiftCode = 'OFF';
+                // Determine shift using existing helpers
+                if (session.role === 'SECURITY') {
+                    shiftCode = getShiftForDate(currentUserData.rotationOffset || 0, now);
+                } else if (session.role === 'LINGKUNGAN' || session.role === 'KEBERSIHAN') {
+                    shiftCode = getStaticSchedule(session.role, now);
+                }
+
+                if (shiftCode !== 'OFF') {
+                    const timings = getShiftTimings(shiftCode, now);
+                    if (timings) {
+                        // Check if current time is PAST the shift end time
+                        // Note: shiftTimings.end handles cross-day logic (e.g. next day 8 AM)
+                        // If now > timings.end, then shift is over.
+                        if (now > timings.end) {
+                            showVoucher = true;
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+
 
     // 1. Data untuk Security/Lingkungan: History 7 hari rekan kerja
     const teamAttendanceRaw = await prisma.attendance.findMany({
@@ -400,18 +466,33 @@ export default async function DashboardPage() {
                                         </div>
                                         <div className="space-y-2">
                                             <h3 className="text-sm font-black text-white uppercase tracking-wide">
-                                                {myPerformance.score >= 98 ? 'Anda adalah Teladan!' :
-                                                    myPerformance.score >= 95 ? 'Disiplin Luar Biasa!' :
-                                                        myPerformance.score >= 90 ? 'Pertahankan Standar!' :
-                                                            myPerformance.score >= 85 ? 'Perlu Perbaikan!' :
-                                                                'Perhatian Khusus Diperlukan!'}
+                                                {myPerformance.score === 100 ? 'Performa Sempurna!' :
+                                                    myPerformance.score >= 98 ? 'Anda adalah Teladan!' :
+                                                        myPerformance.score >= 95 ? 'Disiplin Luar Biasa!' :
+                                                            myPerformance.score >= 90 ? 'Pertahankan Standar!' :
+                                                                myPerformance.score >= 85 ? 'Perlu Perbaikan!' :
+                                                                    'Perhatian Khusus Diperlukan!'}
                                             </h3>
                                             <p className="text-sm text-white/80 leading-relaxed font-medium">
-                                                {myPerformance.score >= 98 ? 'Luar biasa! Pertahankan dedikasi Anda sebagai penjaga keamanan terbaik.' :
-                                                    myPerformance.score >= 95 ? 'Kerja bagus! Kehadiran Anda sangat membantu stabilitas keamanan cluster.' :
-                                                        myPerformance.score >= 90 ? 'Kehadiran cukup baik. Yuk, kurangi keterlambatan agar performa makin prima.' :
-                                                            myPerformance.score >= 85 ? 'Mohon tingkatkan kedisiplinan Anda demi kenyamanan penghuni cluster.' :
-                                                                'Segera koordinasi dengan komandan regu terkait kendala kehadiran Anda.'}
+                                                {myPerformance.score >= 98 ? (
+                                                    session.role === 'SECURITY'
+                                                        ? 'Luar biasa! Pertahankan dedikasi Anda sebagai penjaga keamanan terbaik.'
+                                                        : 'Luar biasa! Pertahankan dedikasi Anda dalam menjaga kebersihan dan keasrian Marunda.'
+                                                ) : myPerformance.score >= 95 ? (
+                                                    session.role === 'SECURITY'
+                                                        ? 'Kerja bagus! Kehadiran Anda sangat membantu stabilitas keamanan cluster.'
+                                                        : 'Kerja bagus! Kedisiplinan Anda sangat membantu kenyamanan area Marunda.'
+                                                ) : myPerformance.score >= 90 ? (
+                                                    'Kehadiran cukup baik. Yuk, kurangi keterlambatan agar performa makin prima.'
+                                                ) : myPerformance.score >= 85 ? (
+                                                    session.role === 'SECURITY'
+                                                        ? 'Mohon tingkatkan kedisiplinan Anda demi kenyamanan penghuni cluster.'
+                                                        : 'Mohon tingkatkan kedisiplinan Anda demi kebersihan dan kenyamanan area.'
+                                                ) : (
+                                                    session.role === 'SECURITY'
+                                                        ? 'Segera koordinasi dengan komandan regu terkait kendala kehadiran Anda.'
+                                                        : 'Segera koordinasi dengan koordinator lapangan terkait kendala kehadiran Anda.'
+                                                )}
                                             </p>
                                             <div className="flex items-center space-x-2 pt-2">
                                                 <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
@@ -434,8 +515,23 @@ export default async function DashboardPage() {
                             </div>
                         </div>
                     </div>
+
+                    {/* Voucher Claim Section - Only if score is 100% */}
+                    {/* Voucher Claim Section - Only if conditions met */}
+                    {showVoucher && (
+                        <VoucherClaim
+                            userId={session.userId}
+                            userName={session.username}
+                            employeeId={currentUserData?.employeeId || '-'}
+                            role={session.role}
+                            month={new Date().toLocaleDateString('id-ID', { month: 'long', year: 'numeric', timeZone: TIMEZONE })}
+                            isAlreadyClaimed={isAlreadyClaimed}
+                            claimedAt={voucherClaimedAt}
+                        />
+                    )}
                 </>
             )}
+
 
             {/* --- INFO CAROUSEL (Prayer, News, Weather) --- */}
             {info.success && info.data && (

@@ -26,7 +26,7 @@ interface InfoCarouselProps {
             image: string;
             sourceUrl?: string;
         } | null;
-        news: { id: string | number; text: string; image: string; sourceUrl?: string }[];
+        news: { id: string | number; text: string; image: string; sourceUrl?: string; title?: string }[];
     };
 }
 
@@ -83,7 +83,7 @@ const InfoCarousel: React.FC<InfoCarouselProps> = ({ data }) => {
         ...data.news.map((item) => ({
             id: item.id,
             type: "news" as const,
-            title: "Update Bekasi",
+            title: item.title || "Update Bekasi",
             content: item.text,
             image: imgErrors[item.id] ? DEFAULT_IMAGE : item.image,
             sourceUrl: item.sourceUrl,
@@ -102,7 +102,9 @@ const InfoCarousel: React.FC<InfoCarouselProps> = ({ data }) => {
                                 <Navigation size={12} className="text-white" />
                                 <span className="text-[10px] font-black text-white uppercase tracking-widest">Informasi Terkini</span>
                             </div>
-                            <h3 className="text-xl font-black text-white leading-tight uppercase tracking-tighter">Berita Kota Bekasi Hari Ini</h3>
+                            <h3 className="text-xl font-black text-white leading-tight uppercase tracking-tighter">
+                                {item.title || "Berita Kota Bekasi Hari Ini"}
+                            </h3>
                         </div>
                     </div>
                     <div className="bg-slate-50 dark:bg-slate-800/50 p-6 rounded-[2rem] border border-slate-100 dark:border-slate-800">
