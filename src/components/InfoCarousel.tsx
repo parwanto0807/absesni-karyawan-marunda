@@ -26,7 +26,7 @@ interface InfoCarouselProps {
             image: string;
             sourceUrl?: string;
         } | null;
-        news: { id: number; text: string; image: string; sourceUrl?: string }[];
+        news: { id: string | number; text: string; image: string; sourceUrl?: string }[];
     };
 }
 
