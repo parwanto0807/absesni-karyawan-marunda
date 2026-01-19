@@ -23,7 +23,7 @@ import PerformanceDashboard from '@/components/PerformanceDashboard';
 import { ImageModal } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
-import { getShiftForDate, getStaticSchedule } from '@/lib/schedule-utils';
+import { getShiftForDate, getStaticSchedule, getShiftTimings } from '@/lib/schedule-utils';
 import DigitalClock from '@/components/DigitalClock';
 import IncidentReportDialog from '@/components/IncidentReportDialog';
 import ReviewIncidents from '@/components/ReviewIncidents';
@@ -180,11 +180,9 @@ export default async function DashboardPage() {
                 // Jangan duplikat jika sudah clock in
                 if (presentSecurityRaw.some(a => a.userId === p.userId)) return false;
 
-                // Jika sudah APPROVED, selalu munculkan
-                if (p.finalStatus === 'APPROVED') return true;
-
-                // Jika PENDING, tentukan shift-nya
+                // Jika statusnya APPROVED atau PENDING, tentukan shift-nya
                 let shift = 'OFF';
+                const targetDate = new Date();
 
                 // 1. Cek Jadwal Manual
                 const manual = todaySchedules.find(s => s.userId === p.userId);
@@ -193,7 +191,6 @@ export default async function DashboardPage() {
                 } else {
                     // 2. Jika tidak ada manual, gunakan Rotasi atau Static Schedule
                     // PENTING: Gunakan raw Date() karena getShiftForDate akan mengonversinya ke Jakarta secara internal
-                    const targetDate = new Date();
                     if (p.user.role === 'SECURITY') {
                         shift = getShiftForDate(p.user.rotationOffset, targetDate);
                     } else if (p.user.role === 'LINGKUNGAN' || p.user.role === 'KEBERSIHAN') {
@@ -202,7 +199,16 @@ export default async function DashboardPage() {
                 }
 
                 // Hanya munculkan jika Shift yang terdeteksi bukan OFF
-                return shift !== 'OFF';
+                if (shift === 'OFF') return false;
+
+                // 3. Cek apakah SEKARANG sedang dalam jam shift tersebut
+                const timings = getShiftTimings(shift, targetDate);
+                if (!timings) return false;
+
+                // Berikan buffer 30 menit sebelum/sesudah jika perlu,
+                // tapi standarnya kita cek apakah current time berada di dalam rentang
+                const now = new Date();
+                return now >= timings.start && now <= timings.end;
             })
             .map(p => ({
                 ...p.user,
