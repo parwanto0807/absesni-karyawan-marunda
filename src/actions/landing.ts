@@ -64,6 +64,15 @@ export async function deleteLandingActivity(id: string) {
     return { success: true };
 }
 
+export async function updateLandingActivity(id: string, title: string, time: string, description?: string, image?: string) {
+    await prisma.landingActivity.update({
+        where: { id },
+        data: { title, time, description, image }
+    });
+    revalidatePath('/');
+    return { success: true };
+}
+
 // --- Services ---
 
 export async function getLandingServices() {
@@ -88,6 +97,15 @@ export async function addLandingService(icon: string, title: string, description
 
 export async function deleteLandingService(id: string) {
     await prisma.landingService.delete({ where: { id } });
+    revalidatePath('/');
+    return { success: true };
+}
+
+export async function updateLandingService(id: string, icon: string, title: string, description: string) {
+    await prisma.landingService.update({
+        where: { id },
+        data: { icon, title, description }
+    });
     revalidatePath('/');
     return { success: true };
 }

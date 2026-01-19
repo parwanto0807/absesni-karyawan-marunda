@@ -29,10 +29,13 @@ import {
     getLandingActivities,
     addLandingActivity,
     deleteLandingActivity,
+    updateLandingActivity,
     getLandingServices,
     addLandingService,
-    deleteLandingService
+    deleteLandingService,
+    updateLandingService
 } from '@/actions/landing';
+import { Edit2, X } from 'lucide-react';
 import NextImage from 'next/image';
 
 interface Activity {
@@ -72,6 +75,18 @@ export default function LandingSettingsTab() {
     const [newServiceTitle, setNewServiceTitle] = useState('');
     const [newServiceIcon, setNewServiceIcon] = useState('Info');
     const [newServiceDesc, setNewServiceDesc] = useState('');
+
+    // Edit State
+    const [editingActivity, setEditingActivity] = useState<Activity | null>(null);
+    const [editActivityTitle, setEditActivityTitle] = useState('');
+    const [editActivityTime, setEditActivityTime] = useState('');
+    const [editActivityDesc, setEditActivityDesc] = useState('');
+    const [editActivityImage, setEditActivityImage] = useState('');
+
+    const [editingService, setEditingService] = useState<Service | null>(null);
+    const [editServiceTitle, setEditServiceTitle] = useState('');
+    const [editServiceIcon, setEditServiceIcon] = useState('Info');
+    const [editServiceDesc, setEditServiceDesc] = useState('');
 
     useEffect(() => {
         loadData();
@@ -135,6 +150,7 @@ export default function LandingSettingsTab() {
     };
 
     const handleDeleteActivity = async (id: string) => {
+        if (!confirm('Hapus kegiatan ini?')) return;
         setLoading(true);
         try {
             await deleteLandingActivity(id);
@@ -143,6 +159,30 @@ export default function LandingSettingsTab() {
             toast.success('Kegiatan berhasil dihapus');
         } catch (_error) {
             toast.error('Gagal menghapus kegiatan');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditActivity = (act: Activity) => {
+        setEditingActivity(act);
+        setEditActivityTitle(act.title);
+        setEditActivityTime(act.time);
+        setEditActivityDesc(act.description || '');
+        setEditActivityImage(act.image || '');
+    };
+
+    const handleUpdateActivity = async () => {
+        if (!editingActivity || !editActivityTitle || !editActivityTime) return;
+        setLoading(true);
+        try {
+            await updateLandingActivity(editingActivity.id, editActivityTitle, editActivityTime, editActivityDesc, editActivityImage);
+            setEditingActivity(null);
+            const acts = await getLandingActivities();
+            setActivities(acts as Activity[]);
+            toast.success('Kegiatan berhasil diperbarui');
+        } catch (_error) {
+            toast.error('Gagal memperbarui kegiatan');
         } finally {
             setLoading(false);
         }
@@ -166,6 +206,7 @@ export default function LandingSettingsTab() {
     };
 
     const handleDeleteService = async (id: string) => {
+        if (!confirm('Hapus layanan ini?')) return;
         setLoading(true);
         try {
             await deleteLandingService(id);
@@ -174,6 +215,29 @@ export default function LandingSettingsTab() {
             toast.success('Layanan berhasil dihapus');
         } catch (_error) {
             toast.error('Gagal menghapus layanan');
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleEditService = (svc: Service) => {
+        setEditingService(svc);
+        setEditServiceTitle(svc.title);
+        setEditServiceIcon(svc.icon);
+        setEditServiceDesc(svc.description);
+    };
+
+    const handleUpdateService = async () => {
+        if (!editingService || !editServiceTitle || !editServiceDesc) return;
+        setLoading(true);
+        try {
+            await updateLandingService(editingService.id, editServiceIcon, editServiceTitle, editServiceDesc);
+            setEditingService(null);
+            const svcs = await getLandingServices();
+            setServices(svcs as Service[]);
+            toast.success('Layanan berhasil diperbarui');
+        } catch (_error) {
+            toast.error('Gagal memperbarui layanan');
         } finally {
             setLoading(false);
         }
@@ -460,16 +524,111 @@ export default function LandingSettingsTab() {
                                         )}
                                     </div>
                                 </div>
-                                <button
-                                    onClick={() => handleDeleteActivity(act.id)}
-                                    className="p-2 text-slate-300 hover:text-rose-600 transition-colors"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex gap-1">
+                                    <button
+                                        onClick={() => handleEditActivity(act)}
+                                        className="p-2 text-slate-300 hover:text-indigo-600 transition-colors"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteActivity(act.id)}
+                                        className="p-2 text-slate-300 hover:text-rose-600 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
+
+                {/* Edit Activity Modal */}
+                {editingActivity && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center justify-between p-6 border-b border-slate-50 dark:border-slate-800">
+                                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">Edit Agenda</h3>
+                                <button onClick={() => setEditingActivity(null)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4 max-h-[70vh] overflow-y-auto custom-scrollbar">
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400">Nama Kegiatan</label>
+                                    <input
+                                        type="text"
+                                        value={editActivityTitle}
+                                        onChange={(e) => setEditActivityTitle(e.target.value)}
+                                        className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-bold outline-none focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400">Waktu</label>
+                                    <input
+                                        type="text"
+                                        value={editActivityTime}
+                                        onChange={(e) => setEditActivityTime(e.target.value)}
+                                        className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-bold outline-none focus:border-indigo-500"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400">Deskripsi</label>
+                                    <textarea
+                                        value={editActivityDesc}
+                                        onChange={(e) => setEditActivityDesc(e.target.value)}
+                                        className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none focus:border-indigo-500 min-h-[100px]"
+                                    />
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400">Foto Kegiatan</label>
+                                    <div className="flex items-center gap-4">
+                                        <div className="w-20 h-20 rounded-xl bg-slate-100 overflow-hidden shrink-0 border border-slate-200 relative">
+                                            {editActivityImage ? (
+                                                <img src={editActivityImage} alt="" className="w-full h-full object-cover" />
+                                            ) : (
+                                                <div className="w-full h-full flex items-center justify-center text-slate-300">
+                                                    <ImageIcon size={24} />
+                                                </div>
+                                            )}
+                                        </div>
+                                        <div className="flex-1 space-y-2">
+                                            <label className="block w-full text-center py-2 rounded-lg border border-dashed border-slate-300 dark:border-slate-700 text-[10px] font-bold uppercase cursor-pointer hover:border-indigo-500 transition-colors">
+                                                Ganti Foto
+                                                <input
+                                                    type="file"
+                                                    className="hidden"
+                                                    accept="image/*"
+                                                    onChange={async (e) => {
+                                                        const file = e.target.files?.[0];
+                                                        if (file) {
+                                                            const reader = new FileReader();
+                                                            reader.onloadend = () => {
+                                                                setEditActivityImage(reader.result as string);
+                                                            };
+                                                            reader.readAsDataURL(file);
+                                                        }
+                                                    }}
+                                                />
+                                            </label>
+                                            <button onClick={() => setEditActivityImage('')} className="w-full text-[10px] font-bold uppercase text-rose-500 hover:text-rose-600 transition-colors">Hapus Foto</button>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div className="p-6 border-t border-slate-50 dark:border-slate-800">
+                                <button
+                                    onClick={handleUpdateActivity}
+                                    disabled={loading || !editActivityTitle || !editActivityTime}
+                                    className="w-full py-4 bg-indigo-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-indigo-700 transition-all shadow-lg shadow-indigo-200 dark:shadow-none"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                    Simpan Perubahan Agenda
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
 
             {/* Services Management */}
@@ -527,16 +686,82 @@ export default function LandingSettingsTab() {
                                     <div className="text-xs font-black text-slate-900 dark:text-white uppercase tracking-tight truncate">{svc.title}</div>
                                     <div className="text-[9px] font-medium text-slate-400 line-clamp-1">{svc.description}</div>
                                 </div>
-                                <button
-                                    onClick={() => handleDeleteService(svc.id)}
-                                    className="p-2 text-slate-300 hover:text-rose-600 transition-colors shrink-0"
-                                >
-                                    <Trash2 size={16} />
-                                </button>
+                                <div className="flex gap-1 shrink-0">
+                                    <button
+                                        onClick={() => handleEditService(svc)}
+                                        className="p-2 text-slate-300 hover:text-blue-600 transition-colors"
+                                    >
+                                        <Edit2 size={16} />
+                                    </button>
+                                    <button
+                                        onClick={() => handleDeleteService(svc.id)}
+                                        className="p-2 text-slate-300 hover:text-rose-600 transition-colors"
+                                    >
+                                        <Trash2 size={16} />
+                                    </button>
+                                </div>
                             </div>
                         ))}
                     </div>
                 </div>
+
+                {/* Edit Service Modal */}
+                {editingService && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                        <div className="w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2rem] shadow-2xl overflow-hidden border border-slate-200 dark:border-slate-800 animate-in zoom-in-95 duration-200">
+                            <div className="flex items-center justify-between p-6 border-b border-slate-50 dark:border-slate-800">
+                                <h3 className="text-lg font-black uppercase tracking-tight text-slate-900 dark:text-white">Edit Layanan</h3>
+                                <button onClick={() => setEditingService(null)} className="p-2 rounded-full hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400">
+                                    <X size={20} />
+                                </button>
+                            </div>
+                            <div className="p-6 space-y-4">
+                                <div className="grid grid-cols-2 gap-4">
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400">Judul Layanan</label>
+                                        <input
+                                            type="text"
+                                            value={editServiceTitle}
+                                            onChange={(e) => setEditServiceTitle(e.target.value)}
+                                            className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-bold outline-none focus:border-blue-500"
+                                        />
+                                    </div>
+                                    <div className="space-y-2">
+                                        <label className="text-[10px] font-black uppercase text-slate-400">Ikon</label>
+                                        <select
+                                            value={editServiceIcon}
+                                            onChange={(e) => setEditServiceIcon(e.target.value)}
+                                            className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-bold outline-none focus:border-blue-500"
+                                        >
+                                            <option value="Megaphone">Warta</option>
+                                            <option value="TreePine">Lingkungan</option>
+                                            <option value="Shield">Keamanan</option>
+                                            <option value="Info">Info</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-2">
+                                    <label className="text-[10px] font-black uppercase text-slate-400">Keterangan</label>
+                                    <textarea
+                                        value={editServiceDesc}
+                                        onChange={(e) => setEditServiceDesc(e.target.value)}
+                                        className="w-full p-4 rounded-xl border border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-900 text-sm font-medium outline-none focus:border-blue-500 min-h-[100px]"
+                                    />
+                                </div>
+                            </div>
+                            <div className="p-6 border-t border-slate-50 dark:border-slate-800">
+                                <button
+                                    onClick={handleUpdateService}
+                                    disabled={loading || !editServiceTitle || !editServiceDesc}
+                                    className="w-full py-4 bg-blue-600 text-white rounded-2xl font-black uppercase tracking-widest text-xs flex items-center justify-center gap-2 hover:bg-blue-700 transition-all shadow-lg shadow-blue-200 dark:shadow-none"
+                                >
+                                    {loading ? <Loader2 className="animate-spin" size={16} /> : <Save size={16} />}
+                                    Simpan Perubahan Layanan
+                                </button>
+                            </div>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );
