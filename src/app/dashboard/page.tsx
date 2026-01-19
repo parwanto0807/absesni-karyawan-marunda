@@ -30,6 +30,8 @@ import ReviewIncidents from '@/components/ReviewIncidents';
 import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import { IncidentReport } from '@/types/incident';
 import UserAvatar from '@/components/UserAvatar';
+import { getDashboardInfo } from '@/actions/info';
+import InfoCarousel from '@/components/InfoCarousel';
 
 interface DashboardEmployee {
     id: string;
@@ -248,6 +250,8 @@ export default async function DashboardPage() {
     const settingsMap: Record<string, string> = {};
     settings.forEach(s => settingsMap[s.key] = s.value);
 
+    const info = await getDashboardInfo();
+
 
     /* const getDutyForRole = (role: string) => {
         if (role === 'SECURITY') return settingsMap.DUTY_SECURITY;
@@ -431,6 +435,11 @@ export default async function DashboardPage() {
                         </div>
                     </div>
                 </>
+            )}
+
+            {/* --- INFO CAROUSEL (Prayer, News, Weather) --- */}
+            {info.success && info.data && (
+                <InfoCarousel data={info.data} />
             )}
 
             {/* --- MOBILE SHORTCUTS --- */}
