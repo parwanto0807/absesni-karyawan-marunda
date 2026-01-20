@@ -169,7 +169,7 @@ export default function Header({ user }: HeaderProps) {
                 </div>
             </div>
 
-            <div className="flex items-center space-x-2 md:space-x-4">
+            <div className="flex items-center space-x-1 md:space-x-4">
                 <WeatherWidget />
                 <ModeToggle />
                 {user && <NotificationBell userId={user.userId} />}

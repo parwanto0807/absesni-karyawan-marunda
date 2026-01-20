@@ -107,7 +107,7 @@ export default function WeatherWidget() {
             href="https://www.bmkg.go.id"
             target="_blank"
             rel="noopener noreferrer"
-            className="flex shrink-0 items-center space-x-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-100 dark:border-slate-700 rounded-2xl px-3 py-1.5 shadow-sm transition-all hover:bg-white/80 dark:hover:bg-slate-800/80 hover:scale-[1.02] active:scale-95 cursor-pointer group"
+            className="flex shrink-0 items-center space-x-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-100 dark:border-slate-700 rounded-2xl px-2 md:px-3 py-1.5 shadow-sm transition-all hover:bg-white/80 dark:hover:bg-slate-800/80 hover:scale-[1.02] active:scale-95 cursor-pointer group"
         >
             <div className="flex items-center justify-center w-8 h-8 rounded-full bg-slate-100 dark:bg-slate-900/50 shrink-0 group-hover:bg-indigo-50 dark:group-hover:bg-indigo-900/30 transition-colors">
                 {getWeatherIcon(weather)}
@@ -127,7 +127,7 @@ export default function WeatherWidget() {
                         <MapPin size={8} />
                         <span>Wanajaya</span>
                     </div>
-                    <span className="text-[6px] font-bold text-indigo-400/80 uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50 rounded-[3px] px-0.5 bg-indigo-50 dark:bg-indigo-900/20 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
+                    <span className="hidden md:inline-block text-[6px] font-bold text-indigo-400/80 uppercase tracking-widest border border-indigo-100 dark:border-indigo-900/50 rounded-[3px] px-0.5 bg-indigo-50 dark:bg-indigo-900/20 group-hover:bg-indigo-100 dark:group-hover:bg-indigo-900/50 transition-colors">
                         BMKG
                     </span>
                 </div>
