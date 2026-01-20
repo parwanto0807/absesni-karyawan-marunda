@@ -20,6 +20,7 @@ import { getIncidentReports } from '@/actions/incident';
 import { prisma } from '@/lib/db';
 import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
+import LatenessMonitoringChart from '@/components/LatenessMonitoringChart';
 import { ImageModal } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
@@ -635,6 +636,9 @@ export default async function DashboardPage() {
                             )}
                         </div>
                     </div>
+                    {/* Performance Monitoring - Only for ADMIN and RT */}
+                    {['ADMIN', 'RT'].includes(session.role) && <LatenessMonitoringChart />}
+
                     {isPowerful && <PerformanceDashboard />}
                     <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6 overflow-hidden relative">
                         <div className="absolute top-0 right-0 p-4 opacity-10">
