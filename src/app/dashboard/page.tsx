@@ -35,6 +35,7 @@ import { getDashboardInfo } from '@/actions/info';
 import InfoCarousel from '@/components/InfoCarousel';
 import VoucherClaim from '@/components/VoucherClaim';
 import { checkVoucherClaimed } from '@/actions/performance';
+import WeatherWidget from '@/components/WeatherWidget';
 
 interface DashboardEmployee {
     id: string;

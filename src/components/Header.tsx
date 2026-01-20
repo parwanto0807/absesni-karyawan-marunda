@@ -21,6 +21,7 @@ import { useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import NotificationBell from '@/components/NotificationBell';
 import { cn } from '@/lib/utils';
+import WeatherWidget from '@/components/WeatherWidget';
 
 interface HeaderProps {
     user: SessionPayload | null;
@@ -169,6 +170,7 @@ export default function Header({ user }: HeaderProps) {
             </div>
 
             <div className="flex items-center space-x-2 md:space-x-4">
+                <WeatherWidget />
                 <ModeToggle />
                 {user && <NotificationBell userId={user.userId} />}
 
