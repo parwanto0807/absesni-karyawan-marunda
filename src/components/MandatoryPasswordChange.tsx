@@ -130,6 +130,16 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                     </div>
 
                     <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-5">
+                        {/* Hidden username field for password managers */}
+                        <input
+                            type="text"
+                            name="username"
+                            value={user.username}
+                            readOnly
+                            className="hidden"
+                            autoComplete="username"
+                        />
+
                         <div className="space-y-1.5 sm:space-y-2">
                             <div className="flex justify-between items-center px-1">
                                 <Label htmlFor="oldPasswordMandatory" className="text-[10px] sm:text-xs uppercase font-black text-slate-400 tracking-tighter">Password Sekarang</Label>
@@ -141,11 +151,13 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                                 </div>
                                 <Input
                                     id="oldPasswordMandatory"
+                                    name="current-password"
                                     type={showOldPassword ? "text" : "password"}
                                     value={oldPassword}
                                     onChange={(e) => setOldPassword(e.target.value)}
                                     className="pl-12 pr-10 h-12 sm:h-14 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-red-500/20 focus:border-red-500 transition-all text-sm sm:text-base font-medium"
                                     placeholder="Masukkan password lama"
+                                    autoComplete="current-password"
                                     required
                                 />
                                 <button
@@ -164,11 +176,13 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                                 <div className="relative">
                                     <Input
                                         id="newPasswordMandatory"
+                                        name="new-password"
                                         type={showNewPassword ? "text" : "password"}
                                         value={newPassword}
                                         onChange={(e) => setNewPassword(e.target.value)}
                                         className="pr-10 h-12 sm:h-14 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm sm:text-base font-medium"
                                         placeholder="Min. 6 karakter"
+                                        autoComplete="new-password"
                                         required
                                     />
                                     <button
@@ -186,11 +200,13 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                                 <div className="relative">
                                     <Input
                                         id="confirmPasswordMandatory"
+                                        name="new-password-confirm"
                                         type={showConfirmPassword ? "text" : "password"}
                                         value={confirmPassword}
                                         onChange={(e) => setConfirmPassword(e.target.value)}
                                         className="pr-10 h-12 sm:h-14 bg-slate-50 dark:bg-slate-900/50 border-slate-200 dark:border-slate-800 rounded-2xl focus:ring-2 focus:ring-indigo-500/20 focus:border-indigo-500 transition-all text-sm sm:text-base font-medium"
                                         placeholder="Ulangi password"
+                                        autoComplete="new-password"
                                         required
                                     />
                                     <button
