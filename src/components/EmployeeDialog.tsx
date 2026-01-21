@@ -229,34 +229,40 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                             </div>
                         </div>
 
-                        {/* Password */}
-                        <div className="space-y-1 md:col-span-2">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                Password {employee && '(Opsional)'}
-                            </label>
-                            <div className="relative group">
-                                <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
-                                    <Lock size={16} />
-                                </span>
-                                <input
-                                    name="password"
-                                    type="password"
-                                    required={!employee}
-                                    className="w-full h-10 pl-9 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white text-xs font-bold"
-                                    placeholder="••••••••"
-                                />
+                        {/* Password - Hidden during Edit for security */}
+                        {!employee && (
+                            <div className="space-y-1 md:col-span-2">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
+                                    Password
+                                </label>
+                                <div className="relative group">
+                                    <span className="absolute inset-y-0 left-0 flex items-center pl-3 text-slate-400 group-focus-within:text-indigo-600 transition-colors">
+                                        <Lock size={16} />
+                                    </span>
+                                    <input
+                                        name="password"
+                                        type="password"
+                                        required
+                                        className="w-full h-10 pl-9 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white text-xs font-bold"
+                                        placeholder="••••••••"
+                                    />
+                                </div>
                             </div>
-                        </div>
+                        )}
 
                         {/* Role selection */}
                         <div className="md:col-span-2 space-y-1">
-                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Jabatan / Role</label>
-                            <div className="grid grid-cols-3 gap-2">
+                            <div className="flex justify-between items-center ml-1">
+                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Jabatan / Role</label>
+                                {employee && <span className="text-[8px] text-amber-500 font-bold uppercase italic">Terkunci (Hubungi IT)</span>}
+                            </div>
+                            <div className={cn("grid grid-cols-3 gap-2", employee && "opacity-60 pointer-events-none")}>
                                 {roleOptions.map((opt) => (
                                     <label
                                         key={opt.id}
                                         className={cn(
-                                            "flex items-center justify-center p-2 rounded-xl border-2 cursor-pointer transition-all active:scale-95",
+                                            "flex items-center justify-center p-2 rounded-xl border-2 transition-all",
+                                            employee ? "cursor-not-allowed" : "cursor-pointer active:scale-95",
                                             "has-[:checked]:border-indigo-600 has-[:checked]:bg-indigo-50 dark:has-[:checked]:bg-indigo-900/20",
                                             "border-transparent bg-slate-50 dark:bg-slate-800"
                                         )}
@@ -266,8 +272,9 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                             name="role"
                                             value={opt.id}
                                             checked={selectedRole === opt.id}
-                                            onChange={(e) => setSelectedRole(e.target.value)}
+                                            onChange={(e) => !employee && setSelectedRole(e.target.value)}
                                             className="hidden"
+                                            disabled={!!employee}
                                         />
                                         <span className="text-[10px] font-bold text-slate-600 dark:text-slate-400 has-[:checked]:text-indigo-700">{opt.label}</span>
                                     </label>
@@ -278,13 +285,20 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                         {/* Schedule Info based on Role */}
                         {selectedRole === 'SECURITY' && (
                             <div className="md:col-span-2 space-y-1 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">
-                                    Pola Awal (Januari 1)
-                                </label>
+                                <div className="flex justify-between items-center ml-1">
+                                    <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">
+                                        Pola Awal (Januari 1)
+                                    </label>
+                                    {employee && <span className="text-[8px] text-amber-500 font-bold uppercase italic font-sans">Terkunci</span>}
+                                </div>
                                 <select
                                     name="rotationOffset"
                                     defaultValue={employee?.rotationOffset || 0}
-                                    className="w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white text-xs font-bold"
+                                    disabled={!!employee}
+                                    className={cn(
+                                        "w-full h-10 px-3 rounded-xl bg-slate-50 dark:bg-slate-800 border-2 border-transparent focus:border-indigo-600 outline-none transition-all dark:text-white text-xs font-bold",
+                                        employee && "opacity-60 cursor-not-allowed"
+                                    )}
                                 >
                                     <option value="0">Tipe 1: P → PM → M → OFF → OFF</option>
                                     <option value="4">Tipe 2: OFF → P → PM → M → OFF</option>

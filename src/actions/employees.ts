@@ -4,6 +4,7 @@ import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
 import { UserRole } from '@/types/attendance';
 import { Role } from '@prisma/client';
+import { getSession } from '@/lib/auth';
 
 export async function createUser(formData: FormData) {
     const name = formData.get('name') as string;
@@ -184,5 +185,57 @@ export async function deleteManualSchedule(userId: string, date: Date) {
     } catch (error) {
         console.error('Delete Manual Schedule Error:', error);
         return { success: false, message: 'Gagal meriset jadwal manual.' };
+    }
+}
+export async function getTargetUsers() {
+    try {
+        const session = await getSession();
+        if (!session || session.username !== 'adminit') {
+            return [];
+        }
+
+        const users = await prisma.user.findMany({
+            select: {
+                username: true,
+                name: true,
+            },
+            orderBy: {
+                name: 'asc'
+            }
+        });
+        return users;
+    } catch (error) {
+        console.error('Fetch Target Users Error:', error);
+        return [];
+    }
+}
+
+export async function resetUserPassword(targetUsername: string, newPassword: string) {
+    try {
+        const session = await getSession();
+        if (!session || session.username !== 'adminit') {
+            return { success: false, message: 'Otoritas tidak cukup. Hanya adminit yang dapat melakukan ini.' };
+        }
+
+        const user = await prisma.user.findUnique({
+            where: { username: targetUsername }
+        });
+
+        if (!user) {
+            return { success: false, message: 'Karyawan tidak ditemukan.' };
+        }
+
+        await prisma.user.update({
+            where: { username: targetUsername },
+            data: {
+                password: newPassword,
+                isPasswordDefault: true // Force them to change it again for safety
+            }
+        });
+
+        return { success: true, message: `Password untuk @${targetUsername} berhasil direset.` };
+    } catch (error) {
+        console.error('Reset Password Error:', error);
+        return { success: false, message: 'Gagal meriset password.' };
     }
 }

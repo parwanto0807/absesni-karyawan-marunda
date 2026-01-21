@@ -222,7 +222,7 @@ export default function Header({ user }: HeaderProps) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <ProfileDialog user={user} open={isProfileOpen} onOpenChange={setIsProfileOpen} />
+            <ProfileDialog user={user} open={isProfileOpen} onOpenChange={setIsProfileOpen} isPasswordDefault={user?.isPasswordDefault} />
         </header>
     );
 }

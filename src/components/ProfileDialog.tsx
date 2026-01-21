@@ -21,9 +21,10 @@ interface ProfileDialogProps {
     user: SessionPayload | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
+    isPasswordDefault?: boolean;
 }
 
-export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) {
+export function ProfileDialog({ user, open, onOpenChange, isPasswordDefault }: ProfileDialogProps) {
     const [oldPassword, setOldPassword] = useState('');
     const [newPassword, setNewPassword] = useState('');
     const [confirmPassword, setConfirmPassword] = useState('');
@@ -93,67 +94,13 @@ export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) 
                         </DialogDescription>
                     </div>
 
-                    <form onSubmit={handleSubmit} className="space-y-4">
-                        <div className="space-y-2">
-                            <Label htmlFor="username" className="text-xs uppercase font-black text-slate-400 tracking-widest">Username</Label>
-                            <div className="flex items-center space-x-2 p-2 rounded-lg bg-slate-50 dark:bg-slate-900 border border-slate-200 dark:border-slate-800">
-                                <User size={16} className="text-slate-400" />
-                                <span className="text-sm font-bold text-slate-700 dark:text-slate-300">{user.username}</span>
-                            </div>
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="oldPassword" className="text-xs uppercase font-black text-slate-400 tracking-widest">Old Password</Label>
-                            <Input
-                                id="oldPassword"
-                                type="password"
-                                value={oldPassword}
-                                onChange={(e) => setOldPassword(e.target.value)}
-                                className="h-9"
-                                placeholder="••••••"
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="newPassword" className="text-xs uppercase font-black text-slate-400 tracking-widest">New Password</Label>
-                            <Input
-                                id="newPassword"
-                                type="password"
-                                value={newPassword}
-                                onChange={(e) => setNewPassword(e.target.value)}
-                                className="h-9"
-                                placeholder="••••••"
-                                required
-                            />
-                        </div>
-
-                        <div className="space-y-2">
-                            <Label htmlFor="confirmPassword" className="text-xs uppercase font-black text-slate-400 tracking-widest">Retype New Password</Label>
-                            <Input
-                                id="confirmPassword"
-                                type="password"
-                                value={confirmPassword}
-                                onChange={(e) => setConfirmPassword(e.target.value)}
-                                className="h-9"
-                                placeholder="••••••"
-                                required
-                            />
-                        </div>
-
-                        <div className="pt-2">
-                            <Button type="submit" disabled={isLoading} className="w-full bg-indigo-600 hover:bg-indigo-700 text-white font-bold rounded-xl h-10">
-                                {isLoading ? (
-                                    <>
-                                        <Loader2 className="mr-2 h-4 w-4 animate-spin" />
-                                        Updating...
-                                    </>
-                                ) : (
-                                    'Submit Change Password'
-                                )}
-                            </Button>
-                        </div>
-                    </form>
+                    <div className="bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 p-4 rounded-xl text-center">
+                        <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest mb-1 italic">Informasi Keamanan</p>
+                        <p className="text-xs text-slate-400 dark:text-slate-500 leading-relaxed">
+                            Penggantian kata sandi melalui menu profil telah dinonaktifkan untuk keamanan sistem.
+                            Silakan hubungi Administrator jika Anda memerlukan perubahan kredensial lebih lanjut.
+                        </p>
+                    </div>
                 </div>
             </DialogContent>
         </Dialog>
