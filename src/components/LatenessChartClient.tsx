@@ -154,8 +154,17 @@ export default function LatenessChartClient({ data }: LatenessChartClientProps) 
                                     onMouseLeave={() => setHoveredDataPoint(null)}
                                     className="cursor-pointer"
                                 />
-                                {/* Visible dot on hover or always? Let's show small dots always */}
+                                {/* Visible dot */}
                                 <circle cx={p.x} cy={p.y} r="3" fill="#fff" stroke="#e11d48" strokeWidth="2" />
+                                {/* Value Label */}
+                                <text
+                                    x={p.x}
+                                    y={p.y - 10}
+                                    textAnchor="middle"
+                                    className="text-[10px] font-bold fill-slate-500 dark:fill-slate-400 pointer-events-none select-none"
+                                >
+                                    {data[i].totalLateMinutes}-m
+                                </text>
                             </g>
                         ))}
                     </svg>
@@ -235,11 +244,11 @@ export default function LatenessChartClient({ data }: LatenessChartClientProps) 
                     </div>
 
                     {/* Summary Stats */}
-                    <div className="hidden md:flex items-center space-x-6">
+                    <div className="flex items-center space-x-3 md:space-x-6">
                         <div className="flex flex-col items-end">
                             <span className="text-[10px] font-bold text-slate-400 uppercase tracking-widest">Total Menit</span>
                             <span className="text-lg font-black text-rose-600">
-                                {data.reduce((acc, curr) => acc + curr.totalLateMinutes, 0)}m
+                                {data.reduce((acc, curr) => acc + curr.totalLateMinutes, 0)}-m
                             </span>
                         </div>
                         <div className="flex flex-col items-end">
