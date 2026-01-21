@@ -56,6 +56,11 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
             return;
         }
 
+        if (newPassword === oldPassword) {
+            toast.error('Password baru tidak boleh sama dengan password lama.');
+            return;
+        }
+
         setIsLoading(true);
         try {
             const result = await changePassword(user.userId, oldPassword, newPassword);
