@@ -9,11 +9,11 @@ import {
     DialogDescription,
 } from "@/components/ui/dialog";
 import { SessionPayload } from '@/types/auth';
-import { Key, Loader2, AlertTriangle, ShieldAlert, Eye, EyeOff } from 'lucide-react';
+import { Key, Loader2, AlertTriangle, ShieldAlert, Eye, EyeOff, LogOut } from 'lucide-react';
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
-import { changePassword } from '@/actions/auth';
+import { changePassword, logout } from '@/actions/auth';
 import { toast } from 'sonner';
 import { motion, AnimatePresence } from 'framer-motion';
 
@@ -77,6 +77,18 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
             }
         } catch (error) {
             toast.error('Terjadi kesalahan saat mengubah password.');
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    const handleLogout = async () => {
+        setIsLoading(true);
+        try {
+            await logout();
+            window.location.reload();
+        } catch (error) {
+            toast.error('Gagal keluar dari sistem.');
         } finally {
             setIsLoading(false);
         }
@@ -225,7 +237,7 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                             </div>
                         </div>
 
-                        <div className="pt-2 sm:pt-4">
+                        <div className="space-y-3 pt-2 sm:pt-4">
                             <Button
                                 type="submit"
                                 disabled={isLoading}
@@ -239,6 +251,17 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                                 ) : (
                                     'PERBARUI SEKARANG'
                                 )}
+                            </Button>
+
+                            <Button
+                                type="button"
+                                variant="outline"
+                                onClick={handleLogout}
+                                disabled={isLoading}
+                                className="w-full h-12 sm:h-14 rounded-2xl border-2 border-slate-100 dark:border-slate-800 text-slate-500 hover:bg-slate-50 dark:hover:bg-slate-900 font-bold transition-all active:scale-[0.96] text-[10px] sm:text-xs tracking-[0.2em] uppercase flex items-center justify-center gap-2"
+                            >
+                                <LogOut size={14} className="sm:w-4 sm:h-4" />
+                                <span>Batal & Kembali ke Login</span>
                             </Button>
                         </div>
                     </form>

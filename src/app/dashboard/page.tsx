@@ -9,7 +9,8 @@ import {
     UserPlus,
     Activity,
     ChevronRight,
-    TrendingUp
+    TrendingUp,
+    Medal
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
@@ -393,12 +394,23 @@ export default async function DashboardPage() {
                                                             '🚨 Peringatan'}
                                         </span>
                                         <span className="text-[7px] font-bold text-white/60 italic mt-0.5">
-                                            {myPerformance.score >= 98 ? 'Pertahankan dedikasi sebagai penjaga terbaik!' :
-                                                myPerformance.score >= 95 ? 'Kehadiran Anda bantu stabilitas keamanan!' :
+                                            {myPerformance.score >= 98 ? (session.role === 'SECURITY' ? 'Pertahankan dedikasi sebagai penjaga terbaik!' : 'Pertahankan dedikasi jaga keasrian Marunda!') :
+                                                myPerformance.score >= 95 ? (session.role === 'SECURITY' ? 'Kehadiran Anda bantu stabilitas keamanan!' : 'Kedisiplinan Anda bantu kenyamanan cluster!') :
                                                     myPerformance.score >= 90 ? 'Kurangi keterlambatan agar makin prima!' :
-                                                        myPerformance.score >= 85 ? 'Tingkatkan kedisiplinan demi penghuni!' :
-                                                            'Segera koordinasi dengan komandan regu!'}
+                                                        myPerformance.score >= 85 ? (session.role === 'SECURITY' ? 'Tingkatkan kedisiplinan demi penghuni!' : 'Tingkatkan kedisiplinan demi kebersihan!') :
+                                                            (session.role === 'SECURITY' ? 'Segera koordinasi dengan komandan regu!' : 'Segera koordinasi dengan koordinator!')}
                                         </span>
+                                        {myPerformance.score === 100 && (
+                                            <div className="mt-2 pt-2 border-t border-white/15 space-y-1.5">
+                                                <div className="flex items-center gap-1.5">
+                                                    <Medal size={12} className="text-amber-300 animate-pulse" />
+                                                    <span className="text-[8px] font-black text-white uppercase tracking-tight">Reward Performance Sempurna</span>
+                                                </div>
+                                                <p className="text-[7px] font-medium text-white/90 leading-tight italic pl-4">
+                                                    Selamat! Anda berhak atas <span className="text-amber-300 font-bold">Voucher Koordinator BPL</span>. Tukarkan segera setelah absensi Out akhir bulan.
+                                                </p>
+                                            </div>
+                                        )}
                                     </div>
                                 </div>
                                 {/* Right: Days */}
@@ -496,6 +508,25 @@ export default async function DashboardPage() {
                                                         : 'Segera koordinasi dengan koordinator lapangan terkait kendala kehadiran Anda.'
                                                 )}
                                             </p>
+                                            {myPerformance.score === 100 && (
+                                                <div className="mt-4 p-4 bg-white/10 backdrop-blur-xl rounded-2xl border border-white/20 flex items-center gap-4 animate-in slide-in-from-left-4 duration-700 shadow-lg group/voucher hover:bg-white/15 transition-all">
+                                                    <div className="w-10 h-10 rounded-full bg-amber-400 flex items-center justify-center shadow-[0_0_20px_rgba(251,191,36,0.4)] shrink-0 group-hover/voucher:animate-bounce">
+                                                        <Medal size={20} className="text-white" />
+                                                    </div>
+                                                    <div className="flex-1">
+                                                        <div className="flex items-center justify-between">
+                                                            <p className="text-[11px] font-black text-white uppercase tracking-widest">Rewards Sempurna</p>
+                                                            <div className="flex items-center gap-1 text-[8px] font-black text-white/50 uppercase">
+                                                                <Clock size={10} />
+                                                                <span>Download Akhir Bulan</span>
+                                                            </div>
+                                                        </div>
+                                                        <p className="text-[10px] font-medium text-white/90 mt-1 leading-tight">
+                                                            Selamat! Anda berhak atas <span className="text-amber-300 font-bold uppercase">Voucher Koordinator BPL</span>. Tukarkan segera setelah absensi Out akhir bulan.
+                                                        </p>
+                                                    </div>
+                                                </div>
+                                            )}
                                             <div className="flex items-center space-x-2 pt-2">
                                                 <div className="flex-1 h-2 bg-white/20 rounded-full overflow-hidden">
                                                     <div
