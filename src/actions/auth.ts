@@ -43,6 +43,7 @@ export async function login(formData: FormData) {
             userId: user.id,
             role: user.role as UserRole,
             username: user.username,
+            isPasswordDefault: user.isPasswordDefault,
             iat: Math.floor(Date.now() / 1000), // Original login time
         });
 
@@ -85,7 +86,10 @@ export async function changePassword(userId: string, oldPassword: string, newPas
 
     await prisma.user.update({
         where: { id: userId },
-        data: { password: newPassword }
+        data: {
+            password: newPassword,
+            isPasswordDefault: false
+        }
     });
 
     return { success: true };

@@ -36,19 +36,20 @@ model User {
   employeeId       String            @unique
   image            String?
   rotationOffset   Int               @default(0)
-  createdAt        DateTime          @default(now())
-  updatedAt        DateTime          @updatedAt
-  lastLogin        DateTime?
-  lastActive       DateTime?
-  attendances      Attendance[]
-  schedules        Schedule[]
-  permits          Permit[]          @relation("UserPermits")
-  notifications    Notification[]
-  activityLogs     ActivityLog[]
-  locationLogs     LocationLog[]
-  incidentReports  IncidentReport[]  @relation("UserIncidents")
-  incidentComments IncidentComment[]
-  voucherClaims    VoucherClaim[]
+  isPasswordDefault Boolean           @default(true)
+  createdAt         DateTime          @default(now())
+  updatedAt         DateTime          @updatedAt
+  lastLogin         DateTime?
+  lastActive        DateTime?
+  attendances       Attendance[]
+  schedules         Schedule[]
+  permits           Permit[]          @relation("UserPermits")
+  notifications     Notification[]
+  activityLogs      ActivityLog[]
+  locationLogs      LocationLog[]
+  incidentReports   IncidentReport[]  @relation("UserIncidents")
+  incidentComments  IncidentComment[]
+  voucherClaims     VoucherClaim[]
 }
 
 model ActivityLog {

@@ -72,6 +72,7 @@ export async function updateUser(id: string, formData: FormData) {
             rotationOffset: number;
             image?: string;
             password?: string;
+            isPasswordDefault?: boolean;
         } = {
             name,
             username,
@@ -91,6 +92,8 @@ export async function updateUser(id: string, formData: FormData) {
         // Only update password if provided
         if (password && password.trim() !== '') {
             data.password = password;
+            // Also reset to default password status so user is forced to change it
+            data.isPasswordDefault = true;
         }
 
         await prisma.user.update({

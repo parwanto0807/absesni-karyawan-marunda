@@ -12,6 +12,7 @@ export interface SessionPayload {
     userId: string;
     role: UserRole;
     username: string;
+    isPasswordDefault: boolean;
     image?: string | null;
     iat: number; // Issued At (Timestamp)
 }

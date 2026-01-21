@@ -65,7 +65,7 @@ export default async function RootLayout({
     try {
       const dbUser = await prisma.user.findUnique({
         where: { id: session.userId },
-        select: { name: true, role: true, username: true, image: true }
+        select: { name: true, role: true, username: true, image: true, isPasswordDefault: true }
       });
       if (dbUser) {
         // safe spread since dbUser fields match SessionPayload structure (except image is string|null vs optional)
@@ -75,6 +75,7 @@ export default async function RootLayout({
           // dbUser.role is from Prisma options, should match UserRole.
           role: dbUser.role as unknown as UserRole,
           username: dbUser.username,
+          isPasswordDefault: dbUser.isPasswordDefault,
           image: dbUser.image,
           iat: session.iat
         };

@@ -8,6 +8,7 @@ import { SessionPayload } from '@/types/auth';
 import { Home as HomeIcon, Sparkles } from 'lucide-react';
 import { usePathname, useRouter } from 'next/navigation';
 import { motion } from 'framer-motion';
+import { MandatoryPasswordChange } from '@/components/MandatoryPasswordChange';
 
 export default function LayoutContent({ children, user }: { children: React.ReactNode, user: SessionPayload | null }) {
     const { isCollapsed } = useSidebar();
@@ -23,6 +24,7 @@ export default function LayoutContent({ children, user }: { children: React.Reac
         >
             <Header user={user} />
             <main className="flex-1 p-4 md:p-8">
+                {user && <MandatoryPasswordChange user={user} />}
                 {children}
             </main>
 
