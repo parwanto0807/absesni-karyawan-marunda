@@ -53,8 +53,8 @@ export default function WeatherWidget() {
                 // Find the closest forecast to current time
                 const now = new Date();
                 const closest = forecasts.reduce((prev, curr) => {
-                    const prevDiff = Math.abs(new Date(prev.local_datetime).getTime() - now.getTime());
-                    const currDiff = Math.abs(new Date(curr.local_datetime).getTime() - now.getTime());
+                    const prevDiff = Math.abs(new Date(prev.local_datetime.replace(' ', 'T')).getTime() - now.getTime());
+                    const currDiff = Math.abs(new Date(curr.local_datetime.replace(' ', 'T')).getTime() - now.getTime());
                     return currDiff < prevDiff ? curr : prev;
                 });
 
@@ -104,7 +104,7 @@ export default function WeatherWidget() {
 
     return (
         <a
-            href="https://www.bmkg.go.id"
+            href="https://www.bmkg.go.id/cuaca/prakiraan-cuaca/32.16.07.2002"
             target="_blank"
             rel="noopener noreferrer"
             className="flex shrink-0 items-center space-x-2 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border border-slate-100 dark:border-slate-700 rounded-2xl px-2 md:px-3 py-1.5 shadow-sm transition-all hover:bg-white/80 dark:hover:bg-slate-800/80 hover:scale-[1.02] active:scale-95 cursor-pointer group"
@@ -119,9 +119,14 @@ export default function WeatherWidget() {
                     </span>
                     <span className="text-[10px] font-bold text-slate-400 ml-0.5 mt-0.5 md:mt-1">C</span>
                 </div>
-                <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-none truncate max-w-[60px] md:max-w-[80px]">
-                    {(weather.tp > 0 && ['berawan', 'cerah berawan', 'cerah'].includes(weather.weather_desc.toLowerCase())) ? 'Hujan Ringan' : weather.weather_desc}
-                </span>
+                <div className="flex flex-col">
+                    <span className="text-[8px] font-bold text-slate-500 dark:text-slate-400 uppercase tracking-tight leading-none truncate max-w-[60px] md:max-w-[80px]">
+                        {(weather.tp > 0 && ['berawan', 'cerah berawan', 'cerah'].includes(weather.weather_desc.toLowerCase())) ? 'Hujan Ringan' : weather.weather_desc}
+                    </span>
+                    <span className="text-[7px] text-slate-400 font-medium leading-none mt-0.5">
+                        {weather.local_datetime.split(' ')[1].slice(0, 5)} WIB
+                    </span>
+                </div>
                 <div className="flex items-center mt-0.5 gap-1.5">
                     <div className="flex items-center space-x-0.5 text-[7px] text-slate-400 dark:text-slate-500 uppercase font-black tracking-widest">
                         <MapPin size={8} />
