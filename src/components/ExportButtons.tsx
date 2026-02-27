@@ -264,88 +264,72 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
 
             const dateRange = getDateRange();
 
-            // Calculate expected work days based on role
-            const calculateExpectedWorkDays = (role: string, startDate: Date, endDate: Date): number => {
-                const start = new Date(startDate);
-                const end = new Date(endDate);
-                let workDays = 0;
-
-                if (role === 'LINGKUNGAN' || role === 'KEBERSIHAN') {
-                    const current = new Date(start);
-                    while (current <= end) {
-                        const dayOfWeek = current.getDay();
-                        if (dayOfWeek !== 0) {
-                            workDays++;
-                        }
-                        current.setDate(current.getDate() + 1);
-                    }
-                    return workDays;
-                }
-
-                if (role === 'SECURITY') {
-                    const totalDays = Math.ceil((end.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-                    return Math.ceil(totalDays * 0.6);
-                }
-
-                return 0;
-            };
-
             // Calculate performance summary per user
             const userStats = new Map<string, {
                 name: string;
                 employeeId: string;
                 role: string;
-                expectedWorkDays: number;
-                totalAttendance: number;
-                presentCount: number;
+                workDays: Set<string>; // Unique days with a schedule/shift
+                presentDays: Set<string>; // Unique days with actual presence
                 lateCount: number;
                 earlyLeaveCount: number;
                 totalLateMinutes: number;
                 totalEarlyMinutes: number;
-                performances: number[];
+                dailyPerformances: Map<string, number>; // dateKey -> performance score
             }>();
 
             attendances.forEach(att => {
                 const userId = att.user.employeeId;
+                const dateKey = new Date(att.clockIn).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
+
                 if (!userStats.has(userId)) {
-                    const expectedDays = calculateExpectedWorkDays(att.user.role, dateRange.start, dateRange.end);
                     userStats.set(userId, {
                         name: att.user.name,
                         employeeId: att.user.employeeId,
                         role: att.user.role,
-                        expectedWorkDays: expectedDays,
-                        totalAttendance: 0,
-                        presentCount: 0,
+                        workDays: new Set(),
+                        presentDays: new Set(),
                         lateCount: 0,
                         earlyLeaveCount: 0,
                         totalLateMinutes: 0,
                         totalEarlyMinutes: 0,
-                        performances: []
+                        dailyPerformances: new Map()
                     });
                 }
 
                 const stats = userStats.get(userId)!;
-                stats.totalAttendance++;
+
+                // Every record in `attendances` (actual or virtual) represents a scheduled work day
+                stats.workDays.add(dateKey);
+
+                // Initialize performance for this record
+                let performance = 100;
 
                 if (att.status === 'PRESENT' || att.status === 'LATE') {
-                    stats.presentCount++;
+                    stats.presentDays.add(dateKey);
+
+                    // Track lateness/early leave
+                    if (att.isLate) {
+                        stats.lateCount++;
+                        stats.totalLateMinutes += att.lateMinutes;
+                        performance -= att.lateMinutes;
+                    }
+
+                    if (att.isEarlyLeave) {
+                        stats.earlyLeaveCount++;
+                        stats.totalEarlyMinutes += att.earlyLeaveMinutes;
+                        performance -= att.earlyLeaveMinutes;
+                    }
+                } else if (att.status === 'ABSENT') {
+                    performance = 0; // Deduct for absence without explanation
+                } else {
+                    // SICK, PERMIT, LEAVE, SHIFT_CHANGE
+                    performance = 100; // Approved leave doesn't lower performance
                 }
 
-                if (att.isLate) {
-                    stats.lateCount++;
-                    stats.totalLateMinutes += att.lateMinutes;
-                }
-
-                if (att.isEarlyLeave) {
-                    stats.earlyLeaveCount++;
-                    stats.totalEarlyMinutes += att.earlyLeaveMinutes;
-                }
-
-                if (att.status === 'PRESENT' || att.status === 'LATE') {
-                    let performance = 100;
-                    if (att.isLate) performance -= att.lateMinutes;
-                    if (att.isEarlyLeave) performance -= att.earlyLeaveMinutes;
-                    stats.performances.push(Math.max(0, performance));
+                // If multiple shifts/records on same day, use the lowest score for that day
+                if (!stats.dailyPerformances.has(dateKey) || performance < stats.dailyPerformances.get(dateKey)!) {
+                    stats.dailyPerformances.set(dateKey, Math.max(0, performance));
                 }
             });
 
@@ -368,38 +352,41 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                 yPos += 10;
 
                 const sortedStats = Array.from(userStats.values()).sort((a, b) => {
-                    const avgA = a.performances.length > 0 ? (a.performances.reduce((sum, val) => sum + val, 0) / a.performances.length) : 0;
-                    const avgB = b.performances.length > 0 ? (b.performances.reduce((sum, val) => sum + val, 0) / b.performances.length) : 0;
+                    // Average performance calculated over ALL scheduled work days
+                    const avgA = a.workDays.size > 0
+                        ? (Array.from(a.dailyPerformances.values()).reduce((sum, val) => sum + val, 0) / a.workDays.size)
+                        : 0;
+                    const avgB = b.workDays.size > 0
+                        ? (Array.from(b.dailyPerformances.values()).reduce((sum, val) => sum + val, 0) / b.workDays.size)
+                        : 0;
                     return avgB - avgA;
                 });
 
                 const summaryData = sortedStats.map((stats, index) => {
-                    const avgPerformance = stats.performances.length > 0
-                        ? (stats.performances.reduce((a, b) => a + b, 0) / stats.performances.length).toFixed(1)
+                    const totalPerf = Array.from(stats.dailyPerformances.values()).reduce((a, b) => a + b, 0);
+                    const avgPerfVal = stats.workDays.size > 0 ? (totalPerf / stats.workDays.size) : 0;
+
+                    const formattedAvg = avgPerfVal.toFixed(1);
+                    const avgPerformance = `${formattedAvg}%`;
+
+                    const attendanceRate = stats.workDays.size > 0
+                        ? ((stats.presentDays.size / stats.workDays.size) * 100).toFixed(1)
                         : '0.0';
 
-                    const attendanceRate = stats.expectedWorkDays > 0
-                        ? ((stats.presentCount / stats.expectedWorkDays) * 100).toFixed(1)
-                        : '0.0';
-
-                    const absentDays = stats.expectedWorkDays - stats.presentCount;
-                    // const avgLateMinutes = stats.lateCount > 0
-                    //     ? Math.round(stats.totalLateMinutes / stats.lateCount)
-                    //     : 0;
+                    const absentDays = stats.workDays.size - stats.presentDays.size;
 
                     return [
                         (index + 1).toString(),
                         stats.name,
                         stats.employeeId,
                         stats.role,
-                        stats.expectedWorkDays.toString(),
-                        stats.presentCount.toString(),
+                        stats.workDays.size.toString(),
+                        stats.presentDays.size.toString(),
                         absentDays > 0 ? absentDays.toString() : '0',
                         `${attendanceRate}%`,
-                        `${avgPerformance}%`,
-                        stats.lateCount.toString(),
+                        avgPerformance,
+                        stats.lateCount > 0 ? `${stats.lateCount} kali` : '0',
                         stats.totalLateMinutes > 0 ? `${stats.totalLateMinutes} mnt` : '-'
-                        // avgLateMinutes > 0 ? `${avgLateMinutes} mnt` : '-'
                     ];
                 });
 
@@ -439,6 +426,30 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                         9: { cellWidth: 12, halign: 'center' },
                         10: { cellWidth: 15, halign: 'center' },
                     },
+                    didParseCell: function (data) {
+                        if (data.section === 'body') {
+                            // Column 1 is "Nama"
+                            if (data.column.index === 1) {
+                                data.cell.styles.fontStyle = 'bold';
+                            }
+                            // Column 7 is "Tingkat Kehadiran"
+                            if (data.column.index === 7) {
+                                data.cell.styles.fontStyle = 'bold';
+                                const value = parseFloat(data.cell.text[0].replace('%', ''));
+                                if (value < 100) {
+                                    data.cell.styles.textColor = [239, 68, 68]; // Red
+                                }
+                            }
+                            // Column 8 is "Rata² Performa"
+                            if (data.column.index === 8) {
+                                data.cell.styles.fontStyle = 'bold';
+                                const value = parseFloat(data.cell.text[0].replace('%', ''));
+                                if (value === 100) {
+                                    data.cell.styles.textColor = [16, 185, 129]; // Green
+                                }
+                            }
+                        }
+                    }
                 });
 
                 yPos = doc.lastAutoTable.finalY + 15;

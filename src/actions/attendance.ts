@@ -4,6 +4,7 @@ import { toZonedTime } from 'date-fns-tz';
 import { revalidatePath } from 'next/cache';
 import { AttendanceStatus } from '@/types/attendance';
 import { prisma } from '@/lib/db';
+import { getSession } from '@/lib/auth';
 import { createNotification } from './notifications';
 import { getShiftForDate, getShiftTimings, ShiftCode, getStaticSchedule } from '@/lib/schedule-utils';
 import { getStartOfDayJakarta, TIMEZONE } from '@/lib/date-utils';
@@ -455,5 +456,68 @@ export async function getAttendances(userId?: string, startDate?: Date, endDate?
     } catch (error) {
         console.error('Get attendances error:', error);
         return [];
+    }
+}
+
+export async function updateAttendance(id: string, clockIn: Date, clockOut: Date | null) {
+    try {
+        const session = await getSession();
+        if (!session || !['ADMIN', 'PIC', 'RT'].includes(session.role)) {
+            return { success: false, message: 'Unauthorized' };
+        }
+
+        const attendance = await prisma.attendance.findUnique({
+            where: { id },
+            include: { user: true }
+        });
+
+        if (!attendance) {
+            return { success: false, message: 'Data absensi tidak ditemukan' };
+        }
+
+        let isLate = false;
+        let lateMinutes = 0;
+        let isEarlyLeave = false;
+        let earlyLeaveMinutes = 0;
+
+        // Recalculate lateness
+        if (attendance.scheduledClockIn) {
+            const scheduledStart = new Date(attendance.scheduledClockIn);
+            if (clockIn > scheduledStart) {
+                const diff = clockIn.getTime() - scheduledStart.getTime();
+                lateMinutes = Math.floor(diff / 60000);
+                if (lateMinutes > 0) isLate = true;
+            }
+        }
+
+        // Recalculate early leave
+        if (clockOut && attendance.scheduledClockOut) {
+            const scheduledEnd = new Date(attendance.scheduledClockOut);
+            const tolerancePoint = new Date(scheduledEnd.getTime() - 5 * 60 * 1000);
+            if (clockOut < tolerancePoint) {
+                const diff = scheduledEnd.getTime() - clockOut.getTime();
+                earlyLeaveMinutes = Math.floor(diff / 60000);
+                if (earlyLeaveMinutes > 0) isEarlyLeave = true;
+            }
+        }
+
+        await prisma.attendance.update({
+            where: { id },
+            data: {
+                clockIn,
+                clockOut,
+                isLate,
+                lateMinutes,
+                isEarlyLeave,
+                earlyLeaveMinutes,
+                status: isLate ? 'LATE' : 'PRESENT'
+            }
+        });
+
+        revalidatePath('/history');
+        return { success: true, message: 'Data absensi berhasil diperbarui' };
+    } catch (error) {
+        console.error('Update attendance error:', error);
+        return { success: false, message: 'Gagal memperbarui data absensi' };
     }
 }

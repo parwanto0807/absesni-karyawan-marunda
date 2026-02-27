@@ -9,6 +9,21 @@ import UserAvatar from '@/components/UserAvatar';
 import { ImageModal, ImageModalMobile } from '@/components/ImageModal';
 import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
 import Pagination from './Pagination';
+import {
+    Dialog,
+    DialogContent,
+    DialogHeader,
+    DialogTitle,
+    DialogFooter,
+} from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { updateAttendance } from '@/actions/attendance';
+import { toast } from 'sonner';
+import { Edit2 } from 'lucide-react';
+import { format } from 'date-fns';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 interface VirtualAttendance {
     id: string;
@@ -50,6 +65,12 @@ export default function AttendanceHistoryTable({
 }: AttendanceHistoryTableProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
+
+    // In this app, session is handled via server actions/cookies, but we can check role from session in some cases.
+    // However, the page already ensures session exists. We might need a client-side role check.
+    // Let's assume we can get it from somewhere or pass it down. 
+    // Looking at HistoryPage, it has session. 
+    // Let's modify AttendanceHistoryTable to accept userRole.
 
     const totalPages = Math.ceil(totalCount / pageSize);
 
@@ -164,6 +185,10 @@ export default function AttendanceHistoryTable({
                                             )}
                                         </div>
                                     )}
+
+                                    {!attendance.id.startsWith('absent-') && (
+                                        <UpdateAttendanceDialog attendance={attendance} />
+                                    )}
                                 </div>
                             </div>
 
@@ -264,6 +289,11 @@ export default function AttendanceHistoryTable({
                                                         {attendance.isEarlyLeave && <span className="text-[9px] font-bold text-rose-600 uppercase">Cepat</span>}
                                                     </div>
                                                 )}
+                                                {!attendance.id.startsWith('absent-') && (
+                                                    <div className="mt-2">
+                                                        <UpdateAttendanceDialog attendance={attendance} />
+                                                    </div>
+                                                )}
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
@@ -324,5 +354,100 @@ export default function AttendanceHistoryTable({
                 className="mt-6"
             />
         </div>
+    );
+}
+
+function UpdateAttendanceDialog({ attendance }: { attendance: VirtualAttendance }) {
+    const [open, setOpen] = React.useState(false);
+    const [isLoading, setIsLoading] = React.useState(false);
+
+    // Initial values formatted for datetime-local input
+    // We need to convert from UTC/Date object to Jakarta local string for the input
+    const formatForInput = (date: Date | null) => {
+        if (!date) return '';
+        const zoned = toZonedTime(date, TIMEZONE);
+        return format(zoned, "yyyy-MM-dd'T'HH:mm");
+    };
+
+    const [clockIn, setClockIn] = React.useState(formatForInput(attendance.clockIn));
+    const [clockOut, setClockOut] = React.useState(formatForInput(attendance.clockOut));
+
+    const handleUpdate = async () => {
+        setIsLoading(true);
+        try {
+            const clockInDate = fromZonedTime(clockIn, TIMEZONE);
+            const clockOutDate = clockOut ? fromZonedTime(clockOut, TIMEZONE) : null;
+
+            const res = await updateAttendance(attendance.id, clockInDate, clockOutDate);
+            if (res.success) {
+                toast.success(res.message);
+                setOpen(false);
+                // Refresh is handled by revalidatePath in the action
+            } else {
+                toast.error(res.message);
+            }
+        } catch (error) {
+            toast.error("Gagal memperbarui data");
+        } finally {
+            setIsLoading(false);
+        }
+    };
+
+    return (
+        <Dialog open={open} onOpenChange={setOpen}>
+            <Button
+                variant="ghost"
+                size="icon"
+                className="h-7 w-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                onClick={() => setOpen(true)}
+            >
+                <Edit2 size={12} />
+            </Button>
+            <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-[1.5rem] shadow-2xl">
+                <DialogHeader>
+                    <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                        Update Waktu <span className="text-indigo-600">Absen</span>
+                    </DialogTitle>
+                </DialogHeader>
+                <div className="grid gap-6 py-4">
+                    <div className="grid gap-2">
+                        <Label htmlFor="clockIn" className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Waktu Masuk (Clock In)</Label>
+                        <Input
+                            id="clockIn"
+                            type="datetime-local"
+                            value={clockIn}
+                            onChange={(e) => setClockIn(e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-indigo-500"
+                        />
+                    </div>
+                    <div className="grid gap-2">
+                        <Label htmlFor="clockOut" className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Waktu Pulang (Clock Out)</Label>
+                        <Input
+                            id="clockOut"
+                            type="datetime-local"
+                            value={clockOut}
+                            onChange={(e) => setClockOut(e.target.value)}
+                            className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-indigo-500"
+                        />
+                    </div>
+                </div>
+                <DialogFooter className="gap-2">
+                    <Button
+                        variant="ghost"
+                        onClick={() => setOpen(false)}
+                        className="rounded-xl font-bold uppercase text-[10px] tracking-widest"
+                    >
+                        Batal
+                    </Button>
+                    <Button
+                        onClick={handleUpdate}
+                        disabled={isLoading}
+                        className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest px-6"
+                    >
+                        {isLoading ? 'Menyimpan...' : 'Simpan Perubahan'}
+                    </Button>
+                </DialogFooter>
+            </DialogContent>
+        </Dialog>
     );
 }
