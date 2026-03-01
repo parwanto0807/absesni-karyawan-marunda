@@ -82,9 +82,8 @@ export default async function DashboardPage() {
         });
 
         const now = new Date();
-        const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-        const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
-        startOfMonth.setHours(0, 0, 0, 0);
+        const startOfMonth = getStartOfDayJakarta(new Date(now.getFullYear(), now.getMonth(), 1));
+        const endOfMonth = getEndOfDayJakarta(new Date(now.getFullYear(), now.getMonth() + 1, 0));
 
         const myAttendances = await prisma.attendance.findMany({
             where: {

@@ -55,13 +55,15 @@ interface AttendanceHistoryTableProps {
     totalCount: number;
     currentPage: number;
     pageSize: number;
+    userRole: string;
 }
 
 export default function AttendanceHistoryTable({
     initialAttendances,
     totalCount,
     currentPage,
-    pageSize
+    pageSize,
+    userRole
 }: AttendanceHistoryTableProps) {
     const router = useRouter();
     const searchParams = useSearchParams();
@@ -186,7 +188,7 @@ export default function AttendanceHistoryTable({
                                         </div>
                                     )}
 
-                                    {!attendance.id.startsWith('absent-') && (
+                                    {!attendance.id.startsWith('absent-') && userRole === 'ADMIN' && (
                                         <UpdateAttendanceDialog attendance={attendance} />
                                     )}
                                 </div>
@@ -289,7 +291,7 @@ export default function AttendanceHistoryTable({
                                                         {attendance.isEarlyLeave && <span className="text-[9px] font-bold text-rose-600 uppercase">Cepat</span>}
                                                     </div>
                                                 )}
-                                                {!attendance.id.startsWith('absent-') && (
+                                                {!attendance.id.startsWith('absent-') && userRole === 'ADMIN' && (
                                                     <div className="mt-2">
                                                         <UpdateAttendanceDialog attendance={attendance} />
                                                     </div>

@@ -79,7 +79,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
         const grouped: { [date: string]: AttendanceExportData[] } = {};
 
         attendances.forEach(att => {
-            const dateKey = new Date(att.clockIn).toDateString();
+            const dateKey = new Date(att.clockIn).toLocaleDateString('en-US', { timeZone: 'Asia/Jakarta' });
             if (!grouped[dateKey]) {
                 grouped[dateKey] = [];
             }

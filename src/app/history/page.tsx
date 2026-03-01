@@ -79,7 +79,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
 
     const startDate = parseDate(params.startDate) || getStartOfDayJakarta(thirtyDaysAgo);
-    const endDate = parseDate(params.endDate) || getEndOfDayJakarta(new Date());
+    const endDate = params.endDate ? getEndOfDayJakarta(parseDate(params.endDate)!) : getEndOfDayJakarta(new Date());
 
     // 1. Fetch Actual Attendances 
     // We fetch a larger batch because we need to merge with virtual records before slicing
@@ -124,10 +124,13 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
             const dayStart = getStartOfDayJakarta(date);
 
             // Check if user has attendance for this day
-            const hasAttendance = actualAttendances.some(att =>
-                att.userId === user.id &&
-                getStartOfDayJakarta(new Date(att.clockIn)).getTime() === dayStart.getTime()
-            );
+            // We check if an attendance starts on this day OR 
+            // if it's a cross-day shift that was already captured
+            const hasAttendance = actualAttendances.some(att => {
+                if (att.userId !== user.id) return false;
+                const attDayStart = getStartOfDayJakarta(new Date(att.clockIn)).getTime();
+                return attDayStart === dayStart.getTime();
+            });
 
             if (!hasAttendance) {
                 // Determine shift
@@ -190,7 +193,13 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     }
 
     // 4. Merge and Sort
-    const allAttendances = [...actualAttendances, ...virtualRecords].sort((a, b) =>
+    const allAttendances = [
+        ...actualAttendances.filter(att => {
+            const attDate = new Date(att.clockIn);
+            return attDate >= startDate && attDate <= endDate;
+        }),
+        ...virtualRecords
+    ].sort((a, b) =>
         new Date(b.clockIn).getTime() - new Date(a.clockIn).getTime()
     );
 
@@ -252,6 +261,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
                 totalCount={totalItems}
                 currentPage={page}
                 pageSize={limit}
+                userRole={session.role}
             />
         </div>
     );

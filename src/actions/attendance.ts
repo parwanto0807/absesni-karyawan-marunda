@@ -426,10 +426,13 @@ export async function getAttendances(userId?: string, startDate?: Date, endDate?
         if (startDate || endDate) {
             where.clockIn = {};
             if (startDate) {
-                where.clockIn.gte = startDate;
+                // Tarik data 1 hari lebih awal untuk menangkap shift yang mulai malam sebelumnya
+                const paddedStart = new Date(startDate);
+                paddedStart.setDate(paddedStart.getDate() - 1);
+                where.clockIn.gte = paddedStart;
             }
             if (endDate) {
-                // Ensure we get the whole end day
+                // Ensure we get the whole end day in Jakarta Time
                 const endOfDay = new Date(endDate);
                 endOfDay.setHours(23, 59, 59, 999);
                 where.clockIn.lte = endOfDay;
@@ -444,6 +447,7 @@ export async function getAttendances(userId?: string, startDate?: Date, endDate?
                         name: true,
                         employeeId: true,
                         role: true,
+                        rotationOffset: true // Ditambahkan untuk membantu pengecekan jadwal
                     }
                 }
             },
@@ -519,5 +523,58 @@ export async function updateAttendance(id: string, clockIn: Date, clockOut: Date
     } catch (error) {
         console.error('Update attendance error:', error);
         return { success: false, message: 'Gagal memperbarui data absensi' };
+    }
+}
+
+export async function getMonthlyLateness(month: number, year: number) {
+    try {
+        const session = await getSession();
+        if (!session || !['ADMIN', 'PIC', 'RT'].includes(session.role)) {
+            return { success: false, message: 'Unauthorized', data: [] };
+        }
+
+        const startDate = new Date(year, month - 1, 1);
+        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+
+        const latenessData = await prisma.attendance.findMany({
+            where: {
+                isLate: true,
+                clockIn: {
+                    gte: startDate,
+                    lte: endDate
+                }
+            },
+            include: {
+                user: {
+                    select: {
+                        name: true,
+                        employeeId: true,
+                        role: true
+                    }
+                }
+            },
+            orderBy: {
+                clockIn: 'desc'
+            }
+        });
+
+        return {
+            success: true,
+            data: latenessData.map((att: any) => ({
+                id: att.id,
+                userId: att.userId,
+                name: att.user.name,
+                employeeId: att.user.employeeId,
+                role: att.user.role,
+                date: att.clockIn,
+                clockIn: att.clockIn,
+                scheduledClockIn: att.scheduledClockIn,
+                lateMinutes: att.lateMinutes,
+                status: att.status
+            }))
+        };
+    } catch (error) {
+        console.error('Error fetching monthly lateness:', error);
+        return { success: false, message: 'Gagal memuat data keterlambatan', data: [] };
     }
 }

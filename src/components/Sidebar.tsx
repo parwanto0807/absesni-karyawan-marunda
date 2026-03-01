@@ -14,7 +14,8 @@ import {
     ChevronLeft,
     Menu,
     Settings,
-    AlertTriangle
+    AlertTriangle,
+    FileText
 } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { useSidebar } from '@/hooks/use-sidebar';
@@ -52,6 +53,7 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
         { icon: AlertTriangle, label: 'Laporan Kejadian', href: '/admin/incidents', roles: ['ADMIN', 'PIC', 'RT'] },
         { icon: ShieldCheck, label: 'Jadwal Kerja', href: '/schedules', roles: ['ADMIN', 'PIC', 'RT', 'STAFF', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
         { icon: CalendarCheck, label: 'Ijin & Pergantian Shift', href: '/permits', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
+        { icon: FileText, label: 'Administrasi', href: '/admin/administration', roles: ['ADMIN', 'PIC', 'RT'] },
         { icon: Settings, label: 'Pengaturan', href: '/admin/settings', roles: ['ADMIN', 'PIC', 'RT'] },
     ];
 
