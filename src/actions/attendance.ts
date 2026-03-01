@@ -560,7 +560,7 @@ export async function getMonthlyLateness(month: number, year: number) {
 
         return {
             success: true,
-            data: latenessData.map((att: any) => ({
+            data: latenessData.map((att) => ({
                 id: att.id,
                 userId: att.userId,
                 name: att.user.name,

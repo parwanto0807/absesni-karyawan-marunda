@@ -1,22 +1,14 @@
 'use client';
 
 import React from 'react';
-import { useRouter, useSearchParams } from 'next/navigation';
+import { useRouter } from 'next/navigation';
 import {
     Calendar,
     FileText,
-    ChevronLeft,
-    ChevronRight,
     Search,
-    User,
     Clock,
     Download,
-    Home,
-    Building2,
-    MapPin,
-    Phone,
-    Mail,
-    FileSignature
+    Home
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -27,10 +19,9 @@ import {
     SelectTrigger,
     SelectValue
 } from '@/components/ui/select';
-import { cn } from '@/lib/utils';
+import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
-import { toast } from 'sonner';
 
 interface LatenessRecord {
     id: string;
@@ -139,22 +130,22 @@ export default function AdministrationClient({
             doc.setFillColor(primaryColor[0], primaryColor[1], primaryColor[2]);
             doc.rect(0, 0, 210, 35, 'F');
 
-            // Official Logo (Rounded XL via Canvas for maximum stability)
+            // Official Logo (Minimalist Card-based Logo)
             const logoX = 15;
             const logoY = 7;
             const logoSize = 18;
-            const radius = 6; // Truly XL rounding
+            const radius = 6;
 
-            // Background Card for Logo
-            doc.setFillColor(255, 255, 255);
-            doc.roundedRect(logoX - 1, logoY - 1, logoSize + 2, logoSize + 2, radius, radius, 'F');
+            // White Rounded Background Card for Logo removed as requested
+            // doc.setFillColor(255, 255, 255);
+            // doc.roundedRect(logoX - 1, logoY - 1, logoSize + 2, logoSize + 2, radius, radius, 'F');
 
             try {
                 const img = new Image();
                 img.src = '/logo_marunda.png';
                 await new Promise((resolve) => {
                     img.onload = resolve;
-                    img.onerror = resolve; // Continue even if logo fails
+                    img.onerror = resolve;
                 });
 
                 if (img.complete && img.naturalWidth > 0) {
@@ -164,7 +155,6 @@ export default function AdministrationClient({
                     const ctx = canvas.getContext('2d');
                     if (ctx) {
                         ctx.beginPath();
-                        // Use a proportionally large radius for the high-res canvas
                         const canvasRadius = (radius / logoSize) * canvas.width;
                         ctx.roundRect(0, 0, canvas.width, canvas.height, canvasRadius);
                         ctx.clip();
@@ -176,6 +166,9 @@ export default function AdministrationClient({
                 }
             } catch (e) {
                 console.error('Logo rounding failed:', e);
+                // Simple Fallback icon
+                doc.setFillColor(accentColor[0], accentColor[1], accentColor[2]);
+                doc.roundedRect(logoX, logoY, logoSize, logoSize, 2, 2, 'F');
             }
 
             // Company Name
@@ -278,7 +271,16 @@ export default function AdministrationClient({
             });
 
             // Summary Info
-            let currentY = (doc as any).lastAutoTable.finalY + 8;
+            // Access lastAutoTable safely without explicit 'any'
+            const tableResults = (doc as unknown as { lastAutoTable: { finalY: number } });
+            let currentY = tableResults.lastAutoTable.finalY + 8;
+
+            // Threshold Check: If not enough space for summary, move to new page
+            if (currentY + 15 > 275) {
+                doc.addPage();
+                currentY = 20;
+            }
+
             doc.setFillColor(lightColor[0], lightColor[1], lightColor[2]);
             doc.roundedRect(20, currentY, 170, 8, 2, 2, 'F');
             doc.setFontSize(9);
@@ -287,34 +289,65 @@ export default function AdministrationClient({
             doc.text(`TOTAL FREKUENSI: ${group.frequency} KALI`, 25, currentY + 5.5);
             doc.text(`TOTAL DURASI: ${group.totalLateMinutes} MENIT`, 130, currentY + 5.5);
 
-            // Section C: Employee Statement
+            // Section C: Employee Reason
             currentY += 18;
+            if (currentY + 30 > 275) {
+                doc.addPage();
+                currentY = 20;
+            }
+
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-            doc.text('C. ALASAN DAN SOLUSI (DIISI KARYAWAN)', 20, currentY);
+            doc.text('C. ALASAN KETERLAMBATAN', 20, currentY);
 
             currentY += 6;
             doc.setFontSize(8.5);
             doc.setTextColor(textColor[0], textColor[1], textColor[2]);
             doc.setFont('helvetica', 'normal');
-            doc.text('Tuliskan alasan keterlambatan dan komitmen perbaikan kehadiran kedepannya:', 20, currentY);
+            doc.text('Tuliskan alasan utama keterlambatan tersebut:', 20, currentY);
 
             currentY += 6;
             doc.setDrawColor(200, 200, 200);
             doc.setLineWidth(0.1);
-            doc.setLineDashPattern([0.5, 0.5], 0); // Smooth dotted lines
-            for (let i = 0; i < 4; i++) {
+            doc.setLineDashPattern([0.5, 0.5], 0);
+            for (let i = 0; i < 3; i++) {
+                doc.line(20, currentY + (i * 7), 190, currentY + (i * 7));
+            }
+
+            // Section D: Solution & Commitment
+            currentY += 25;
+            if (currentY + 35 > 275) {
+                doc.addPage();
+                currentY = 20;
+            }
+            doc.setFontSize(10);
+            doc.setFont('helvetica', 'bold');
+            doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
+            doc.text('D. SOLUSI & KOMITMEN PERBAIKAN', 20, currentY);
+
+            currentY += 6;
+            doc.setFontSize(8.5);
+            doc.setTextColor(textColor[0], textColor[1], textColor[2]);
+            doc.setFont('helvetica', 'normal');
+            doc.text('Langkah perbaikan agar tidak mengulangi keterlambatan di masa depan:', 20, currentY);
+
+            currentY += 6;
+            for (let i = 0; i < 3; i++) {
                 doc.line(20, currentY + (i * 7), 190, currentY + (i * 7));
             }
             doc.setLineDashPattern([], 0); // Reset dash
 
-            // Section D: Signatures
-            currentY += 35;
+            // Section E: Signatures
+            currentY += 30;
+            if (currentY + 40 > 275) {
+                doc.addPage();
+                currentY = 20;
+            }
             doc.setFontSize(10);
             doc.setFont('helvetica', 'bold');
             doc.setTextColor(accentColor[0], accentColor[1], accentColor[2]);
-            doc.text('D. PERSETUJUAN DAN VALIDASI', 20, currentY);
+            doc.text('E. PERSETUJUAN DAN VALIDASI', 20, currentY);
 
             currentY += 10;
             // Left: Employee

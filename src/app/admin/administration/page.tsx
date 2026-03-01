@@ -1,11 +1,7 @@
 import React from 'react';
 import { getMonthlyLateness } from '@/actions/attendance';
-import Header from '@/components/Header';
-import { Calendar, FileText, User, Clock, AlertCircle } from 'lucide-react';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
-import { format } from 'date-fns';
-import { id } from 'date-fns/locale';
 import AdministrationClient from './AdministrationClient';
 
 export default async function AdministrationPage({

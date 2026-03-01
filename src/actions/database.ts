@@ -16,7 +16,7 @@ function getCleanDbUrl(url: string) {
         const parsed = new URL(url);
         parsed.search = ''; // Remove all query parameters for safety
         return parsed.toString();
-    } catch (_e) {
+    } catch {
         return url; // Fallback if URL parsing fails
     }
 }
