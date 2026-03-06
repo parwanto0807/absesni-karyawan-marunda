@@ -48,7 +48,7 @@ export async function deleteHoliday(id: string) {
     }
 }
 
-export async function syncHolidays(_year: number) {
+export async function syncHolidays() {
     try {
         // Mocking API call to public holiday API
         // In a real scenario, you would fetch from an API like https://api-harilibur.vercel.app/api?year=2026
@@ -57,7 +57,7 @@ export async function syncHolidays(_year: number) {
         // This is a placeholder for the actual sync logic
         // For this task, I'll just return a message
         return { success: true, message: "Sinkronisasi berhasil (Simulasi)" };
-    } catch (_error) {
+    } catch {
         return { success: false, message: "Gagal sinkronisasi" };
     }
 }

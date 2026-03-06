@@ -2,7 +2,6 @@
 
 import { prisma } from '@/lib/db';
 import { getSession } from '@/lib/auth';
-import { UserRole } from '@/types/attendance';
 import { Role } from '@prisma/client';
 
 export async function logLocation(latitude: number, longitude: number) {
@@ -182,7 +181,7 @@ export async function getAllPICSAndAdmins() {
             orderBy: { name: 'asc' }
         });
         return { success: true, data: users };
-    } catch (_error: unknown) { // Type-safe catch block, prefixed unused variable
+    } catch {
         return { error: 'Failed to fetch users' };
     }
 }

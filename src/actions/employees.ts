@@ -120,7 +120,7 @@ export async function deleteUser(id: string) {
         });
         revalidatePath('/employees');
         return { success: true, message: 'Karyawan berhasil dihapus.' };
-    } catch (_error) {
+    } catch {
         return { success: false, message: 'Gagal menghapus karyawan.' };
     }
 }
@@ -132,7 +132,7 @@ export async function updateRotationOffset(id: string, offset: number) {
         });
         revalidatePath('/schedules');
         return { success: true };
-    } catch (_error) {
+    } catch {
         return { success: false, message: 'Gagal memperbarui offset.' };
     }
 }

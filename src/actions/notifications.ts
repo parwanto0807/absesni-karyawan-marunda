@@ -100,7 +100,7 @@ export async function getUnreadCount(userId: string) {
             where: { userId, isRead: false },
         });
         return count;
-    } catch (_error) {
+    } catch {
         return 0;
     }
 }

@@ -8,7 +8,6 @@ import {
     X,
     ChevronRight,
     MapPin,
-    Maximize2,
     Send,
     Loader2,
     Mic,
@@ -24,7 +23,7 @@ import { getPusherClient } from '@/lib/pusher-client';
 import Image from 'next/image';
 import { IncidentReport, IncidentComment } from '@/types/incident';
 import { Channel } from 'pusher-js';
-import type { SpeechRecognitionEvent, SpeechRecognition } from '@/types/speech-recognition';
+// import type { SpeechRecognitionEvent, SpeechRecognition } from '@/types/speech-recognition';
 
 
 interface ReviewIncidentsProps {

@@ -121,8 +121,7 @@ export async function createPermit(formData: FormData) {
         }
 
         return { success: true, message: 'Pengajuan izin berhasil dibuat.' };
-    } catch (_error) {
-        console.error('Create Permit Error:', _error);
+    } catch {
         return { success: false, message: 'Gagal membuat pengajuan izin.' };
     }
 }
@@ -236,8 +235,7 @@ export async function approvePermit(permitId: string, role: string, status: 'APP
 
         revalidatePath('/permits');
         return { success: true, message: `Pengajuan izin telah ${status === 'APPROVED' ? 'disetujui' : 'ditolak'} oleh ${role}.` };
-    } catch (_error) {
-        console.error('Approve Permit Error:', _error);
+    } catch {
         return { success: false, message: 'Gagal memperbarui status izin.' };
     }
 }
@@ -303,8 +301,7 @@ export async function resetPermit(permitId: string, role: string, approverId: st
 
         revalidatePath('/permits');
         return { success: true, message: 'Status pengajuan izin telah di-pending ke PENDING.' };
-    } catch (_error) {
-        console.error('Reset Permit Error:', _error);
+    } catch {
         return { success: false, message: 'Gagal mem-pending status izin.' };
     }
 }
@@ -327,8 +324,7 @@ export async function getPermits(userId?: string) {
                 createdAt: 'desc'
             }
         });
-    } catch (_error) {
-        console.error('Get Permits Error:', _error);
+    } catch {
         return [];
     }
 }

@@ -70,7 +70,7 @@ export default function SettingsClient({ username }: { username: string }) {
             } else {
                 throw new Error(result.message);
             }
-        } catch (error) {
+        } catch {
             toast.error('Gagal Menyimpan', {
                 description: 'Terjadi kesalahan saat menyimpan pengaturan'
             });
