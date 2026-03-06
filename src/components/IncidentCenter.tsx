@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import {
     AlertTriangle,
     MessageSquare,
@@ -52,14 +52,28 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
         }
     }, [selectedReport?.id]);
 
+    const fetchReports = useCallback(async () => {
+        setLoading(true);
+        const result = await getIncidentReports();
+        if (result.success) {
+            setReports(result.data || []);
+            // Update selected report if it exists
+            if (selectedReport) {
+                const updated = result.data?.find((r: IncidentReport) => r.id === selectedReport.id);
+                if (updated) setSelectedReport(updated);
+            }
+        }
+        setLoading(false);
+    }, [selectedReport]);
+
     useEffect(() => {
         fetchReports();
-    }, []);
+    }, [fetchReports]);
 
     // Realtime: Connection Status & Global Listeners
     useEffect(() => {
         let channel: Channel;
-        let commentChannel: Channel;
+        let _commentChannel: Channel;
         const initPusher = async () => {
             const pusher = await getPusherClient();
             if (pusher) {
@@ -179,23 +193,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                 channel.unbind_all().unsubscribe();
             }
         };
-    }, [selectedReport?.id]);
-
-    const fetchReports = async () => {
-        setLoading(true);
-        const result = await getIncidentReports();
-        if (result.success) {
-            setReports(result.data || []);
-            // Update selected report if it exists
-            if (selectedReport) {
-                const updated = result.data?.find((r: IncidentReport) => r.id === selectedReport.id);
-                if (updated) setSelectedReport(updated);
-            }
-        }
-        setLoading(false);
-    };
-
-
+    }, [selectedReport?.id, adminId]);
 
     const handleReply = async (status: string) => {
         if (!selectedReport) return;
@@ -596,6 +594,6 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                     </div>
                 )}
             </div>
-        </div >
+        </div>
     );
 }

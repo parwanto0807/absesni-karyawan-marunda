@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import {
     Camera as CameraIcon,
@@ -14,7 +14,6 @@ import {
     MapPinCheck,
     CircleDashed
 } from 'lucide-react';
-import NextImage from 'next/image';
 import { cn } from '@/lib/utils';
 import { toZonedTime } from 'date-fns-tz';
 import { TIMEZONE } from '@/lib/date-utils';
@@ -73,55 +72,14 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
         return () => clearInterval(timer);
     }, []);
 
-    useEffect(() => {
-        let isMounted = true;
-        const init = async () => {
-            // Load settings from database - REQUIRED
-            const settings = await getSettings();
-            if (!isMounted) return;
+    const stopCamera = useCallback(() => {
+        if (videoRef.current && videoRef.current.srcObject) {
+            const stream = videoRef.current.srcObject as MediaStream;
+            stream.getTracks().forEach(track => track.stop());
+        }
+    }, []);
 
-            if (settings.OFFICE_LAT && settings.OFFICE_LNG && settings.ALLOWED_RADIUS && settings.OFFICE_NAME) {
-                setOfficeSettings({
-                    lat: parseFloat(settings.OFFICE_LAT),
-                    lng: parseFloat(settings.OFFICE_LNG),
-                    radius: parseInt(settings.ALLOWED_RADIUS),
-                    name: settings.OFFICE_NAME
-                });
-                setSettingsLoaded(true);
-            } else {
-                // Settings not configured in database
-                setSettingsLoaded(false);
-                toast.error("Pengaturan Lokasi Belum Dikonfigurasi", {
-                    description: "Hubungi admin untuk mengatur lokasi absensi di halaman Settings."
-                });
-            }
-
-            // Check today's attendance
-            const today = await getTodayAttendance(user.userId);
-            if (!isMounted) return;
-
-            setCurrentAttendance(today);
-            setCheckingStatus(false);
-
-            // Only start camera if we need to clock in or clock out
-            if (!today || !today.clockOut) {
-                startCamera();
-                getLocation();
-            }
-
-            // Fetch today's shift
-            const shift = await getTodayUserShift(user.userId);
-            if (isMounted) setTodayShift(shift);
-        };
-        init();
-
-        return () => {
-            isMounted = false;
-            stopCamera();
-        };
-    }, [user.userId]);
-
-    const startCamera = async () => {
+    const startCamera = useCallback(async () => {
         if (startingCamera.current) return;
 
         // Don't start if already active
@@ -158,16 +116,9 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
         } finally {
             startingCamera.current = false;
         }
-    };
+    }, []);
 
-    const stopCamera = () => {
-        if (videoRef.current && videoRef.current.srcObject) {
-            const stream = videoRef.current.srcObject as MediaStream;
-            stream.getTracks().forEach(track => track.stop());
-        }
-    };
-
-    const getLocation = () => {
+    const getLocation = useCallback(() => {
         if (!navigator.geolocation) {
             setStatus('error');
             setMessage('Geolocation tidak didukung oleh browser Anda.');
@@ -208,8 +159,6 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
                         break;
                 }
 
-                // Don't set hard error status yet, just show toast message, 
-                // as GPS might perform better on retry or movement
                 if (!location) {
                     setStatus('error');
                     setMessage(errorMsg);
@@ -217,7 +166,54 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
             },
             options
         );
-    };
+    }, [location]);
+
+    useEffect(() => {
+        let isMounted = true;
+        const init = async () => {
+            // Load settings from database - REQUIRED
+            const settings = await getSettings();
+            if (!isMounted) return;
+
+            if (settings.OFFICE_LAT && settings.OFFICE_LNG && settings.ALLOWED_RADIUS && settings.OFFICE_NAME) {
+                setOfficeSettings({
+                    lat: parseFloat(settings.OFFICE_LAT),
+                    lng: parseFloat(settings.OFFICE_LNG),
+                    radius: parseInt(settings.ALLOWED_RADIUS),
+                    name: settings.OFFICE_NAME
+                });
+                setSettingsLoaded(true);
+            } else {
+                setSettingsLoaded(false);
+                toast.error("Pengaturan Lokasi Belum Dikonfigurasi", {
+                    description: "Hubungi admin untuk mengatur lokasi absensi di halaman Settings."
+                });
+            }
+
+            // Check today's attendance
+            const today = await getTodayAttendance(user.userId);
+            if (!isMounted) return;
+
+            setCurrentAttendance(today);
+            setCheckingStatus(false);
+
+            // Only start camera if we need to clock in or clock out
+            if (!today || !today.clockOut) {
+                startCamera();
+                getLocation();
+            }
+
+            // Fetch today's shift
+            const shift = await getTodayUserShift(user.userId);
+            if (isMounted) setTodayShift(shift);
+        };
+        init();
+
+        return () => {
+            isMounted = false;
+            stopCamera();
+        };
+    }, [user.userId, startCamera, stopCamera, getLocation]); // Correct dependencies
 
     const captureImage = () => {
         if (videoRef.current && canvasRef.current) {
@@ -628,7 +624,7 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
                                     <img
                                         src={capturedImage}
                                         className="w-full h-full object-cover rounded-[1.5rem] md:rounded-[2rem]"
-                                        alt="Captured"
+                                        alt="Hasil tangkapan kamera absensi"
                                         onError={(e) => {
                                             (e.target as HTMLImageElement).src = '/no-image.png';
                                         }}

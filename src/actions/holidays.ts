@@ -30,8 +30,8 @@ export async function addHoliday(data: { date: Date, name: string, isCutiBersama
         revalidatePath('/admin/settings');
         revalidatePath('/schedules');
         return { success: true, data: holiday };
-    } catch (error) {
-        console.error("Error adding holiday:", error);
+    } catch (_error) {
+        console.error("Error adding holiday:", _error);
         return { success: false, message: "Gagal menambah hari libur. Tanggal mungkin sudah ada." };
     }
 }
@@ -42,13 +42,13 @@ export async function deleteHoliday(id: string) {
         revalidatePath('/admin/settings');
         revalidatePath('/schedules');
         return { success: true };
-    } catch (error) {
-        console.error("Error deleting holiday:", error);
+    } catch (_error) {
+        console.error("Error deleting holiday:", _error);
         return { success: false };
     }
 }
 
-export async function syncHolidays(year: number) {
+export async function syncHolidays(_year: number) {
     try {
         // Mocking API call to public holiday API
         // In a real scenario, you would fetch from an API like https://api-harilibur.vercel.app/api?year=2026
@@ -57,7 +57,7 @@ export async function syncHolidays(year: number) {
         // This is a placeholder for the actual sync logic
         // For this task, I'll just return a message
         return { success: true, message: "Sinkronisasi berhasil (Simulasi)" };
-    } catch (error) {
+    } catch (_error) {
         return { success: false, message: "Gagal sinkronisasi" };
     }
 }

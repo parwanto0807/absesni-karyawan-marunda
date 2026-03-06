@@ -24,10 +24,23 @@ import {
     DialogTitle,
 } from "@/components/ui/dialog";
 
+interface Announcement {
+    id: string;
+    documentNumber: string;
+    date: string | Date; // Depending on serialization
+    to: string;
+    subject: string;
+    content: string;
+    signatoryName: string;
+    signatoryRole: string;
+    createdAt?: Date;
+    updatedAt?: Date;
+}
+
 export default function AnnouncementClient() {
     const [isExporting, setIsExporting] = useState(false);
     const [isLoading, setIsLoading] = useState(false);
-    const [announcements, setAnnouncements] = useState<any[]>([]);
+    const [announcements, setAnnouncements] = useState<Announcement[]>([]);
     const [editingId, setEditingId] = useState<string | null>(null);
     const [showForm, setShowForm] = useState(false);
     const [searchQuery, setSearchQuery] = useState('');
@@ -66,7 +79,7 @@ export default function AnnouncementClient() {
         setEditingId(null);
     };
 
-    const handleEdit = (ann: any) => {
+    const handleEdit = (ann: Announcement) => {
         setDocumentNumber(ann.documentNumber);
         setDate(format(new Date(ann.date), 'yyyy-MM-dd'));
         setTo(ann.to);

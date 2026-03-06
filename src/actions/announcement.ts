@@ -29,7 +29,7 @@ export async function createAnnouncement(data: {
 }) {
     try {
         const session = await getSession();
-        if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN' && session.role !== 'SUPER_ADMIN')) {
+        if (!session || (session.role !== 'ADMIN')) {
             return { success: false, message: 'Unauthorized' };
         }
 
@@ -56,7 +56,7 @@ export async function updateAnnouncement(id: string, data: {
 }) {
     try {
         const session = await getSession();
-        if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN' && session.role !== 'SUPER_ADMIN')) {
+        if (!session || (session.role !== 'ADMIN')) {
             return { success: false, message: 'Unauthorized' };
         }
 
@@ -76,7 +76,7 @@ export async function updateAnnouncement(id: string, data: {
 export async function deleteAnnouncement(id: string) {
     try {
         const session = await getSession();
-        if (!session || (session.role !== 'ADMIN' && session.role !== 'SUPERADMIN' && session.role !== 'SUPER_ADMIN')) {
+        if (!session || (session.role !== 'ADMIN')) {
             return { success: false, message: 'Unauthorized' };
         }
 

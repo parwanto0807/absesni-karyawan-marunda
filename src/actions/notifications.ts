@@ -21,8 +21,8 @@ export async function createNotification(data: {
             },
         });
         return { success: true };
-    } catch (error) {
-        console.error('Create Notification Error:', error);
+    } catch (_error) {
+        console.error('Create Notification Error:', _error);
     }
 }
 
@@ -46,8 +46,8 @@ export async function createBroadcastNotification(data: {
             data: notifications,
         });
         return { success: true };
-    } catch (error) {
-        console.error('Broadcast Notification Error:', error);
+    } catch (_error) {
+        console.error('Broadcast Notification Error:', _error);
         return { success: false };
     }
 }
@@ -60,8 +60,8 @@ export async function getUserNotifications(userId: string) {
             take: 20, // Limit 20 notifications
         });
         return notifications;
-    } catch (error) {
-        console.error('Get Notifications Error:', error);
+    } catch (_error) {
+        console.error('Get Notifications Error:', _error);
         return [];
     }
 }
@@ -74,8 +74,8 @@ export async function markAsRead(notificationId: string) {
         });
         revalidatePath('/');
         return { success: true };
-    } catch (error) {
-        console.error('Mark as read Error:', error);
+    } catch (_error) {
+        console.error('Mark as read Error:', _error);
         return { success: false };
     }
 }
@@ -88,8 +88,8 @@ export async function markAllAsRead(userId: string) {
         });
         revalidatePath('/');
         return { success: true };
-    } catch (error) {
-        console.error('Mark all as read Error:', error);
+    } catch (_error) {
+        console.error('Mark all as read Error:', _error);
         return { success: false };
     }
 }
@@ -100,7 +100,7 @@ export async function getUnreadCount(userId: string) {
             where: { userId, isRead: false },
         });
         return count;
-    } catch (error) {
+    } catch (_error) {
         return 0;
     }
 }
