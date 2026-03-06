@@ -28,14 +28,14 @@ enum AttendanceStatus {
 }
 
 model User {
-  id               String            @id @default(cuid())
-  username         String            @unique
-  password         String
-  name             String
-  role             Role              @default(PIC)
-  employeeId       String            @unique
-  image            String?
-  rotationOffset   Int               @default(0)
+  id                String            @id @default(cuid())
+  username          String            @unique
+  password          String
+  name              String
+  role              Role              @default(PIC)
+  employeeId        String            @unique
+  image             String?
+  rotationOffset    Int               @default(0)
   isPasswordDefault Boolean           @default(true)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
@@ -250,4 +250,20 @@ model VoucherClaim {
 
   @@unique([userId, month, year])
   @@index([userId])
+}
+
+model Announcement {
+  id             String   @id @default(cuid())
+  documentNumber String
+  date           DateTime
+  to             String
+  subject        String
+  content        String   @db.Text
+  signatoryName  String
+  signatoryRole  String
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  @@index([date])
+  @@index([createdAt])
 }

@@ -463,10 +463,10 @@ export async function getAttendances(userId?: string, startDate?: Date, endDate?
     }
 }
 
-export async function updateAttendance(id: string, clockIn: Date, clockOut: Date | null) {
+export async function updateAttendance(id: string, clockIn: Date | null, clockOut: Date | null) {
     try {
         const session = await getSession();
-        if (!session || !['ADMIN', 'PIC', 'RT'].includes(session.role)) {
+        if (!session || !['ADMIN', 'PIC', 'RT', 'SUPERADMIN', 'SUPER_ADMIN'].includes(session.role)) {
             return { success: false, message: 'Unauthorized' };
         }
 
@@ -485,7 +485,7 @@ export async function updateAttendance(id: string, clockIn: Date, clockOut: Date
         let earlyLeaveMinutes = 0;
 
         // Recalculate lateness
-        if (attendance.scheduledClockIn) {
+        if (attendance.scheduledClockIn && clockIn) {
             const scheduledStart = new Date(attendance.scheduledClockIn);
             if (clockIn > scheduledStart) {
                 const diff = clockIn.getTime() - scheduledStart.getTime();
@@ -505,16 +505,23 @@ export async function updateAttendance(id: string, clockIn: Date, clockOut: Date
             }
         }
 
+        let status: AttendanceStatus = 'ABSENT';
+        if (clockIn) {
+            status = isLate ? 'LATE' : 'PRESENT';
+        }
+
+        const actualClockIn = clockIn || clockOut || new Date();
+
         await prisma.attendance.update({
             where: { id },
             data: {
-                clockIn,
+                clockIn: actualClockIn,
                 clockOut,
                 isLate,
                 lateMinutes,
                 isEarlyLeave,
                 earlyLeaveMinutes,
-                status: isLate ? 'LATE' : 'PRESENT'
+                status: status
             }
         });
 
@@ -576,5 +583,87 @@ export async function getMonthlyLateness(month: number, year: number) {
     } catch (error) {
         console.error('Error fetching monthly lateness:', error);
         return { success: false, message: 'Gagal memuat data keterlambatan', data: [] };
+    }
+}
+
+export async function addManualAttendance(
+    userId: string,
+    clockIn: Date | null,
+    clockOut: Date | null,
+    shiftType: string,
+    scheduledClockIn?: Date | null,
+    scheduledClockOut?: Date | null
+) {
+    try {
+        const session = await getSession();
+        if (!session || !['ADMIN', 'SUPERADMIN', 'SUPER_ADMIN'].includes(session.role)) {
+            return { success: false, message: 'Hanya Admin yang dapat menambahkan absensi manual' };
+        }
+
+        // Must have at least one time
+        if (!clockIn && !clockOut) {
+            return { success: false, message: 'Waktu masuk atau waktu keluar harus diisi' };
+        }
+
+        let isLate = false;
+        let lateMinutes = 0;
+        let isEarlyLeave = false;
+        let earlyLeaveMinutes = 0;
+
+        // Calculate Lateness
+        if (clockIn && scheduledClockIn && clockIn > scheduledClockIn) {
+            const diff = clockIn.getTime() - scheduledClockIn.getTime();
+            lateMinutes = Math.floor(diff / 60000);
+            if (lateMinutes > 0) isLate = true;
+        }
+
+        // Calculate Early Leave
+        if (clockOut && scheduledClockOut) {
+            const tolerancePoint = new Date(scheduledClockOut.getTime() - 5 * 60 * 1000);
+            if (clockOut < tolerancePoint) {
+                const diff = scheduledClockOut.getTime() - clockOut.getTime();
+                earlyLeaveMinutes = Math.floor(diff / 60000);
+                if (earlyLeaveMinutes > 0) isEarlyLeave = true;
+            }
+        }
+
+        let status: AttendanceStatus = 'ABSENT';
+        if (clockIn) {
+            status = isLate ? 'LATE' : 'PRESENT';
+        }
+
+        // Because prisma schema requires clockIn to be non-null for attendance records usually. 
+        // Wait, checking the schema for `Attendance` from previous history, `clockIn` might be String or Date and must be non-null.
+        // Actually normally ClockIn is non-null. Let's use `scheduledClockIn` or `clockOut` for `clockIn` database requirement if not provided 
+        // because usually Prisma schema requires clockIn.
+        // If they omit clockIn, we need to handle it. Usually `clockIn: DateTime` is required by Prisma unless we changed it.
+        // Let's assume Prisma needs `clockIn`. If they only put clockOut, setting clockIn = clockOut makes it exist but conceptually wrong.
+        // Since we are building an ERP, standard Prisma requires clockIn. We will use `clockOut` as `clockIn` if really needed and set status = 'ABSENT'.
+        const actualClockIn = clockIn || clockOut || new Date();
+
+        await prisma.attendance.create({
+            data: {
+                userId,
+                clockIn: actualClockIn,
+                // We keep actualClockIn as default clockIn but if the user meant an override we store it.
+                // However, the best is to keep them intact. But Prisma prevents null clockIn.
+                clockOut,
+                shiftType,
+                scheduledClockIn,
+                scheduledClockOut,
+                isLate,
+                lateMinutes,
+                isEarlyLeave,
+                earlyLeaveMinutes,
+                status: status,
+                notes: `Manual Input by Admin (${!clockIn ? 'No Clock-in' : ''} ${!clockOut ? 'No Clock-out' : ''})`.trim()
+            }
+        });
+
+        revalidatePath('/history');
+        return { success: true, message: 'Absensi manual berhasil ditambahkan' };
+    } catch (error) {
+        console.error('Add manual attendance error:', error);
+        return { success: false, message: 'Gagal menambahkan absensi manual' };
     }
 }

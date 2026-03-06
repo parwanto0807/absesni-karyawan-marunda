@@ -21,7 +21,7 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { updateAttendance } from '@/actions/attendance';
 import { toast } from 'sonner';
-import { Edit2 } from 'lucide-react';
+import { Edit2, PlusCircle } from 'lucide-react';
 import { format } from 'date-fns';
 import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
@@ -188,7 +188,7 @@ export default function AttendanceHistoryTable({
                                         </div>
                                     )}
 
-                                    {!attendance.id.startsWith('absent-') && userRole === 'ADMIN' && (
+                                    {(attendance.id.startsWith('absent-') ? ['ADMIN', 'SUPERADMIN', 'SUPER_ADMIN'].includes(userRole) : userRole === 'ADMIN' || userRole === 'SUPERADMIN' || userRole === 'SUPER_ADMIN') && (
                                         <UpdateAttendanceDialog attendance={attendance} />
                                     )}
                                 </div>
@@ -291,7 +291,7 @@ export default function AttendanceHistoryTable({
                                                         {attendance.isEarlyLeave && <span className="text-[9px] font-bold text-rose-600 uppercase">Cepat</span>}
                                                     </div>
                                                 )}
-                                                {!attendance.id.startsWith('absent-') && userRole === 'ADMIN' && (
+                                                {(attendance.id.startsWith('absent-') ? ['ADMIN', 'SUPERADMIN', 'SUPER_ADMIN'].includes(userRole) : userRole === 'ADMIN' || userRole === 'SUPERADMIN' || userRole === 'SUPER_ADMIN') && (
                                                     <div className="mt-2">
                                                         <UpdateAttendanceDialog attendance={attendance} />
                                                     </div>
@@ -365,22 +365,50 @@ function UpdateAttendanceDialog({ attendance }: { attendance: VirtualAttendance 
 
     // Initial values formatted for datetime-local input
     // We need to convert from UTC/Date object to Jakarta local string for the input
-    const formatForInput = (date: Date | null) => {
+    const formatForInput = (date: Date | null | undefined) => {
         if (!date) return '';
         const zoned = toZonedTime(date, TIMEZONE);
         return format(zoned, "yyyy-MM-dd'T'HH:mm");
     };
 
-    const [clockIn, setClockIn] = React.useState(formatForInput(attendance.clockIn));
-    const [clockOut, setClockOut] = React.useState(formatForInput(attendance.clockOut));
+    const isVirtual = attendance.id.startsWith('absent-');
+
+    const [includeClockIn, setIncludeClockIn] = React.useState(isVirtual ? true : !!attendance.clockIn);
+    const [includeClockOut, setIncludeClockOut] = React.useState(isVirtual ? true : !!attendance.clockOut);
+
+    // For virtual absence, we pre-fill the input with scheduled timing if available or default to 08:00
+    const [clockIn, setClockIn] = React.useState(formatForInput(attendance.clockIn || attendance.scheduledClockIn));
+    const [clockOut, setClockOut] = React.useState(formatForInput(attendance.clockOut || attendance.scheduledClockOut));
 
     const handleUpdate = async () => {
         setIsLoading(true);
         try {
-            const clockInDate = fromZonedTime(clockIn, TIMEZONE);
-            const clockOutDate = clockOut ? fromZonedTime(clockOut, TIMEZONE) : null;
+            const clockInDate = includeClockIn && clockIn ? fromZonedTime(clockIn, TIMEZONE) : null;
+            const clockOutDate = includeClockOut && clockOut ? fromZonedTime(clockOut, TIMEZONE) : null;
 
-            const res = await updateAttendance(attendance.id, clockInDate, clockOutDate);
+            if (!clockInDate && !clockOutDate) {
+                toast.error("Waktu masuk atau keluar harus diisi");
+                setIsLoading(false);
+                return;
+            }
+
+            let res;
+            if (isVirtual) {
+                // Determine if we need to call a special function or if updateAttendance can handle it
+                // Actually we need to use addManualAttendance for virtual ones
+                const { addManualAttendance } = await import('@/actions/attendance');
+                res = await addManualAttendance(
+                    attendance.userId,
+                    clockInDate,
+                    clockOutDate,
+                    attendance.shiftType,
+                    attendance.scheduledClockIn,
+                    attendance.scheduledClockOut
+                );
+            } else {
+                res = await updateAttendance(attendance.id, clockInDate, clockOutDate);
+            }
+
             if (res.success) {
                 toast.success(res.message);
                 setOpen(false);
@@ -400,36 +428,68 @@ function UpdateAttendanceDialog({ attendance }: { attendance: VirtualAttendance 
             <Button
                 variant="ghost"
                 size="icon"
-                className="h-7 w-7 rounded-lg bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                className={cn(
+                    "h-7 w-7 rounded-lg",
+                    isVirtual
+                        ? "bg-amber-50 dark:bg-amber-900/20 text-amber-600 dark:text-amber-400 hover:bg-amber-100 dark:hover:bg-amber-900/40"
+                        : "bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 hover:bg-indigo-100 dark:hover:bg-indigo-900/40"
+                )}
                 onClick={() => setOpen(true)}
+                title={isVirtual ? "Tambahkan Absensi Manual" : "Update Waktu Absen"}
             >
-                <Edit2 size={12} />
+                {isVirtual ? <PlusCircle size={12} /> : <Edit2 size={12} />}
             </Button>
             <DialogContent className="sm:max-w-[425px] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 rounded-[1.5rem] shadow-2xl">
                 <DialogHeader>
                     <DialogTitle className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                        Update Waktu <span className="text-indigo-600">Absen</span>
+                        {isVirtual ? 'Tambah' : 'Update'} Waktu <span className={isVirtual ? "text-amber-600" : "text-indigo-600"}>Absen</span>
                     </DialogTitle>
                 </DialogHeader>
                 <div className="grid gap-6 py-4">
                     <div className="grid gap-2">
-                        <Label htmlFor="clockIn" className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Waktu Masuk (Clock In)</Label>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="hasClockIn"
+                                checked={includeClockIn}
+                                onChange={(e) => setIncludeClockIn(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                            />
+                            <Label htmlFor="hasClockIn" className="text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer">Waktu Masuk (Clock In)</Label>
+                        </div>
                         <Input
                             id="clockIn"
                             type="datetime-local"
                             value={clockIn}
                             onChange={(e) => setClockIn(e.target.value)}
-                            className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-indigo-500"
+                            disabled={!includeClockIn}
+                            className={cn(
+                                "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl",
+                                includeClockIn ? "focus:ring-indigo-500" : "opacity-50 cursor-not-allowed"
+                            )}
                         />
                     </div>
                     <div className="grid gap-2">
-                        <Label htmlFor="clockOut" className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Waktu Pulang (Clock Out)</Label>
+                        <div className="flex items-center space-x-2">
+                            <input
+                                type="checkbox"
+                                id="hasClockOut"
+                                checked={includeClockOut}
+                                onChange={(e) => setIncludeClockOut(e.target.checked)}
+                                className="w-4 h-4 rounded border-slate-300 text-indigo-600 focus:ring-indigo-600 dark:border-slate-700 bg-slate-50 dark:bg-slate-800"
+                            />
+                            <Label htmlFor="hasClockOut" className="text-[10px] font-black uppercase tracking-widest text-slate-400 cursor-pointer">Waktu Pulang (Clock Out)</Label>
+                        </div>
                         <Input
                             id="clockOut"
                             type="datetime-local"
                             value={clockOut}
                             onChange={(e) => setClockOut(e.target.value)}
-                            className="bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl focus:ring-indigo-500"
+                            disabled={!includeClockOut}
+                            className={cn(
+                                "bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700 rounded-xl",
+                                includeClockOut ? "focus:ring-indigo-500" : "opacity-50 cursor-not-allowed"
+                            )}
                         />
                     </div>
                 </div>
