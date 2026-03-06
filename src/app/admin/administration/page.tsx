@@ -11,7 +11,7 @@ export default async function AdministrationPage({
 }) {
     const params = await searchParams;
     const session = await getSession();
-    if (!session || !['ADMIN', 'PIC', 'RT'].includes(session.role)) {
+    if (!session || session.role !== 'ADMIN') {
         redirect('/login');
     }
 

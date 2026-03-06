@@ -529,7 +529,7 @@ export async function updateAttendance(id: string, clockIn: Date, clockOut: Date
 export async function getMonthlyLateness(month: number, year: number) {
     try {
         const session = await getSession();
-        if (!session || !['ADMIN', 'PIC', 'RT'].includes(session.role)) {
+        if (!session || session.role !== 'ADMIN') {
             return { success: false, message: 'Unauthorized', data: [] };
         }
 
