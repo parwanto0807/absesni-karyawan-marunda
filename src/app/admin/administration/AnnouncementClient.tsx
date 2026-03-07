@@ -12,7 +12,8 @@ import {
     getAnnouncements,
     createAnnouncement,
     updateAnnouncement,
-    deleteAnnouncement
+    deleteAnnouncement,
+    togglePublishAnnouncement
 } from '@/actions/announcement';
 import { cn } from '@/lib/utils';
 import {
@@ -23,6 +24,13 @@ import {
     DialogHeader,
     DialogTitle,
 } from "@/components/ui/dialog";
+import {
+    Tooltip,
+    TooltipContent,
+    TooltipProvider,
+    TooltipTrigger,
+} from "@/components/ui/tooltip";
+import { Globe, GlobeLock, Megaphone } from 'lucide-react';
 
 interface Announcement {
     id: string;
@@ -33,6 +41,7 @@ interface Announcement {
     content: string;
     signatoryName: string;
     signatoryRole: string;
+    isPublished: boolean;
     createdAt?: Date;
     updatedAt?: Date;
 }
@@ -54,6 +63,7 @@ export default function AnnouncementClient() {
     const [content, setContent] = useState('');
     const [signatoryName, setSignatoryName] = useState('Parwanto');
     const [signatoryRole, setSignatoryRole] = useState('Chief Keamanan');
+    const [isPublished, setIsPublished] = useState(false);
 
     React.useEffect(() => {
         fetchAnnouncements();
@@ -76,6 +86,7 @@ export default function AnnouncementClient() {
         setContent('');
         setSignatoryName('Parwanto');
         setSignatoryRole('Chief Keamanan');
+        setIsPublished(false);
         setEditingId(null);
     };
 
@@ -87,6 +98,7 @@ export default function AnnouncementClient() {
         setContent(ann.content);
         setSignatoryName(ann.signatoryName);
         setSignatoryRole(ann.signatoryRole);
+        setIsPublished(ann.isPublished);
         setEditingId(ann.id);
         setShowForm(true);
         window.scrollTo({ top: 0, behavior: 'smooth' });
@@ -119,7 +131,8 @@ export default function AnnouncementClient() {
             subject,
             content,
             signatoryName,
-            signatoryRole
+            signatoryRole,
+            isPublished
         };
 
         let res;
@@ -133,18 +146,40 @@ export default function AnnouncementClient() {
             toast.success(editingId ? 'Data diperbarui' : 'Data disimpan');
             fetchAnnouncements();
             if (printAfter) {
+                // Determine if we need to pass data to generatePDF
+                // If it was just saved/updated, we might want the latest data
                 generatePDF();
             }
-            if (!editingId) setShowForm(false);
+            setShowForm(false);
             setEditingId(null);
-        } else {
+            resetForm();
+        }
+        else {
             toast.error(res.message || 'Gagal menyimpan data');
         }
         setIsLoading(false);
     };
 
-    const generatePDF = async () => {
-        if (!subject || !content) {
+    const handleTogglePublish = async (ann: Announcement) => {
+        const res = await togglePublishAnnouncement(ann.id, !ann.isPublished);
+        if (res.success) {
+            toast.success(res.message);
+            fetchAnnouncements();
+        } else {
+            toast.error(res.message);
+        }
+    };
+
+    const generatePDF = async (ann?: Announcement) => {
+        const activeSubject = ann ? ann.subject : subject;
+        const activeContent = ann ? ann.content : content;
+        const activeDocNum = ann ? ann.documentNumber : documentNumber;
+        const activeDate = ann ? ann.date : date;
+        const activeTo = ann ? ann.to : to;
+        const activeSigName = ann ? ann.signatoryName : signatoryName;
+        const activeSigRole = ann ? ann.signatoryRole : signatoryRole;
+
+        if (!activeSubject || !activeContent) {
             toast.error("Perihal dan Isi Pengumuman harus diisi.");
             return;
         }
@@ -226,8 +261,8 @@ export default function AnnouncementClient() {
             doc.setFont('helvetica', 'bold');
             doc.text('DOKUMEN PENGUMUMAN', 145, 14);
             doc.setFont('helvetica', 'normal');
-            doc.text(`NO: ${documentNumber}`, 145, 19);
-            doc.text(`TGL: ${format(new Date(date), 'dd MMM yyyy')}`, 145, 24);
+            doc.text(`NO: ${activeDocNum}`, 145, 19);
+            doc.text(`TGL: ${format(new Date(activeDate), 'dd MMM yyyy')}`, 145, 24);
 
             let currentY = 50;
 
@@ -237,25 +272,25 @@ export default function AnnouncementClient() {
 
             doc.setFont('helvetica', 'normal');
             doc.text('Bekasi,', 20, currentY);
-            doc.text(format(new Date(date), 'dd MMMM yyyy', { locale: id }), 35, currentY);
+            doc.text(format(new Date(activeDate), 'dd MMMM yyyy', { locale: id }), 35, currentY);
 
             currentY += 10;
             doc.text('Nomor', 20, currentY);
             doc.text(':', 40, currentY);
-            doc.text(documentNumber, 45, currentY);
+            doc.text(activeDocNum, 45, currentY);
 
             currentY += 6;
             doc.text('Perihal', 20, currentY);
             doc.text(':', 40, currentY);
             doc.setFont('helvetica', 'bold');
-            doc.text(subject, 45, currentY);
+            doc.text(activeSubject, 45, currentY);
 
             currentY += 10;
             doc.setFont('helvetica', 'normal');
             doc.text('Kepada Yth.', 20, currentY);
             currentY += 6;
             doc.setFont('helvetica', 'bold');
-            doc.text(to, 20, currentY);
+            doc.text(activeTo, 20, currentY);
             currentY += 6;
             doc.setFont('helvetica', 'normal');
             doc.text('di tempat', 20, currentY);
@@ -267,7 +302,7 @@ export default function AnnouncementClient() {
             currentY += 10;
 
             // Main Content Formatting
-            const paragraphs = content.split('\n');
+            const paragraphs = activeContent.split('\n');
 
             for (let p = 0; p < paragraphs.length; p++) {
                 const paragraph = paragraphs[p];
@@ -334,7 +369,7 @@ export default function AnnouncementClient() {
             doc.text('Cluster Taman Marunda,', 130, currentY);
             currentY += 6;
             doc.setFont('helvetica', 'bold');
-            doc.text(signatoryRole, 130, currentY);
+            doc.text(activeSigRole, 130, currentY);
 
             currentY += 25; // Space for signature
 
@@ -377,7 +412,7 @@ export default function AnnouncementClient() {
 
             currentY += 4;
             doc.setFont('helvetica', 'bold');
-            doc.text(signatoryName, 130, currentY);
+            doc.text(activeSigName, 130, currentY);
 
             // Official System Note with wrapping
             currentY += 8;
@@ -407,7 +442,7 @@ export default function AnnouncementClient() {
                 doc.text('Dokumen Elektronik - Dikeluarkan secara otomatis oleh Sistem Manajemen Cluster Taman Marunda', 20, 286);
             }
 
-            const fileNameSafeSubject = subject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
+            const fileNameSafeSubject = activeSubject.replace(/[^a-z0-9]/gi, '_').toLowerCase();
             doc.save(`Pengumuman_${fileNameSafeSubject}_${format(new Date(), 'yyyyMMdd')}.pdf`);
             toast.success('Pengumuman resmi berhasil dicetak');
         } catch (error) {
@@ -425,287 +460,432 @@ export default function AnnouncementClient() {
     );
 
     return (
-        <div className="space-y-6 w-full mx-auto pb-12">
-            {/* Header Action Bar */}
-            <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300">
-                <div className="flex items-center gap-3">
-                    <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
-                        <FileSignature size={24} />
-                    </div>
-                    <div>
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
-                            Manajemen <span className="text-indigo-600">Pengumuman</span>
-                        </h2>
-                        <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
-                            Database arsip surat resmi Cluster Marunda
-                        </p>
-                    </div>
-                </div>
-                <Button
-                    onClick={() => {
-                        if (showForm) {
-                            setShowForm(false);
-                            resetForm();
-                        } else {
-                            setShowForm(true);
-                            resetForm();
-                        }
-                    }}
-                    className={cn(
-                        "rounded-xl font-black uppercase tracking-widest text-[11px] h-12 px-6 shadow-lg transition-all",
-                        showForm
-                            ? "bg-slate-100 hover:bg-slate-200 text-slate-600 shadow-none border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
-                            : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
-                    )}
-                >
-                    {showForm ? (
-                        <>Batal & Tutup</>
-                    ) : (
-                        <><Plus size={16} className="mr-2" /> Buat Pengumuman Baru</>
-                    )}
-                </Button>
-            </div>
-
-            {/* Form Section */}
-            {showForm && (
-                <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
-                    <div className="p-6 md:p-8 space-y-8">
-                        <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
-                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                                <Edit size={16} className="text-indigo-500" />
-                                {editingId ? 'Edit Draft Pengumuman' : 'Draft Pengumuman Baru'}
-                            </h3>
+        <TooltipProvider>
+            <div className="space-y-6 w-full mx-auto pb-12">
+                {/* Header Action Bar */}
+                <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 bg-white dark:bg-slate-900 p-6 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm transition-all duration-300">
+                    <div className="flex items-center gap-3">
+                        <div className="h-12 w-12 rounded-2xl bg-indigo-50 dark:bg-indigo-900/20 text-indigo-600 dark:text-indigo-400 flex items-center justify-center">
+                            <FileSignature size={24} />
                         </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                Manajemen <span className="text-indigo-600">Pengumuman</span>
+                            </h2>
+                            <p className="text-[11px] font-bold text-slate-400 uppercase tracking-widest">
+                                Database arsip surat resmi Cluster Marunda
+                            </p>
+                        </div>
+                    </div>
+                    <Button
+                        onClick={() => {
+                            if (showForm) {
+                                setShowForm(false);
+                                resetForm();
+                            } else {
+                                setShowForm(true);
+                                resetForm();
+                            }
+                        }}
+                        className={cn(
+                            "rounded-xl font-black uppercase tracking-widest text-[11px] h-12 px-6 shadow-lg transition-all",
+                            showForm
+                                ? "bg-slate-100 hover:bg-slate-200 text-slate-600 shadow-none border border-slate-200 dark:bg-slate-800 dark:border-slate-700 dark:text-slate-300"
+                                : "bg-indigo-600 hover:bg-indigo-700 text-white shadow-indigo-600/20"
+                        )}
+                    >
+                        {showForm ? (
+                            <>Batal & Tutup</>
+                        ) : (
+                            <><Plus size={16} className="mr-2" /> Buat Pengumuman Baru</>
+                        )}
+                    </Button>
+                </div>
 
-                        <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nomor Surat</Label>
-                                <Input
-                                    value={documentNumber}
-                                    onChange={e => setDocumentNumber(e.target.value)}
-                                    className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl"
-                                    placeholder="Contoh: HR/2026/05/001"
-                                />
+                {/* Form Section */}
+                {showForm && (
+                    <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden animate-in slide-in-from-top-4 duration-500">
+                        <div className="p-6 md:p-8 space-y-8">
+                            <div className="flex items-center justify-between border-b border-slate-100 dark:border-slate-800 pb-4">
+                                <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                                    <Edit size={16} className="text-indigo-500" />
+                                    {editingId ? 'Edit Draft Pengumuman' : 'Draft Pengumuman Baru'}
+                                </h3>
                             </div>
 
-                            <div className="space-y-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Tanggal</Label>
-                                <Input
-                                    type="date"
-                                    value={date}
-                                    onChange={e => setDate(e.target.value)}
-                                    className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl"
-                                />
-                            </div>
+                            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Nomor Surat</Label>
+                                    <Input
+                                        value={documentNumber}
+                                        onChange={e => setDocumentNumber(e.target.value)}
+                                        className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl"
+                                        placeholder="Contoh: HR/2026/05/001"
+                                    />
+                                </div>
 
-                            <div className="space-y-2 md:col-span-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Kepada Yth.</Label>
-                                <Input
-                                    value={to}
-                                    onChange={e => setTo(e.target.value)}
-                                    className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl"
-                                    placeholder="Contoh: Seluruh Karyawan / Petugas Keamanan"
-                                />
-                            </div>
+                                <div className="space-y-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Tanggal</Label>
+                                    <Input
+                                        type="date"
+                                        value={date}
+                                        onChange={e => setDate(e.target.value)}
+                                        className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl"
+                                    />
+                                </div>
 
-                            <div className="space-y-2 md:col-span-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Perihal (Subject)</Label>
-                                <Input
-                                    value={subject}
-                                    onChange={e => setSubject(e.target.value)}
-                                    className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl font-bold"
-                                    placeholder="Contoh: Perubahan Jadwal Kerja / Aturan Baru"
-                                />
-                            </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Kepada Yth.</Label>
+                                    <Input
+                                        value={to}
+                                        onChange={e => setTo(e.target.value)}
+                                        className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl"
+                                        placeholder="Contoh: Seluruh Karyawan / Petugas Keamanan"
+                                    />
+                                </div>
 
-                            <div className="space-y-2 md:col-span-2">
-                                <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Isi Pengumuman</Label>
-                                <textarea
-                                    value={content}
-                                    onChange={e => setContent(e.target.value)}
-                                    className="w-full bg-slate-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[300px] resize-y font-medium leading-relaxed"
-                                    placeholder="Tuliskan isi pengumuman secara detail di sini..."
-                                />
-                            </div>
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Perihal (Subject)</Label>
+                                    <Input
+                                        value={subject}
+                                        onChange={e => setSubject(e.target.value)}
+                                        className="bg-slate-50 border-slate-200 dark:bg-slate-800 dark:border-slate-700 h-11 rounded-xl font-bold"
+                                        placeholder="Contoh: Perubahan Jadwal Kerja / Aturan Baru"
+                                    />
+                                </div>
 
-                            <div className="border border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-5 space-y-4 md:col-span-2 bg-slate-50/50 dark:bg-slate-800/30">
-                                <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Penandatangan (Signatory)</h3>
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold text-slate-500 ml-1">Nama Terang</Label>
-                                        <Input
-                                            value={signatoryName}
-                                            onChange={e => setSignatoryName(e.target.value)}
-                                            className="bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700 h-11 rounded-lg"
-                                        />
-                                    </div>
-                                    <div className="space-y-2">
-                                        <Label className="text-[10px] font-bold text-slate-500 ml-1">Jabatan / Role</Label>
-                                        <Input
-                                            value={signatoryRole}
-                                            onChange={e => setSignatoryRole(e.target.value)}
-                                            className="bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700 h-11 rounded-lg"
-                                        />
+                                <div className="space-y-2 md:col-span-2">
+                                    <Label className="text-[10px] font-black uppercase tracking-widest text-slate-500 ml-1">Isi Pengumuman</Label>
+                                    <textarea
+                                        value={content}
+                                        onChange={e => setContent(e.target.value)}
+                                        className="w-full bg-slate-50 border border-slate-200 dark:bg-slate-800 dark:border-slate-700 rounded-xl p-4 text-sm focus:outline-none focus:ring-2 focus:ring-indigo-500 min-h-[300px] resize-y font-medium leading-relaxed"
+                                        placeholder="Tuliskan isi pengumuman secara detail di sini..."
+                                    />
+                                </div>
+
+                                <div className="border border-dashed border-slate-200 dark:border-slate-700 rounded-[1.5rem] p-5 space-y-4 md:col-span-2 bg-slate-50/50 dark:bg-slate-800/30">
+                                    <h3 className="text-[10px] font-black uppercase tracking-widest text-slate-400">Penandatangan (Signatory)</h3>
+                                    <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-bold text-slate-500 ml-1">Nama Terang</Label>
+                                            <Input
+                                                value={signatoryName}
+                                                onChange={e => setSignatoryName(e.target.value)}
+                                                className="bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700 h-11 rounded-lg"
+                                            />
+                                        </div>
+                                        <div className="space-y-2">
+                                            <Label className="text-[10px] font-bold text-slate-500 ml-1">Jabatan / Role</Label>
+                                            <Input
+                                                value={signatoryRole}
+                                                onChange={e => setSignatoryRole(e.target.value)}
+                                                className="bg-white border-slate-200 dark:bg-slate-900 dark:border-slate-700 h-11 rounded-lg"
+                                            />
+                                        </div>
                                     </div>
                                 </div>
+
+                                <div className="border border-indigo-100 dark:border-indigo-900/30 rounded-2xl p-5 bg-indigo-50/30 dark:bg-indigo-900/10 md:col-span-2 flex items-center justify-between group">
+                                    <div className="flex items-center gap-4">
+                                        <div className={cn(
+                                            "w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-300",
+                                            isPublished ? "bg-indigo-600 text-white shadow-lg shadow-indigo-200" : "bg-slate-100 text-slate-400 dark:bg-slate-800"
+                                        )}>
+                                            {isPublished ? <Globe size={24} className="animate-pulse" /> : <GlobeLock size={24} />}
+                                        </div>
+                                        <div>
+                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">Status Publikasi</h4>
+                                            <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest mt-0.5">
+                                                {isPublished ? 'Tampilkan di Dashboard Utama' : 'Simpan sebagai Draft Internal'}
+                                            </p>
+                                        </div>
+                                    </div>
+                                    <label className="relative inline-flex items-center cursor-pointer">
+                                        <input
+                                            type="checkbox"
+                                            className="sr-only peer"
+                                            checked={isPublished}
+                                            onChange={(e) => setIsPublished(e.target.checked)}
+                                        />
+                                        <div className="w-14 h-7 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-6 after:w-6 after:transition-all peer-checked:bg-indigo-600"></div>
+                                    </label>
+                                </div>
+                            </div>
+
+                            <div className="pt-4 flex flex-col sm:flex-row justify-end gap-3">
+                                <Button
+                                    variant="outline"
+                                    onClick={() => handleSave(false)}
+                                    disabled={isLoading}
+                                    className="rounded-xl border-slate-200 dark:border-slate-800 font-bold uppercase tracking-widest text-[10px] h-12 px-6"
+                                >
+                                    {isLoading ? 'Menyimpan...' : 'Simpan Draft'}
+                                </Button>
+                                <Button
+                                    onClick={() => handleSave(true)}
+                                    disabled={isExporting || isLoading}
+                                    className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] h-12 px-8 shadow-lg shadow-indigo-600/20"
+                                >
+                                    {isExporting ? (
+                                        <>
+                                            <Clock size={16} className="mr-2 animate-spin" />
+                                            MEMPROSES PDF...
+                                        </>
+                                    ) : (
+                                        <>
+                                            <Download size={16} className="mr-2" />
+                                            Simpan & Cetak PDF
+                                        </>
+                                    )}
+                                </Button>
                             </div>
                         </div>
+                    </div>
+                )}
 
-                        <div className="pt-4 flex flex-col sm:flex-row justify-end gap-3">
-                            <Button
-                                variant="outline"
-                                onClick={() => handleSave(false)}
-                                disabled={isLoading}
-                                className="rounded-xl border-slate-200 dark:border-slate-800 font-bold uppercase tracking-widest text-[10px] h-12 px-6"
-                            >
-                                {isLoading ? 'Menyimpan...' : 'Simpan Draft'}
-                            </Button>
-                            <Button
-                                onClick={() => handleSave(true)}
-                                disabled={isExporting || isLoading}
-                                className="rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase tracking-widest text-[10px] h-12 px-8 shadow-lg shadow-indigo-600/20"
-                            >
-                                {isExporting ? (
-                                    <>
-                                        <Clock size={16} className="mr-2 animate-spin" />
-                                        MEMPROSES PDF...
-                                    </>
-                                ) : (
-                                    <>
-                                        <Download size={16} className="mr-2" />
-                                        Simpan & Cetak PDF
-                                    </>
-                                )}
-                            </Button>
+                {/* List Section */}
+                <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
+                    <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
+                            <History size={16} className="text-amber-500" />
+                            Arsip Pengumuman Resmi
+                        </h3>
+                        <div className="relative w-full sm:w-64">
+                            <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
+                            <Input
+                                placeholder="Cari arsip..."
+                                value={searchQuery}
+                                onChange={e => setSearchQuery(e.target.value)}
+                                className="pl-9 h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
+                            />
                         </div>
                     </div>
-                </div>
-            )}
 
-            {/* List Section */}
-            <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm overflow-hidden min-h-[400px]">
-                <div className="p-6 border-b border-slate-100 dark:border-slate-800 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
-                    <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest flex items-center gap-2">
-                        <History size={16} className="text-amber-500" />
-                        Arsip Pengumuman Resmi
-                    </h3>
-                    <div className="relative w-full sm:w-64">
-                        <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" />
-                        <Input
-                            placeholder="Cari arsip..."
-                            value={searchQuery}
-                            onChange={e => setSearchQuery(e.target.value)}
-                            className="pl-9 h-9 text-xs rounded-xl bg-slate-50 dark:bg-slate-800 border-slate-200 dark:border-slate-700"
-                        />
+                    {/* Desktop View - Table */}
+                    <div className="hidden md:block overflow-x-auto">
+                        <table className="w-full text-left border-collapse">
+                            <thead>
+                                <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Tanggal</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Nomor / Perihal</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Kepada</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-center">Status</th>
+                                    <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Aksi</th>
+                                </tr>
+                            </thead>
+                            <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
+                                {isLoading && announcements.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold italic">Memuat data...</td>
+                                    </tr>
+                                ) : filteredAnnouncements.length === 0 ? (
+                                    <tr>
+                                        <td colSpan={5} className="px-6 py-12 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Tidak ada arsip ditemukan</td>
+                                    </tr>
+                                ) : (
+                                    filteredAnnouncements.map((ann) => (
+                                        <tr key={ann.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                            <td className="px-6 py-4">
+                                                <div className="text-[11px] font-black text-slate-900 dark:text-white uppercase">
+                                                    {format(new Date(ann.date), 'dd MMM yyyy', { locale: id })}
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="space-y-0.5">
+                                                    <div className="text-[9px] font-bold text-slate-400 tracking-widest">{ann.documentNumber}</div>
+                                                    <div className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors line-clamp-1">{ann.subject}</div>
+                                                </div>
+                                            </td>
+                                            <td className="px-6 py-4">
+                                                <div className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{ann.to}</div>
+                                            </td>
+                                            <td className="px-6 py-4 text-center">
+                                                {ann.isPublished ? (
+                                                    <span className="inline-flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter shadow-sm border border-emerald-200 dark:border-emerald-800">
+                                                        <Globe size={10} /> Published
+                                                    </span>
+                                                ) : (
+                                                    <span className="inline-flex items-center gap-1 bg-slate-100 text-slate-500 dark:bg-slate-800 dark:text-slate-500 px-2.5 py-1 rounded-full text-[9px] font-black uppercase tracking-tighter border border-slate-200 dark:border-slate-700">
+                                                        <GlobeLock size={10} /> Draft
+                                                    </span>
+                                                )}
+                                            </td>
+                                            <td className="px-6 py-4 text-right">
+                                                <div className="flex items-center justify-end gap-1 transition-all">
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className={cn(
+                                                                    "h-8 w-8 rounded-lg transition-colors",
+                                                                    ann.isPublished
+                                                                        ? "text-indigo-600 bg-indigo-50 hover:bg-indigo-100 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40"
+                                                                        : "text-slate-400 hover:text-slate-600 hover:bg-slate-100 dark:hover:bg-slate-800"
+                                                                )}
+                                                                onClick={() => handleTogglePublish(ann)}
+                                                            >
+                                                                <Megaphone size={14} className={ann.isPublished ? "animate-pulse" : ""} />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-slate-900 text-white border-none font-bold text-[10px] uppercase tracking-widest">
+                                                            {ann.isPublished ? 'Un-Publish' : 'Publish Ke Dashboard'}
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
+                                                                onClick={() => generatePDF(ann)}
+                                                            >
+                                                                <Download size={14} />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-indigo-600 text-white border-none font-bold text-[10px] uppercase tracking-widest">
+                                                            Cetak PDF
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
+                                                                onClick={() => handleEdit(ann)}
+                                                            >
+                                                                <Edit size={14} />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-amber-600 text-white border-none font-bold text-[10px] uppercase tracking-widest">
+                                                            Edit Data
+                                                        </TooltipContent>
+                                                    </Tooltip>
+
+                                                    <Tooltip>
+                                                        <TooltipTrigger asChild>
+                                                            <Button
+                                                                size="icon"
+                                                                variant="ghost"
+                                                                className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
+                                                                onClick={() => setDeleteId(ann.id)}
+                                                            >
+                                                                <Trash2 size={14} />
+                                                            </Button>
+                                                        </TooltipTrigger>
+                                                        <TooltipContent side="top" className="bg-red-600 text-white border-none font-bold text-[10px] uppercase tracking-widest">
+                                                            Hapus Arsip
+                                                        </TooltipContent>
+                                                    </Tooltip>
+                                                    <ChevronRight size={14} className="text-slate-200 dark:text-slate-800 ml-1" />
+                                                </div>
+                                            </td>
+                                        </tr>
+                                    ))
+                                )}
+                            </tbody>
+                        </table>
+                    </div>
+
+                    {/* Mobile View - Cards */}
+                    <div className="md:hidden divide-y divide-slate-100 dark:divide-slate-800">
+                        {isLoading && announcements.length === 0 ? (
+                            <div className="px-6 py-12 text-center text-slate-400 font-bold italic">Memuat data...</div>
+                        ) : filteredAnnouncements.length === 0 ? (
+                            <div className="px-6 py-12 text-center text-slate-400 font-bold uppercase tracking-widest text-[10px]">Tidak ada arsip ditemukan</div>
+                        ) : (
+                            filteredAnnouncements.map((ann) => (
+                                <div key={ann.id} className="p-6 space-y-4 hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
+                                    <div className="flex justify-between items-start gap-3">
+                                        <div className="space-y-1">
+                                            <div className="flex items-center gap-2">
+                                                <div className="text-[10px] font-black text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
+                                                    {format(new Date(ann.date), 'dd MMMM yyyy', { locale: id })}
+                                                </div>
+                                                {ann.isPublished && (
+                                                    <span className="flex items-center gap-1 bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-400 px-2 py-0.5 rounded-full text-[8px] font-black uppercase tracking-tighter">
+                                                        <Globe size={10} /> Published
+                                                    </span>
+                                                )}
+                                            </div>
+                                            <div className="text-[9px] font-bold text-slate-400 tracking-widest">{ann.documentNumber}</div>
+                                            <h4 className="text-sm font-black text-slate-900 dark:text-white leading-tight mt-1">{ann.subject}</h4>
+                                            <p className="text-[11px] font-medium text-slate-500 dark:text-slate-400 line-clamp-1 pt-1 italic">Kepada: {ann.to}</p>
+                                        </div>
+                                    </div>
+                                    <div className="flex items-center gap-2 pt-2">
+                                        <Button
+                                            onClick={() => handleTogglePublish(ann)}
+                                            className={cn(
+                                                "flex-1 rounded-xl h-10 font-black uppercase text-[10px] tracking-widest gap-2 shadow-none transition-all",
+                                                ann.isPublished
+                                                    ? "bg-slate-100 text-slate-600 hover:bg-slate-200 dark:bg-slate-800 dark:text-slate-300"
+                                                    : "bg-indigo-600 text-white hover:bg-indigo-700 shadow-lg shadow-indigo-600/10"
+                                            )}
+                                        >
+                                            {ann.isPublished ? (
+                                                <>Unpublish</>
+                                            ) : (
+                                                <><Megaphone size={14} /> Publish</>
+                                            )}
+                                        </Button>
+                                        <Button
+                                            onClick={() => generatePDF(ann)}
+                                            className="flex-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-600 dark:bg-indigo-900/20 dark:hover:bg-indigo-900/40 dark:text-indigo-400 rounded-xl h-10 font-black uppercase text-[10px] tracking-widest gap-2 shadow-none"
+                                        >
+                                            <Download size={14} /> Cetak
+                                        </Button>
+                                        <Button
+                                            onClick={() => handleEdit(ann)}
+                                            className="flex-1 bg-amber-50 hover:bg-amber-100 text-amber-600 dark:bg-amber-900/20 dark:hover:bg-amber-900/40 dark:text-amber-400 rounded-xl h-10 font-black uppercase text-[10px] tracking-widest gap-2 shadow-none"
+                                        >
+                                            <Edit size={14} /> Edit
+                                        </Button>
+                                        <Button
+                                            onClick={() => setDeleteId(ann.id)}
+                                            variant="ghost"
+                                            className="h-10 w-10 text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 shrink-0 rounded-xl"
+                                        >
+                                            <Trash2 size={16} />
+                                        </Button>
+                                    </div>
+                                </div>
+                            ))
+                        )}
                     </div>
                 </div>
 
-                <div className="overflow-x-auto">
-                    <table className="w-full text-left border-collapse">
-                        <thead>
-                            <tr className="bg-slate-50/50 dark:bg-slate-800/50 border-b border-slate-100 dark:border-slate-800">
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Tanggal</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Nomor / Perihal</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400">Kepada</th>
-                                <th className="px-6 py-4 text-[10px] font-black uppercase tracking-widest text-slate-400 text-right">Aksi</th>
-                            </tr>
-                        </thead>
-                        <tbody className="divide-y divide-slate-100 dark:divide-slate-800">
-                            {isLoading && announcements.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-bold italic">Memuat data...</td>
-                                </tr>
-                            ) : filteredAnnouncements.length === 0 ? (
-                                <tr>
-                                    <td colSpan={4} className="px-6 py-12 text-center text-slate-400 font-bold">Tidak ada arsip ditemukan</td>
-                                </tr>
-                            ) : (
-                                filteredAnnouncements.map((ann) => (
-                                    <tr key={ann.id} className="group hover:bg-slate-50/50 dark:hover:bg-slate-800/30 transition-colors">
-                                        <td className="px-6 py-4">
-                                            <div className="text-[11px] font-black text-slate-900 dark:text-white uppercase">
-                                                {format(new Date(ann.date), 'dd MMM yyyy', { locale: id })}
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="space-y-0.5">
-                                                <div className="text-[9px] font-bold text-slate-400 tracking-widest">{ann.documentNumber}</div>
-                                                <div className="text-sm font-bold text-slate-700 dark:text-slate-300 group-hover:text-indigo-600 transition-colors line-clamp-1">{ann.subject}</div>
-                                            </div>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="text-xs font-medium text-slate-500 dark:text-slate-400 line-clamp-1">{ann.to}</div>
-                                        </td>
-                                        <td className="px-6 py-4 text-right">
-                                            <div className="flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-all">
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-indigo-600 hover:bg-indigo-50 dark:hover:bg-indigo-900/20"
-                                                    onClick={() => {
-                                                        handleEdit(ann);
-                                                        // Langsung generate PDF setelah data terisi di state
-                                                        setTimeout(() => generatePDF(), 100);
-                                                    }}
-                                                    title="Cetak PDF"
-                                                >
-                                                    <Download size={14} />
-                                                </Button>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-amber-600 hover:bg-amber-50 dark:hover:bg-amber-900/20"
-                                                    onClick={() => handleEdit(ann)}
-                                                    title="Edit"
-                                                >
-                                                    <Edit size={14} />
-                                                </Button>
-                                                <Button
-                                                    size="icon"
-                                                    variant="ghost"
-                                                    className="h-8 w-8 rounded-lg text-slate-400 hover:text-red-600 hover:bg-red-50 dark:hover:bg-red-900/20"
-                                                    onClick={() => setDeleteId(ann.id)}
-                                                    title="Hapus"
-                                                >
-                                                    <Trash2 size={14} />
-                                                </Button>
-                                                <ChevronRight size={14} className="text-slate-200 dark:text-slate-800 ml-1" />
-                                            </div>
-                                        </td>
-                                    </tr>
-                                ))
-                            )}
-                        </tbody>
-                    </table>
-                </div>
+                {/* Delete Confirmation */}
+                <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
+                    <DialogContent className="rounded-[2rem] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 sm:max-w-md">
+                        <DialogHeader>
+                            <DialogTitle className="font-black uppercase tracking-tight text-xl p-2">Hapus Arsip?</DialogTitle>
+                            <DialogDescription className="text-sm font-medium px-2">
+                                Tindakan ini tidak dapat dibatalkan. Pengumuman ini akan dihapus secara permanen dari database.
+                            </DialogDescription>
+                        </DialogHeader>
+                        <DialogFooter className="gap-3 mt-4 px-2 pb-2">
+                            <Button
+                                variant="ghost"
+                                onClick={() => setDeleteId(null)}
+                                className="rounded-xl font-bold uppercase text-[10px] tracking-widest border border-slate-200 dark:border-slate-800"
+                            >
+                                Batal
+                            </Button>
+                            <Button
+                                onClick={handleDelete}
+                                className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest px-6"
+                            >
+                                Ya, Hapus Permanen
+                            </Button>
+                        </DialogFooter>
+                    </DialogContent>
+                </Dialog>
             </div>
-
-            {/* Delete Confirmation */}
-            <Dialog open={!!deleteId} onOpenChange={() => setDeleteId(null)}>
-                <DialogContent className="rounded-[2rem] bg-white dark:bg-slate-900 border-slate-200 dark:border-slate-800 sm:max-w-md">
-                    <DialogHeader>
-                        <DialogTitle className="font-black uppercase tracking-tight text-xl p-2">Hapus Arsip?</DialogTitle>
-                        <DialogDescription className="text-sm font-medium px-2">
-                            Tindakan ini tidak dapat dibatalkan. Pengumuman ini akan dihapus secara permanen dari database.
-                        </DialogDescription>
-                    </DialogHeader>
-                    <DialogFooter className="gap-3 mt-4 px-2 pb-2">
-                        <Button
-                            variant="ghost"
-                            onClick={() => setDeleteId(null)}
-                            className="rounded-xl font-bold uppercase text-[10px] tracking-widest border border-slate-200 dark:border-slate-800"
-                        >
-                            Batal
-                        </Button>
-                        <Button
-                            onClick={handleDelete}
-                            className="rounded-xl bg-red-600 hover:bg-red-700 text-white font-black uppercase text-[10px] tracking-widest px-6"
-                        >
-                            Ya, Hapus Permanen
-                        </Button>
-                    </DialogFooter>
-                </DialogContent>
-            </Dialog>
-        </div>
+        </TooltipProvider>
     );
 }

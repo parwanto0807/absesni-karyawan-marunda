@@ -261,6 +261,7 @@ model Announcement {
   content        String   @db.Text
   signatoryName  String
   signatoryRole  String
+  isPublished    Boolean  @default(false)
   createdAt      DateTime @default(now())
   updatedAt      DateTime @updatedAt
 

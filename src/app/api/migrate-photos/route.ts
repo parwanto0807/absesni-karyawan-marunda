@@ -162,7 +162,8 @@ async function convertBase64ToWebP(
 
         do {
             compressedBuffer = await sharp(buffer)
-                .webp({ quality })
+                .rotate()
+                .webp({ quality, effort: 6 })
                 .toBuffer();
 
             if (compressedBuffer.length > 200 * 1024 && quality > 20) {
@@ -171,6 +172,8 @@ async function convertBase64ToWebP(
                 break;
             }
         } while (quality > 20);
+
+        console.log(`[PhotoMigrate] User: ${userId}, Size: ${Math.round(compressedBuffer.length / 1024)}KB, Quality: ${quality}`);
 
         await writeFile(filepath, compressedBuffer);
         return `/image/attendance/${filename}`;

@@ -30,11 +30,18 @@ export async function POST(request: NextRequest) {
         // Compress and convert to WebP with target size 100-200KB
         let quality = 80;
         let compressedBuffer: Buffer;
+        let originalSize = buffer.length;
+
+        // Ensure we don't have an empty or extremely small buffer
+        if (originalSize < 100) {
+            throw new Error(`Invalid image data: size too small (${originalSize} bytes)`);
+        }
 
         // Try different quality levels to achieve target size
         do {
             compressedBuffer = await sharp(buffer)
-                .webp({ quality })
+                .rotate() // Auto-rotate based on EXIF
+                .webp({ quality, effort: 6 })
                 .toBuffer();
 
             // If size is too large, reduce quality
@@ -44,6 +51,8 @@ export async function POST(request: NextRequest) {
                 break;
             }
         } while (quality > 20);
+
+        console.log(`[PhotoUpload] User: ${userId}, Original: ${Math.round(originalSize / 1024)}KB, Final: ${Math.round(compressedBuffer.length / 1024)}KB, Quality: ${quality}`);
 
         // Save the file
         await writeFile(filepath, compressedBuffer);

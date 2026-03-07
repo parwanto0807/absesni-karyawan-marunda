@@ -26,6 +26,7 @@ export async function createAnnouncement(data: {
     content: string;
     signatoryName: string;
     signatoryRole: string;
+    isPublished?: boolean;
 }) {
     try {
         const session = await getSession();
@@ -38,6 +39,7 @@ export async function createAnnouncement(data: {
         });
 
         revalidatePath('/admin/administration');
+        revalidatePath('/dashboard');
         return { success: true, data: announcement, message: 'Pengumuman berhasil disimpan' };
     } catch (error) {
         console.error('Error creating announcement:', error);
@@ -53,6 +55,7 @@ export async function updateAnnouncement(id: string, data: {
     content?: string;
     signatoryName?: string;
     signatoryRole?: string;
+    isPublished?: boolean;
 }) {
     try {
         const session = await getSession();
@@ -66,6 +69,7 @@ export async function updateAnnouncement(id: string, data: {
         });
 
         revalidatePath('/admin/administration');
+        revalidatePath('/dashboard');
         return { success: true, data: announcement, message: 'Pengumuman berhasil diperbarui' };
     } catch (error) {
         console.error('Error updating announcement:', error);
@@ -85,9 +89,35 @@ export async function deleteAnnouncement(id: string) {
         });
 
         revalidatePath('/admin/administration');
+        revalidatePath('/dashboard');
         return { success: true, message: 'Pengumuman berhasil dihapus' };
     } catch (error) {
         console.error('Error deleting announcement:', error);
         return { success: false, message: 'Gagal menghapus pengumuman' };
+    }
+}
+
+export async function togglePublishAnnouncement(id: string, isPublished: boolean) {
+    try {
+        const session = await getSession();
+        if (!session || (session.role !== 'ADMIN')) {
+            return { success: false, message: 'Unauthorized' };
+        }
+
+        const announcement = await prisma.announcement.update({
+            where: { id },
+            data: { isPublished }
+        });
+
+        revalidatePath('/admin/administration');
+        revalidatePath('/dashboard');
+        return {
+            success: true,
+            data: announcement,
+            message: isPublished ? 'Pengumuman dipublikasikan' : 'Publikasi dibatalkan'
+        };
+    } catch (error) {
+        console.error('Error toggling announcement publication:', error);
+        return { success: false, message: 'Gagal mengubah status publikasi' };
     }
 }

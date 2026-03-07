@@ -10,7 +10,10 @@ import {
     Activity,
     ChevronRight,
     TrendingUp,
-    Medal
+    Medal,
+    Info,
+    Megaphone,
+    Download
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
@@ -37,6 +40,7 @@ import InfoCarousel from '@/components/InfoCarousel';
 import VoucherClaim from '@/components/VoucherClaim';
 import { checkVoucherClaimed } from '@/actions/performance';
 import WeatherWidget from '@/components/WeatherWidget';
+import AnnouncementHighlight from '@/components/AnnouncementHighlight';
 
 interface DashboardEmployee {
     id: string;
@@ -57,6 +61,12 @@ export default async function DashboardPage() {
 
     const isPowerful = session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT';
     const isFieldRole = ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'].includes(session.role);
+
+    // Fetch latest published announcement
+    const latestAnnouncement = await prisma.announcement.findFirst({
+        where: { isPublished: true },
+        orderBy: { date: 'desc' }
+    });
 
     // Date for 3 days ago (Jakarta Time)
     const threeDaysAgo = getStartOfDayJakarta();
@@ -562,6 +572,10 @@ export default async function DashboardPage() {
                         />
                     )}
                 </>
+            )}
+
+            {latestAnnouncement && (
+                <AnnouncementHighlight announcement={latestAnnouncement as any} />
             )}
 
 

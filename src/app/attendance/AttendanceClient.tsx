@@ -167,7 +167,7 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
             },
             options
         );
-    }, [location]);
+    }, []); // Remove 'location' from dependencies to prevent looping
 
     useEffect(() => {
         let isMounted = true;
@@ -218,12 +218,18 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
 
     const captureImage = () => {
         if (videoRef.current && canvasRef.current) {
+            // Ensure video is ready and has dimensions
+            if (videoRef.current.readyState < 2 || videoRef.current.videoWidth === 0) {
+                console.warn("Capture failed: Video not ready or dimensions are 0");
+                return null;
+            }
+
             const context = canvasRef.current.getContext('2d');
             if (context) {
                 canvasRef.current.width = videoRef.current.videoWidth;
                 canvasRef.current.height = videoRef.current.videoHeight;
                 context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
-                const imageData = canvasRef.current.toDataURL('image/jpeg');
+                const imageData = canvasRef.current.toDataURL('image/jpeg', 0.82); // Use high quality for JPEG capture before sharp processing
                 setCapturedImage(imageData);
                 return imageData;
             }
