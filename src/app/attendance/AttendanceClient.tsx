@@ -62,6 +62,11 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
     const [checkingStatus, setCheckingStatus] = useState(true);
     const [settingsLoaded, setSettingsLoaded] = useState(false);
     const [todayShift, setTodayShift] = useState<string | null>(null);
+    const locationRef = useRef(location);
+
+    useEffect(() => {
+        locationRef.current = location;
+    }, [location]);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
@@ -160,14 +165,14 @@ export default function AttendanceClient({ user }: { user: { userId: string; rol
                         break;
                 }
 
-                if (!location) {
+                if (!locationRef.current) {
                     setStatus('error');
                     setMessage(errorMsg);
                 }
             },
             options
         );
-    }, []); // Remove 'location' from dependencies to prevent looping
+    }, []); // Empty dependency array is now safe because we use locationRef
 
     useEffect(() => {
         let isMounted = true;

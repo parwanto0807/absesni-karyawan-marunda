@@ -1,13 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Download, Megaphone, Clock, ChevronRight, FileText } from 'lucide-react';
+import { Download, Megaphone, Clock, FileText } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
-interface Announcement {
+export interface Announcement {
     id: string;
     documentNumber: string;
     date: string | Date;
@@ -33,7 +33,6 @@ export default function AnnouncementHighlight({ announcement }: { announcement: 
             });
 
             const primaryColor = [30, 41, 59];
-            const accentColor = [79, 70, 229];
             const textColor = [51, 65, 85];
             const lightColor = [241, 245, 249];
 

@@ -209,7 +209,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     // 6. Lighten the payload for the client
     // Strip images for export (csv/pdf don't need them)
     // and convert base64 to API URLs for the paginated table
-    const exportData = allAttendances.map(({ image: _image, ...rest }) => rest);
+    const exportData = allAttendances.map(({ image, ...rest }) => rest);
 
     const paginatedAttendances = allAttendances
         .slice(skip, skip + limit)

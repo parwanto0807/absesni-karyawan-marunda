@@ -10,10 +10,7 @@ import {
     Activity,
     ChevronRight,
     TrendingUp,
-    Medal,
-    Info,
-    Megaphone,
-    Download
+    Medal
 } from "lucide-react";
 import StatCard from "@/components/StatCard";
 import Link from 'next/link';
@@ -38,9 +35,7 @@ import UserAvatar from '@/components/UserAvatar';
 import { getDashboardInfo } from '@/actions/info';
 import InfoCarousel from '@/components/InfoCarousel';
 import VoucherClaim from '@/components/VoucherClaim';
-import { checkVoucherClaimed } from '@/actions/performance';
-import WeatherWidget from '@/components/WeatherWidget';
-import AnnouncementHighlight from '@/components/AnnouncementHighlight';
+import AnnouncementHighlight, { Announcement } from '@/components/AnnouncementHighlight';
 
 interface DashboardEmployee {
     id: string;
@@ -575,7 +570,7 @@ export default async function DashboardPage() {
             )}
 
             {latestAnnouncement && (
-                <AnnouncementHighlight announcement={latestAnnouncement as any} />
+                <AnnouncementHighlight announcement={latestAnnouncement as unknown as Announcement} />
             )}
 
 

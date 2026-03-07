@@ -30,7 +30,7 @@ export async function POST(request: NextRequest) {
         // Compress and convert to WebP with target size 100-200KB
         let quality = 80;
         let compressedBuffer: Buffer;
-        let originalSize = buffer.length;
+        const originalSize = buffer.length;
 
         // Ensure we don't have an empty or extremely small buffer
         if (originalSize < 100) {
