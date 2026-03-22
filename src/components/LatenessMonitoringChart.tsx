@@ -65,12 +65,7 @@ export default async function LatenessMonitoringChart() {
 
     // Convert to array
     const chartData = Array.from(dailyDataMap.entries()).map(([dateKey, stats]) => {
-        const dateObj = new Date(dateKey); // parsed as UTC if strictly YYYY-MM-DD, but useful for formatting
-        // We want to format "20 Jan". 
-        // Caution: "new Date('2024-01-20')" is usually UTC. 
-        // toLocaleDateString on it might shift if we are not careful, but simpler:
-        // Parse parts manually or verify.
-        // Let's use the dateKey string to be safe.
+        // Parse parts manually for correct locale formatting without timezone shift
         const [year, month, day] = dateKey.split('-').map(Number);
         // Create a date object that will format correctly.
         const localeDate = new Date(year, month - 1, day);

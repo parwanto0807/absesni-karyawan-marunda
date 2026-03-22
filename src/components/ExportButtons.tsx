@@ -48,14 +48,6 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
         return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
     };
 
-    const formatDate = (date: Date) => {
-        return new Date(date).toLocaleDateString('id-ID', {
-            day: '2-digit',
-            month: 'short',
-            year: 'numeric',
-            timeZone: 'Asia/Jakarta'
-        });
-    };
 
     const formatDateFull = (date: Date) => {
         return new Date(date).toLocaleDateString('id-ID', {
@@ -611,8 +603,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
             toast.success('Laporan PDF Berhasil Dibuat', {
                 description: 'Laporan dibuka di tab baru'
             });
-        } catch (error) {
-            console.error('PDF Export Error:', error);
+        } catch (_error) {
             toast.error('Export PDF Gagal', {
                 description: 'Terjadi kesalahan saat membuat laporan'
             });

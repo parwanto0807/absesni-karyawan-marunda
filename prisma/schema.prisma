@@ -37,6 +37,7 @@ model User {
   image             String?
   rotationOffset    Int               @default(0)
   isPasswordDefault Boolean           @default(true)
+  canApprovePermits Boolean           @default(false)
   createdAt         DateTime          @default(now())
   updatedAt         DateTime          @updatedAt
   lastLogin         DateTime?
@@ -50,6 +51,7 @@ model User {
   incidentReports   IncidentReport[]  @relation("UserIncidents")
   incidentComments  IncidentComment[]
   voucherClaims     VoucherClaim[]
+  overtimes         Overtime[]
 }
 
 model ActivityLog {
@@ -121,18 +123,9 @@ model Permit {
   reason    String
   image     String? // Lampiran surat dokter/dokumen
 
-  // Multi-level approval status
-  adminStatus PermitStatus @default(PENDING)
-  adminId     String?
-  adminAt     DateTime?
-
-  rt03Status PermitStatus @default(PENDING)
-  rt03Id     String?
-  rt03At     DateTime?
-
-  rt04Status PermitStatus @default(PENDING)
-  rt04Id     String?
-  rt04At     DateTime?
+  // Multi-signature approval tracking
+  approvedByIds String[] @default([])
+  rejectedByIds String[] @default([])
 
   finalStatus PermitStatus @default(PENDING)
 
@@ -267,4 +260,24 @@ model Announcement {
 
   @@index([date])
   @@index([createdAt])
+}
+
+model Overtime {
+  id         String   @id @default(cuid())
+  userId     String
+  user       User     @relation(fields: [userId], references: [id])
+  date       DateTime // Tanggal lembur (Context Jakarta, UTC Noon)
+  startTime  DateTime // Jam mulai (UTC)
+  endTime    DateTime // Jam selesai (UTC)
+  totalHours Float    @default(0)
+  shiftRef   String?  // Referensi shift (misal: "PM", "P", or "Lembur Awal")
+  reason     String?
+  approvedBy String?  // ID Admin
+  notes      String?
+  status     String   @default("APPROVED") // PENDING, APPROVED, REJECTED
+  createdAt  DateTime @default(now())
+  updatedAt  DateTime @updatedAt
+
+  @@index([userId])
+  @@index([date])
 }

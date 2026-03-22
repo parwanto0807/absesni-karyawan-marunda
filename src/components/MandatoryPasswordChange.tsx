@@ -15,7 +15,7 @@ import { Label } from "@/components/ui/label";
 import { Button } from "@/components/ui/button";
 import { changePassword, logout } from '@/actions/auth';
 import { toast } from 'sonner';
-import { motion, AnimatePresence } from 'framer-motion';
+import { motion } from 'framer-motion';
 
 interface MandatoryPasswordChangeProps {
     user: SessionPayload;
@@ -75,7 +75,7 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
                 // Reload to refresh the session with isPasswordDefault: false
                 window.location.reload();
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Terjadi kesalahan saat mengubah password.');
         } finally {
             setIsLoading(false);
@@ -87,7 +87,7 @@ export function MandatoryPasswordChange({ user }: MandatoryPasswordChangeProps) 
         try {
             await logout();
             window.location.reload();
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal keluar dari sistem.');
         } finally {
             setIsLoading(false);

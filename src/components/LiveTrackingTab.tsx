@@ -68,7 +68,7 @@ export default function LiveTrackingTab() {
             } else {
                 toast.error(result.error || 'Gagal mengambil log');
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Terjadi kesalahan');
         } finally {
             setLoading(false);

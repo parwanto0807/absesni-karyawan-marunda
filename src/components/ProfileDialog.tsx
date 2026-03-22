@@ -1,73 +1,26 @@
 "use client";
 
-import React, { useState } from 'react';
+import React from 'react';
 import {
     Dialog,
     DialogContent,
-    DialogHeader,
     DialogTitle,
     DialogDescription,
 } from "@/components/ui/dialog";
 import { SessionPayload } from '@/types/auth';
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
-import { User, Shield, Key, Loader2 } from 'lucide-react';
-import { Input } from "@/components/ui/input";
-import { Label } from "@/components/ui/label";
-import { Button } from "@/components/ui/button";
-import { changePassword } from '@/actions/auth';
-import { toast } from 'sonner';
+import { Shield } from 'lucide-react';
 
 interface ProfileDialogProps {
     user: SessionPayload | null;
     open: boolean;
     onOpenChange: (open: boolean) => void;
-    isPasswordDefault?: boolean;
 }
 
-export function ProfileDialog({ user, open, onOpenChange, isPasswordDefault }: ProfileDialogProps) {
-    const [oldPassword, setOldPassword] = useState('');
-    const [newPassword, setNewPassword] = useState('');
-    const [confirmPassword, setConfirmPassword] = useState('');
-    const [isLoading, setIsLoading] = useState(false);
-
+export function ProfileDialog({ user, open, onOpenChange }: ProfileDialogProps) {
     if (!user) return null;
 
-    const handleSubmit = async (e: React.FormEvent) => {
-        e.preventDefault();
 
-        if (newPassword !== confirmPassword) {
-            toast.error('Password baru dan konfirmasi tidak cocok.');
-            return;
-        }
-
-        if (newPassword.length < 1) {
-            toast.error('Password baru tidak boleh kosong.');
-            return;
-        }
-
-        if (newPassword === oldPassword) {
-            toast.error('Password baru tidak boleh sama dengan password lama.');
-            return;
-        }
-
-        setIsLoading(true);
-        try {
-            const result = await changePassword(user.userId, oldPassword, newPassword);
-            if (result.error) {
-                toast.error(result.error);
-            } else {
-                toast.success('Password berhasil diubah.');
-                setOldPassword('');
-                setNewPassword('');
-                setConfirmPassword('');
-                onOpenChange(false);
-            }
-        } catch (error) {
-            toast.error('Terjadi kesalahan saat mengubah password.');
-        } finally {
-            setIsLoading(false);
-        }
-    };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>

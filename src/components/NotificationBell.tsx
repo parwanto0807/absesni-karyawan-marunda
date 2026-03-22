@@ -24,10 +24,6 @@ export default function NotificationBell({ userId }: { userId: string }) {
     const [loading, setLoading] = useState(false);
     const dropdownRef = useRef<HTMLDivElement>(null);
 
-    const fetchUnreadCount = async () => {
-        const count = await getUnreadCount(userId);
-        setUnreadCount(count);
-    };
 
     const fetchDetails = async () => {
         setLoading(true);
@@ -39,17 +35,20 @@ export default function NotificationBell({ userId }: { userId: string }) {
     };
 
     useEffect(() => {
-        fetchUnreadCount();
+        const fetchCount = async () => {
+            const count = await getUnreadCount(userId);
+            setUnreadCount(count);
+        };
+        fetchCount();
         // Poll every 60 seconds for count
-        const interval = setInterval(fetchUnreadCount, 60000);
+        const interval = setInterval(fetchCount, 60000);
 
         // Refresh when window gains focus
-        const onFocus = () => fetchUnreadCount();
-        window.addEventListener('focus', onFocus);
+        window.addEventListener('focus', fetchCount);
 
         return () => {
             clearInterval(interval);
-            window.removeEventListener('focus', onFocus);
+            window.removeEventListener('focus', fetchCount);
         };
     }, [userId]);
 

@@ -87,18 +87,20 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
 
 
     // Auto-cycle incidents every 5 seconds
+    const incidentsLength = incidents?.length ?? 0;
+    const hasSelection = !!selectedIncidentId;
     useEffect(() => {
-        if (!incidents || incidents.length <= 1 || selectedIncidentId) return;
+        if (!incidents || incidentsLength <= 1 || selectedIncidentId) return;
 
         const interval = setInterval(() => {
             setCurrentIndex((prev) => {
-                if (incidents.length === 0) return 0;
-                return (prev + 1) % incidents.length;
+                if (incidentsLength === 0) return 0;
+                return (prev + 1) % incidentsLength;
             });
         }, 5000);
 
         return () => clearInterval(interval);
-    }, [incidents?.length, !!selectedIncidentId]);
+    }, [incidentsLength, hasSelection, incidents, selectedIncidentId]);
 
     useEffect(() => {
         if (scrollRef.current) {
@@ -128,7 +130,7 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
             } else {
                 toast.error(result.message);
             }
-        } catch (err) {
+        } catch (_err) {
             toast.error('Gagal mengirim tanggapan.');
         } finally {
             setIsSending(false);
@@ -319,7 +321,6 @@ export default function ReviewIncidents({ incidents: initialIncidents, userId }:
 
                                 {selectedIncident.comments?.map((comment) => {
                                     const isMe = comment.userId === userId;
-                                    const isAdmin = ['ADMIN', 'PIC', 'RT'].includes(comment.user.role);
 
                                     return (
                                         <div key={comment.id} className={cn(
@@ -415,6 +416,7 @@ function RealtimeIncidentListener({ setIncidents }: { setIncidents: (fn: (prev: 
         return () => {
             if (channel) channel.unbind_all().unsubscribe();
         };
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
     return null;
@@ -473,7 +475,8 @@ function GlobalNotificationListener({ incidents, setIncidents, userId, setSelect
         };
         init();
         return () => { if (channel) channel.unbind_all().unsubscribe(); };
-    }, [userId, setIncidents]); // Removed selectedIncidentId from dependency for persistency
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [userId]); // setIncidents/setSelectedIncidentId are stable state setters; omitted to avoid channel churn
 
     return null;
 }
@@ -546,7 +549,8 @@ function RealtimeCommentListener({ selectedIncidentId, setIncidents, userId }: {
         };
         initPusher();
         return () => { if (channel) channel.unbind_all().unsubscribe(); };
-    }, [selectedIncidentId]);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
+    }, [selectedIncidentId]); // setIncidents and userId are stable; omitted to prevent re-subscription
 
     return null;
 }

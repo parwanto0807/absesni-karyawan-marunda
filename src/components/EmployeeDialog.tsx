@@ -1,11 +1,11 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Leaf, Sparkles, Home } from 'lucide-react';
 import { cn } from '@/lib/utils';
-import { User, UserRole } from '@/types/attendance';
+import { User } from '@/types/attendance';
 import { createUser, updateUser } from '@/actions/employees';
-import NextImage from 'next/image';
 
 interface EmployeeDialogProps {
     isOpen: boolean;
@@ -229,6 +229,18 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                             </div>
                         </div>
 
+                        {/* Can Approve Permits */}
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Kewenangan</label>
+                            <label className="flex items-center gap-3 h-10 px-3 bg-slate-50 dark:bg-slate-800 rounded-xl cursor-pointer border-2 border-transparent hover:border-indigo-100 dark:hover:border-indigo-900/50 transition-colors">
+                                <div className="relative inline-flex items-center">
+                                    <input type="checkbox" name="canApprovePermits" defaultChecked={employee?.canApprovePermits} value="true" className="sr-only peer" />
+                                    <div className="w-9 h-5 bg-slate-200 peer-focus:outline-none rounded-full peer dark:bg-slate-700 peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-white after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all dark:border-gray-600 peer-checked:bg-indigo-600"></div>
+                                </div>
+                                <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Bisa Approve Ijin Karyawan</span>
+                            </label>
+                        </div>
+
                         {/* Password - Hidden during Edit for security */}
                         {!employee && (
                             <div className="space-y-1 md:col-span-2">
@@ -256,6 +268,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                 <label className="text-[9px] font-black uppercase tracking-widest text-slate-400">Jabatan / Role</label>
                                 {employee && <span className="text-[8px] text-amber-500 font-bold uppercase italic">Terkunci (Hubungi IT)</span>}
                             </div>
+                            {employee && <input type="hidden" name="role" value={selectedRole} />}
                             <div className={cn("grid grid-cols-3 gap-2", employee && "opacity-60 pointer-events-none")}>
                                 {roleOptions.map((opt) => (
                                     <label
@@ -291,6 +304,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                     </label>
                                     {employee && <span className="text-[8px] text-amber-500 font-bold uppercase italic font-sans">Terkunci</span>}
                                 </div>
+                                {employee && <input type="hidden" name="rotationOffset" value={employee.rotationOffset} />}
                                 <select
                                     name="rotationOffset"
                                     defaultValue={employee?.rotationOffset || 0}

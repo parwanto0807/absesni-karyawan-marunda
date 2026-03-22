@@ -1,0 +1,9 @@
+node_modules
+.next
+dist
+*.js
+!src/**/*.js
+!src/**/*.tsx
+!src/**/*.ts
+!app/**/*.tsx
+!app/**/*.ts

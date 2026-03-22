@@ -109,7 +109,6 @@ export const generateIncidentPDF = async (
         const contentWidth = pageWidth - (margin * 2);
         const gutter = 4;
         const col3Width = (contentWidth - (gutter * 2)) / 3;
-        const col2Width = (contentWidth - gutter) / 2;
 
         // Helper functions
         const drawDivider = (y: number) => {

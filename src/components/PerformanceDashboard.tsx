@@ -1,7 +1,7 @@
 import React from 'react';
 import { prisma } from '@/lib/db';
 import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
-import { TrendingUp, Medal } from 'lucide-react';
+import { Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getJakartaTime } from '@/lib/date-utils';
 import UserAvatar from '@/components/UserAvatar';

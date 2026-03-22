@@ -26,11 +26,11 @@ export default function LocationTracker({
 
                         try {
                             await logLocation(latitude, longitude);
-                        } catch (err) {
+                        } catch (_err) {
                             // Silent fail
                         }
                     },
-                    (error) => {
+                    (_error) => {
                         // Silent fail
                     },
                     {

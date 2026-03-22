@@ -1,10 +1,10 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Shield, MapPin, Users, Phone, ArrowRight, Home, CheckCircle2, Star, Zap, Info, Calendar, Megaphone, Heart, Coffee, TreePine, Sparkles, Smartphone, X } from 'lucide-react';
+import { Shield, Phone, ArrowRight, Home, CheckCircle2, Info, Calendar, Megaphone, Heart, Coffee, TreePine, Sparkles, Smartphone, X } from 'lucide-react';
 import Link from 'next/link';
-import NextImage from 'next/image';
 
 interface Activity {
     id: string;
@@ -87,17 +87,14 @@ function TabNav({ activeSection, onTabClick }: { activeSection: string; onTabCli
 export default function LandingPage({ settings = {}, activities = [], services = [] }: LandingPageProps) {
     const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
     const [activeSection, setActiveSection] = React.useState('hero');
-    const [prevSection, setPrevSection] = React.useState('hero');
     const isAutoScrolling = React.useRef(false);
     const { scrollY } = useScroll();
 
-    const SECTION_ORDER = ['hero', 'info-warga', 'kegiatan', 'keamanan'];
-
     const handleUpdateActiveSection = (newSection: string) => {
-        if (newSection !== activeSection) {
-            setPrevSection(activeSection);
-            setActiveSection(newSection);
-        }
+        setActiveSection(prev => {
+            if (newSection !== prev) return newSection;
+            return prev;
+        });
     };
 
     // Parallax Transforms
@@ -174,7 +171,7 @@ export default function LandingPage({ settings = {}, activities = [], services =
 
         window.addEventListener('scroll', handleScroll);
         return () => window.removeEventListener('scroll', handleScroll);
-    }, [activeSection]);
+    }, []);
 
     // Fallback values
     const heroTitle = settings['landing_hero_title'] || 'Sejuk, Aman & Harmonis Untuk Warga.';

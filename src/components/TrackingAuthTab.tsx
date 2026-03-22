@@ -63,7 +63,7 @@ export default function TrackingAuthTab() {
             } else {
                 toast.error('Gagal Menyimpan: ' + result.message);
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal Menyimpan: Terjadi kesalahan sistem');
         } finally {
             setSaving(false);

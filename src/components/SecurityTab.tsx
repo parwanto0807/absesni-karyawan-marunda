@@ -52,7 +52,7 @@ export default function SecurityTab() {
             } else {
                 toast.error('Gagal', { description: result.message });
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal', { description: 'Terjadi kesalahan sistem.' });
         } finally {
             setIsLoading(false);

@@ -67,12 +67,53 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                 shiftCode = getShiftForDate(user.rotationOffset, now);
             }
 
+            // --- OVERTIME SYNC LOGIC ---
+            // Cari data lembur yang relevan untuk hari ini
+            const todayOvertime = await prisma.overtime.findFirst({
+                where: {
+                    userId,
+                    date: { gte: today, lt: tomorrow }
+                },
+                orderBy: { startTime: 'asc' }
+            });
+
             const timings = getShiftTimings(shiftCode as ShiftCode, now);
-            if (timings) {
+            
+            if (todayOvertime) {
+                // Jika ada lembur, kita perlu menyesuaikan window absen
+                const otStart = new Date(todayOvertime.startTime);
+                const otEnd = new Date(todayOvertime.endTime);
+
+                if (shiftCode === 'OFF') {
+                    // Kasus Pak Tio: OFF tapi lembur
+                    scheduledStart = otStart;
+                    scheduledEnd = otEnd;
+                    shiftCode = `OT-${todayOvertime.shiftRef || 'MANUAL'}`;
+                } else if (timings) {
+                    // Kasus Pak Arif: Ada shift normal + lembur
+                    scheduledStart = timings.start;
+                    scheduledEnd = timings.end;
+
+                    // Jika lembur dimulai SEBELUM shift normal (Early OT)
+                    if (otStart < scheduledStart) {
+                        scheduledStart = otStart;
+                    }
+                    // Jika lembur berakhir SETELAH shift normal (Extended OT)
+                    if (otEnd > scheduledEnd) {
+                        scheduledEnd = otEnd;
+                    }
+                } else {
+                    scheduledStart = otStart;
+                    scheduledEnd = otEnd;
+                }
+            } else if (timings) {
                 scheduledStart = timings.start;
                 scheduledEnd = timings.end;
+            }
 
+            if (scheduledStart) {
                 // 2-hour window check for Clock In
+                // Gunakan scheduledStart yang sudah disesuaikan dengan lembur (jika ada)
                 const windowStart = new Date(scheduledStart.getTime() - 2 * 60 * 60 * 1000);
                 const windowEnd = new Date(scheduledStart.getTime() + 2 * 60 * 60 * 1000);
 
@@ -90,6 +131,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
                 }
 
                 // Lateness check (0 tolerance)
+                // Lateness tetap dihitung berdasarkan waktu kerja yang dijadwalkan (bisa OT atau Shift)
                 if (now > scheduledStart) {
                     const diff = now.getTime() - scheduledStart.getTime();
                     lateMinutes = Math.floor(diff / 60000);
@@ -485,8 +527,39 @@ export async function updateAttendance(id: string, clockIn: Date | null, clockOu
         let earlyLeaveMinutes = 0;
 
         // Recalculate lateness
-        if (attendance.scheduledClockIn && clockIn) {
-            const scheduledStart = new Date(attendance.scheduledClockIn);
+        let scheduledStart = attendance.scheduledClockIn ? new Date(attendance.scheduledClockIn) : null;
+        let scheduledEnd = attendance.scheduledClockOut ? new Date(attendance.scheduledClockOut) : null;
+
+        // Cek apakah ada lembur untuk hari tersebut (untuk menyesuaikan schedule if needed)
+        const attendanceDate = getStartOfDayJakarta(attendance.clockIn);
+        const nextDay = new Date(attendanceDate);
+        nextDay.setDate(nextDay.getDate() + 1);
+
+        const overtime = await prisma.overtime.findFirst({
+            where: {
+                userId: attendance.userId,
+                date: { gte: attendanceDate, lt: nextDay }
+            }
+        });
+
+        if (overtime) {
+            const otStart = new Date(overtime.startTime);
+            const otEnd = new Date(overtime.endTime);
+            
+            if (scheduledStart && otStart < scheduledStart) {
+                scheduledStart = otStart;
+            } else if (!scheduledStart) {
+                scheduledStart = otStart;
+            }
+
+            if (scheduledEnd && otEnd > scheduledEnd) {
+                scheduledEnd = otEnd;
+            } else if (!scheduledEnd) {
+                scheduledEnd = otEnd;
+            }
+        }
+
+        if (scheduledStart && clockIn) {
             if (clockIn > scheduledStart) {
                 const diff = clockIn.getTime() - scheduledStart.getTime();
                 lateMinutes = Math.floor(diff / 60000);
@@ -610,18 +683,52 @@ export async function addManualAttendance(
         let isEarlyLeave = false;
         let earlyLeaveMinutes = 0;
 
+        let effectiveScheduledIn = scheduledClockIn;
+        let effectiveScheduledOut = scheduledClockOut;
+
+        // Cek lembur untuk menyesuaikan schedule
+        if (clockIn || clockOut) {
+            const refDate = getStartOfDayJakarta(clockIn || clockOut || new Date());
+            const nextDay = new Date(refDate);
+            nextDay.setDate(nextDay.getDate() + 1);
+
+            const overtime = await prisma.overtime.findFirst({
+                where: {
+                    userId,
+                    date: { gte: refDate, lt: nextDay }
+                }
+            });
+
+            if (overtime) {
+                const otStart = new Date(overtime.startTime);
+                const otEnd = new Date(overtime.endTime);
+
+                if (effectiveScheduledIn && otStart < effectiveScheduledIn) {
+                    effectiveScheduledIn = otStart;
+                } else if (!effectiveScheduledIn) {
+                    effectiveScheduledIn = otStart;
+                }
+
+                if (effectiveScheduledOut && otEnd > effectiveScheduledOut) {
+                    effectiveScheduledOut = otEnd;
+                } else if (!effectiveScheduledOut) {
+                    effectiveScheduledOut = otEnd;
+                }
+            }
+        }
+
         // Calculate Lateness
-        if (clockIn && scheduledClockIn && clockIn > scheduledClockIn) {
-            const diff = clockIn.getTime() - scheduledClockIn.getTime();
+        if (clockIn && effectiveScheduledIn && clockIn > effectiveScheduledIn) {
+            const diff = clockIn.getTime() - effectiveScheduledIn.getTime();
             lateMinutes = Math.floor(diff / 60000);
             if (lateMinutes > 0) isLate = true;
         }
 
         // Calculate Early Leave
-        if (clockOut && scheduledClockOut) {
-            const tolerancePoint = new Date(scheduledClockOut.getTime() - 5 * 60 * 1000);
+        if (clockOut && effectiveScheduledOut) {
+            const tolerancePoint = new Date(effectiveScheduledOut.getTime() - 5 * 60 * 1000);
             if (clockOut < tolerancePoint) {
-                const diff = scheduledClockOut.getTime() - clockOut.getTime();
+                const diff = effectiveScheduledOut.getTime() - clockOut.getTime();
                 earlyLeaveMinutes = Math.floor(diff / 60000);
                 if (earlyLeaveMinutes > 0) isEarlyLeave = true;
             }

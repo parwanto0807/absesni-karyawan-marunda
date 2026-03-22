@@ -1,10 +1,10 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState, useEffect } from 'react';
 import {
     Layout,
     Image as ImageIcon,
-    List,
     Bell,
     Plus,
     Trash2,
@@ -15,11 +15,8 @@ import {
     Activity as ActivityIcon,
     Shield,
     Info,
-    CheckCircle2,
     Users,
     Calendar,
-    Megaphone,
-    TreePine
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
@@ -36,7 +33,6 @@ import {
     updateLandingService
 } from '@/actions/landing';
 import { Edit2, X } from 'lucide-react';
-import NextImage from 'next/image';
 
 interface Activity {
     id: string;

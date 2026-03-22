@@ -4,8 +4,6 @@ import React, { useState, useEffect } from 'react';
 import { Calendar, Plus, Trash2, Loader2, RefreshCw, AlertCircle } from 'lucide-react';
 import { toast } from 'sonner';
 import { getHolidays, addHoliday, deleteHoliday } from '@/actions/holidays';
-import { toZonedTime } from 'date-fns-tz';
-import { TIMEZONE } from '@/lib/date-utils';
 import { INDONESIAN_HOLIDAYS_2026 } from '@/lib/holiday-utils';
 
 interface Holiday {

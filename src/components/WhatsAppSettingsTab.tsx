@@ -50,7 +50,7 @@ export default function WhatsAppSettingsTab() {
             } else {
                 throw new Error(result.message);
             }
-        } catch (error) {
+        } catch {
             toast.error('Gagal Menyimpan Pengaturan WhatsApp');
         } finally {
             setLoading(false);
@@ -71,7 +71,7 @@ export default function WhatsAppSettingsTab() {
             } else {
                 toast.error(result.message || 'Gagal mengirim pesan percobaan');
             }
-        } catch (error) {
+        } catch {
             toast.error('Terjadi kesalahan saat mencoba');
         } finally {
             setTestLoading(false);

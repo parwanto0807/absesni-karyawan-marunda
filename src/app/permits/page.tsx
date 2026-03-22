@@ -13,21 +13,30 @@ export default async function PermitsPage() {
         redirect('/login');
     }
 
-    // Filter permits based on role
-    const permits = (session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT')
+    // For approval logic, we need the user's current role, ID, employeeId, and boolean
+    const dbUser = await prisma.user.findUnique({
+        where: { id: session.userId },
+        select: { employeeId: true, canApprovePermits: true }
+    });
+
+    const canApprove = dbUser?.canApprovePermits === true || session.username === 'adminit';
+    const canViewAll = canApprove || session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT';
+
+    const permits = canViewAll
         ? await getPermits()
         : await getPermits(session.userId);
 
-    // For approval logic, we need the user's current role, ID, and employeeId
-    const dbUser = await prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { employeeId: true }
+    const approvers = await prisma.user.findMany({
+        where: { canApprovePermits: true },
+        select: { id: true, name: true, employeeId: true }
     });
+    const totalApprovers = approvers.length;
 
     const currentUser = {
         id: session.userId,
         role: session.role,
-        employeeId: dbUser?.employeeId || ''
+        employeeId: dbUser?.employeeId || '',
+        canApprovePermits: canApprove
     };
 
     return (
@@ -48,7 +57,7 @@ export default async function PermitsPage() {
                     </p>
                 </div>
 
-                {(session.role === 'SECURITY' || session.role === 'LINGKUNGAN') && (
+                {['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'].includes(session.role) && (
                     <div className="pt-2 md:pt-0">
                         <PermitDialog userId={session.userId} />
                     </div>
@@ -77,7 +86,7 @@ export default async function PermitsPage() {
                 </div>
                 <div className="bg-white dark:bg-slate-900 p-4 md:p-6 rounded-[1.5rem] md:rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl shadow-slate-200/50 dark:shadow-none flex items-center justify-center md:justify-start">
                     <p className="text-[9px] md:text-[10px] font-black text-slate-400 uppercase leading-relaxed tracking-wider text-center md:text-left">
-                        Workflow: <span className="text-indigo-600">Pengajuan (Sec/Ling)</span> → <span className="text-indigo-600">Persetujuan (Admin/PIC)</span>
+                        Workflow: <span className="text-indigo-600">Pengajuan</span> → <span className="text-indigo-600">Persetujuan (Authorized)</span>
                     </p>
                 </div>
             </div>
@@ -88,7 +97,12 @@ export default async function PermitsPage() {
                     <ShieldCheck className="text-indigo-600 w-4 h-4 md:w-[18px] md:h-[18px]" />
                     <h2 className="text-[10px] md:text-xs font-black text-slate-900 dark:text-white uppercase tracking-[0.2em]">Daftar Pengajuan Terbaru</h2>
                 </div>
-                <PermitTable permits={permits} currentUser={currentUser} />
+                <PermitTable 
+                    permits={permits} 
+                    currentUser={currentUser} 
+                    totalApprovers={totalApprovers}
+                    approvers={approvers}
+                />
             </div>
         </div>
     );

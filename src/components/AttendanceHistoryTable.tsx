@@ -416,7 +416,7 @@ function UpdateAttendanceDialog({ attendance }: { attendance: VirtualAttendance 
             } else {
                 toast.error(res.message);
             }
-        } catch (error) {
+        } catch (_error) {
             toast.error("Gagal memperbarui data");
         } finally {
             setIsLoading(false);

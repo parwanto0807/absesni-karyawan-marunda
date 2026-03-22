@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -10,7 +11,6 @@ import {
     Save,
     Loader2,
     CheckCircle2,
-    RefreshCw,
     AlertCircle,
     Mic,
     MicOff,
@@ -19,7 +19,7 @@ import {
 import { toast } from 'sonner';
 import { createIncidentReport } from '@/actions/incident';
 import { cn } from '@/lib/utils';
-import type { SpeechRecognitionEvent, SpeechRecognition } from '@/types/speech-recognition';
+import type { SpeechRecognitionEvent } from '@/types/speech-recognition';
 
 
 interface IncidentReportDialogProps {
@@ -47,7 +47,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     const [description, setDescription] = useState('');
     const [location, setLocation] = useState<{ lat: number; lng: number } | null>(null);
     const [capturedImage, setCapturedImage] = useState<string | null>(null);
-    const [isCameraActive, setIsCameraActive] = useState(false);
+    const [_isCameraActive, setIsCameraActive] = useState(false);
     const [isListening, setIsListening] = useState(false);
     const [realtimeStatus, setRealtimeStatus] = useState<'connecting' | 'connected' | 'disconnected'>('connecting');
     const [locationError, setLocationError] = useState(false);
@@ -164,7 +164,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                 videoRef.current.srcObject = stream;
                 setIsCameraActive(true);
             }
-        } catch (err) {
+        } catch (_err) {
             toast.error('Gagal mengakses kamera.');
         }
     };

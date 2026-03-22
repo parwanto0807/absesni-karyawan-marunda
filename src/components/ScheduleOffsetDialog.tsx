@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
-import { X, Loader2, Save, User as UserIcon } from 'lucide-react';
+import { X, Loader2 } from 'lucide-react';
 import { updateRotationOffset } from '@/actions/employees';
 
 interface RotationUser {

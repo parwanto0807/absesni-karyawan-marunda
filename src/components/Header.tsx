@@ -1,7 +1,7 @@
 'use client';
 
 import React from 'react';
-import { Bell, Search, User as UserIcon, Menu, LogOut, Settings } from 'lucide-react';
+import { Search, User as UserIcon, Menu, LogOut, Settings } from 'lucide-react';
 import { useSidebar } from '@/hooks/use-sidebar';
 import { ModeToggle } from '@/components/ModeToggle';
 import { SessionPayload } from '@/types/auth';
@@ -43,7 +43,7 @@ export default function Header({ user }: HeaderProps) {
             await logout();
             toast.success('Berhasil keluar');
             router.push('/login');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal keluar');
         }
     };
@@ -222,7 +222,7 @@ export default function Header({ user }: HeaderProps) {
                     </DropdownMenuContent>
                 </DropdownMenu>
             </div>
-            <ProfileDialog user={user} open={isProfileOpen} onOpenChange={setIsProfileOpen} isPasswordDefault={user?.isPasswordDefault} />
+            <ProfileDialog user={user} open={isProfileOpen} onOpenChange={setIsProfileOpen} />
         </header>
     );
 }

@@ -21,6 +21,7 @@ export default async function EmployeesPage() {
         employeeId: emp.employeeId,
         image: emp.image || undefined,
         rotationOffset: emp.rotationOffset,
+        canApprovePermits: emp.canApprovePermits,
         lastLogin: emp.lastLogin || undefined,
         updatedAt: emp.updatedAt,
     }));

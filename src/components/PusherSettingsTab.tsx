@@ -1,7 +1,7 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Zap, Save, Loader2, Info, CheckCircle2, XCircle } from 'lucide-react';
+import { Zap, Save, Loader2, Info } from 'lucide-react';
 import { toast } from 'sonner';
 import { cn } from '@/lib/utils';
 import { getSettings, updateSettings, testPusherAction } from '@/actions/settings';

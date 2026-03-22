@@ -1,3 +1,4 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState } from 'react';
@@ -81,6 +82,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Karyawan</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">ID Karyawan</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Tugas/Role</th>
+                            <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Approve Ijin</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Akses Terakhir</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px] text-right">Aksi</th>
                         </tr>
@@ -135,6 +137,19 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                         {emp.role === 'SECURITY' && <Shield size={10} className="mr-1" />}
                                         {emp.role}
                                     </span>
+                                </td>
+                                <td className="px-6 py-4">
+                                    {emp.canApprovePermits ? (
+                                        <div className="flex items-center space-x-1.5 text-emerald-600 dark:text-emerald-400">
+                                            <div className="h-2 w-2 rounded-full bg-emerald-500 animate-pulse" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Aktif</span>
+                                        </div>
+                                    ) : (
+                                        <div className="flex items-center space-x-1.5 text-slate-400 dark:text-slate-500">
+                                            <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
+                                            <span className="text-[10px] font-bold uppercase tracking-wider">Tidak</span>
+                                        </div>
+                                    )}
                                 </td>
                                 <td className="px-6 py-4">
                                     {emp.username !== 'adminit' ? (
@@ -246,6 +261,12 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                     {emp.role === 'SECURITY' && <Shield size={8} className="mr-1" />}
                                     {emp.role}
                                 </span>
+                                {emp.canApprovePermits && (
+                                    <span className="inline-flex items-center rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider bg-indigo-50 text-indigo-700 dark:bg-indigo-900/40 dark:text-indigo-300 border border-indigo-200 dark:border-indigo-800 ml-1.5">
+                                        <div className="h-1.5 w-1.5 rounded-full bg-indigo-500 mr-1.5 animate-pulse" />
+                                        Approve Ijin
+                                    </span>
+                                )}
                                 {emp.username !== 'adminit' && (
                                     <div className="mt-2 flex items-center text-[10px] text-slate-400">
                                         <Clock size={10} className="mr-1" />

@@ -1,4 +1,4 @@
-import { toZonedTime, fromZonedTime, format } from 'date-fns-tz';
+import { toZonedTime, fromZonedTime } from 'date-fns-tz';
 
 export const TIMEZONE = 'Asia/Jakarta';
 

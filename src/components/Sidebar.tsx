@@ -12,7 +12,6 @@ import {
     ShieldCheck,
     CalendarCheck,
     ChevronLeft,
-    Menu,
     Settings,
     AlertTriangle,
     FileText
@@ -40,7 +39,7 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
             await logout();
             toast.success('Berhasil keluar');
             router.push('/login');
-        } catch (error) {
+        } catch (_error) {
             toast.error('Gagal keluar');
         }
     };
@@ -50,6 +49,7 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
         { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },
+        { icon: Clock, label: 'Data Lembur', href: '/overtimes', roles: ['ADMIN'] },
         { icon: AlertTriangle, label: 'Laporan Kejadian', href: '/admin/incidents', roles: ['ADMIN', 'PIC', 'RT'] },
         { icon: ShieldCheck, label: 'Jadwal Kerja', href: '/schedules', roles: ['ADMIN', 'PIC', 'RT', 'STAFF', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
         { icon: CalendarCheck, label: 'Ijin & Pergantian Shift', href: '/permits', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
@@ -196,3 +196,5 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
         </>
     );
 }
+
+// Cache bust

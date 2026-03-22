@@ -5,18 +5,14 @@ import {
     AlertTriangle,
     MessageSquare,
     MapPin,
-    Clock,
-    ChevronRight,
     CheckCircle2,
     Loader2,
     ExternalLink,
     Send,
-    Filter,
     ShieldAlert,
     History,
     UserCircle2,
     FileText,
-    Download,
     Printer
 } from 'lucide-react';
 import { toast } from 'sonner';
@@ -50,7 +46,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
             setAnalysis(selectedReport.analysis || '');
             setImprovement(selectedReport.improvement || '');
         }
-    }, [selectedReport?.id]);
+    }, [selectedReport?.id]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const fetchReports = useCallback(async () => {
         setLoading(true);
@@ -193,7 +189,7 @@ export default function IncidentCenter({ adminId }: { adminId: string }) {
                 channel.unbind_all().unsubscribe();
             }
         };
-    }, [selectedReport?.id, adminId]);
+    }, [selectedReport?.id, adminId]); // eslint-disable-line react-hooks/exhaustive-deps
 
     const handleReply = async (status: string) => {
         if (!selectedReport) return;

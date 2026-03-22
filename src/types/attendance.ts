@@ -9,6 +9,7 @@ export interface User {
     image?: string;
     employeeId: string;
     rotationOffset: number;
+    canApprovePermits?: boolean;
     lastLogin?: string | Date;
     updatedAt?: string | Date;
 }

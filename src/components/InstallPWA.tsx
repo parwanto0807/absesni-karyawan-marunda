@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from 'react';
 import { Download, X } from 'lucide-react';
-import { cn } from '@/lib/utils';
 
 interface BeforeInstallPromptEvent extends Event {
     readonly platforms: string[];

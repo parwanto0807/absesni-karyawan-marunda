@@ -42,8 +42,8 @@ export async function getPusherClient(forceReconnect = false): Promise<PusherCli
                 activityTimeout: 30000, // Faster heartbeat
             });
 
-            pusherInstance.connection.bind('state_change', (_states: { current: string }) => {
-
+            pusherInstance.connection.bind('state_change', () => {
+                // State changes handled by individual component bindings
             });
 
             pusherInstance.connection.bind('error', (err: { error?: { data?: { code: number } }, message?: string, type?: string }) => {

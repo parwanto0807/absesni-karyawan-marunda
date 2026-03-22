@@ -6,9 +6,10 @@ import { getJakartaTime } from '@/lib/date-utils';
 import { ChevronLeft, ChevronRight, Calendar as CalendarIcon } from 'lucide-react';
 import Link from 'next/link';
 import ScheduleClientHelper from '@/components/ScheduleClientHelper';
-import ScheduleGrid from '@/components/ScheduleGrid';
+import ScheduleGridWrapper from '@/components/ScheduleGridWrapper';
 import { getSession } from '@/lib/auth';
 import { Role } from '@prisma/client';
+import { getOvertimesForSchedule } from '@/actions/overtime';
 
 interface ScheduleUser {
     id: string;
@@ -93,6 +94,9 @@ export default async function SchedulesPage({
         date: h.date.toISOString().split('T')[0]
     }));
 
+    // Fetch Overtime data for the current view
+    const overtimes = await getOvertimesForSchedule(allUserIds, currentMonth, currentYear);
+
     const monthName = new Date(currentYear, currentMonth).toLocaleString('id-ID', { month: 'long' });
 
     return (
@@ -139,7 +143,7 @@ export default async function SchedulesPage({
                         <ScheduleClientHelper securityUsers={securityUsers} />
                     )}
                 </div>
-                <ScheduleGrid
+                <ScheduleGridWrapper
                     users={securityUsers}
                     days={days}
                     currentMonth={currentMonth}
@@ -147,6 +151,8 @@ export default async function SchedulesPage({
                     manualSchedules={manualSchedules}
                     canEdit={canEdit}
                     holidays={holidays}
+                    overtimes={JSON.parse(JSON.stringify(overtimes))}
+                    allUsers={JSON.parse(JSON.stringify([...securityUsers, ...lingkunganUsers, ...kebersihanUsers]))}
                 />
             </div>
 
@@ -157,7 +163,7 @@ export default async function SchedulesPage({
                         <div className="w-2 h-6 bg-orange-500 rounded-full mr-3" />
                         Divisi Lingkungan
                     </h2>
-                    <ScheduleGrid
+                    <ScheduleGridWrapper
                         users={lingkunganUsers}
                         days={days}
                         currentMonth={currentMonth}
@@ -165,6 +171,8 @@ export default async function SchedulesPage({
                         manualSchedules={manualSchedules}
                         canEdit={canEdit}
                         holidays={holidays}
+                        overtimes={JSON.parse(JSON.stringify(overtimes))}
+                        allUsers={JSON.parse(JSON.stringify([...securityUsers, ...lingkunganUsers, ...kebersihanUsers]))}
                     />
                 </div>
             )}
@@ -176,7 +184,7 @@ export default async function SchedulesPage({
                         <div className="w-2 h-6 bg-teal-500 rounded-full mr-3" />
                         Divisi Kebersihan
                     </h2>
-                    <ScheduleGrid
+                    <ScheduleGridWrapper
                         users={kebersihanUsers}
                         days={days}
                         currentMonth={currentMonth}
@@ -184,6 +192,8 @@ export default async function SchedulesPage({
                         manualSchedules={manualSchedules}
                         canEdit={canEdit}
                         holidays={holidays}
+                        overtimes={JSON.parse(JSON.stringify(overtimes))}
+                        allUsers={JSON.parse(JSON.stringify([...securityUsers, ...lingkunganUsers, ...kebersihanUsers]))}
                     />
                 </div>
             )}

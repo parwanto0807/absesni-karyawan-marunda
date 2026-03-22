@@ -1,9 +1,9 @@
+/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState } from 'react';
 import { Plus, Calendar, FileText, FileImage, Loader2, X } from 'lucide-react';
 import { createPermit } from '@/actions/permits';
-import { cn } from '@/lib/utils';
 import { toast } from 'sonner';
 
 export default function PermitDialog({ userId }: { userId: string }) {

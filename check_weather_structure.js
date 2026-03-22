@@ -1,3 +1,4 @@
+/* eslint-disable */
 const https = require('https');
 
 https.get('https://api.bmkg.go.id/publik/prakiraan-cuaca?adm4=31.72.04.1003', (resp) => {

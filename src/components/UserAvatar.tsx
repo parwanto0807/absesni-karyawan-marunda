@@ -1,6 +1,7 @@
 'use client';
 
 import React, { useState } from 'react';
+import Image from 'next/image';
 
 interface UserAvatarProps {
     userId: string;
@@ -13,11 +14,13 @@ export default function UserAvatar({ userId, userName, className = '' }: UserAva
 
     return (
         <div className={`relative ${className}`}>
-            <img
+            <Image
                 src={imageError ? '/no-image.png' : `/api/images/users/${userId}`}
                 alt={userName}
-                className="w-full h-full object-cover"
+                fill
+                className="object-cover"
                 onError={() => setImageError(true)}
+                unoptimized
             />
         </div>
     );

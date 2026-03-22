@@ -14,17 +14,13 @@ export async function createUser(formData: FormData) {
     const employeeId = formData.get('employeeId') as string;
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
-
-
+    const canApprovePermits = formData.get('canApprovePermits') === 'true';
 
     try {
         // Validate image - must be string and start with data:image or be null
         let validImage: string | null = null;
         if (imageBase64 && typeof imageBase64 === 'string' && imageBase64.startsWith('data:image')) {
             validImage = imageBase64;
-
-        } else {
-
         }
 
         // ✅ Simpan base64 langsung ke database (Vercel compatible)
@@ -37,6 +33,7 @@ export async function createUser(formData: FormData) {
                 employeeId,
                 image: validImage,
                 rotationOffset,
+                canApprovePermits,
             },
         });
         revalidatePath('/employees');
@@ -59,10 +56,7 @@ export async function updateUser(id: string, formData: FormData) {
     const password = formData.get('password') as string;
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
-
-
-
-
+    const canApprovePermits = formData.get('canApprovePermits') === 'true';
 
     try {
         const data: {
@@ -71,6 +65,7 @@ export async function updateUser(id: string, formData: FormData) {
             role: Role;
             employeeId: string;
             rotationOffset: number;
+            canApprovePermits: boolean;
             image?: string;
             password?: string;
             isPasswordDefault?: boolean;
@@ -80,6 +75,7 @@ export async function updateUser(id: string, formData: FormData) {
             role: role as Role,
             employeeId,
             rotationOffset,
+            canApprovePermits,
         };
 
         // Handle image upload if base64 is provided and valid
