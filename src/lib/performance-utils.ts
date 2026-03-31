@@ -8,7 +8,7 @@
  * - Early Leave Penalty: 1 point per minute
  * - No Clock Out Penalty: 50 points (if shift is likely over, handled conceptually, typically creates early leave)
  */
-export function calculateDailyPerformance(attendance: { status: string, lateMinutes?: number, earlyLeaveMinutes?: number }): number {
+export function calculateDailyPerformance(attendance: { status: string, lateMinutes?: number | null, earlyLeaveMinutes?: number | null }): number {
     if (attendance.status === 'ALPH' || attendance.status === 'ABSENT') return 0;
 
     // For now, only 'PRESENT' and 'LATE' get a calculated score.
@@ -44,4 +44,39 @@ export function getPerformanceBarColor(score: number): string {
     if (score >= 75) return 'bg-indigo-500';
     if (score >= 50) return 'bg-amber-500';
     return 'bg-rose-500';
+}
+
+import { getShiftForDate, getStaticSchedule } from './schedule-utils';
+
+/**
+ * Calculates the number of expected work days for a role within a date range.
+ */
+export function calculateExpectedWorkDays(
+    role: string, 
+    startDate: Date, 
+    endDate: Date, 
+    rotationOffset?: number | null
+): number {
+    let count = 0;
+    const current = new Date(startDate);
+    // Ensure we work with day boundaries in the loop
+    current.setHours(0, 0, 0, 0);
+    const last = new Date(endDate);
+    last.setHours(23, 59, 59, 999);
+
+    const temp = new Date(current);
+    while (temp <= last) {
+        let isWorkDay = false;
+        if (role === 'SECURITY') {
+            const shift = getShiftForDate(rotationOffset, temp);
+            isWorkDay = shift !== 'OFF';
+        } else if (role === 'LINGKUNGAN' || role === 'KEBERSIHAN') {
+            const shift = getStaticSchedule(role, temp);
+            isWorkDay = shift !== 'OFF';
+        }
+        
+        if (isWorkDay) count++;
+        temp.setDate(temp.getDate() + 1);
+    }
+    return count;
 }

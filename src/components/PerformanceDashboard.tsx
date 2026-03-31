@@ -1,6 +1,6 @@
 import React from 'react';
 import { prisma } from '@/lib/db';
-import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor } from '@/lib/performance-utils';
+import { calculateDailyPerformance, getPerformanceBarColor, getPerformanceColor, calculateExpectedWorkDays } from '@/lib/performance-utils';
 import { Medal } from 'lucide-react';
 import { cn } from '@/lib/utils';
 import { getJakartaTime } from '@/lib/date-utils';
@@ -17,6 +17,7 @@ interface EmployeeRecord {
     name: string;
     role: string;
     employeeId: string;
+    rotationOffset: number | null;
     attendances: AttendanceRecord[];
 }
 
@@ -28,30 +29,35 @@ interface LeaderboardItem extends EmployeeRecord {
 export default async function PerformanceDashboard() {
     const now = getJakartaTime();
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
-    const endOfMonth = new Date(now.getFullYear(), now.getMonth() + 1, 0);
+    const endOfRange = new Date(now); // Use 'now' for current month progress
     startOfMonth.setHours(0, 0, 0, 0);
 
     const employees = await prisma.user.findMany({
         where: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } },
         select: {
-            id: true, name: true, role: true, employeeId: true,
+            id: true, name: true, role: true, employeeId: true, rotationOffset: true,
             attendances: {
-                where: { clockIn: { gte: startOfMonth, lte: endOfMonth }, status: { in: ['PRESENT', 'LATE'] } },
+                where: { clockIn: { gte: startOfMonth, lte: endOfRange } }, // All statuses
                 select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
             }
         }
     });
 
     const leaderboard: LeaderboardItem[] = employees.map((emp) => {
-        if (!emp.attendances || emp.attendances.length === 0) {
+        const expectedDays = calculateExpectedWorkDays(emp.role, startOfMonth, endOfRange, emp.rotationOffset);
+        
+        if (expectedDays === 0) {
             return { ...emp, averageScore: 0, totalAttendance: 0 };
         }
-        const totalScore = emp.attendances.reduce((sum: number, att) => sum + calculateDailyPerformance(att), 0);
-        const averageScore = emp.attendances.length > 0
-            ? (totalScore / emp.attendances.length).toFixed(2)
-            : "0.00";
-        return { ...emp, averageScore: parseFloat(averageScore), totalAttendance: emp.attendances.length };
-    }).sort((a, b) => (b.averageScore - a.averageScore) || (b.totalAttendance - a.totalAttendance));
+
+        const totalScore = emp.attendances.reduce((sum: number, att: AttendanceRecord) => sum + calculateDailyPerformance(att), 0);
+        const presentCount = emp.attendances.filter((a: AttendanceRecord) => ['PRESENT', 'LATE'].includes(a.status)).length;
+        
+        // Average score is calculated across all EXPECTED work days
+        const averageScore = (totalScore / expectedDays).toFixed(2);
+        
+        return { ...emp, averageScore: parseFloat(averageScore), totalAttendance: presentCount };
+    }).sort((a: LeaderboardItem, b: LeaderboardItem) => (b.averageScore - a.averageScore) || (b.totalAttendance - a.totalAttendance));
 
     return (
         <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-xl overflow-hidden">

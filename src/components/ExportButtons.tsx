@@ -4,6 +4,7 @@ import { Download, FileText } from 'lucide-react';
 import { useState } from 'react';
 import { toast } from 'sonner';
 import { jsPDF } from 'jspdf';
+import { calculateDailyPerformance } from '@/lib/performance-utils';
 
 interface JsPDFCustom extends jsPDF {
     lastAutoTable: {
@@ -295,7 +296,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                 stats.workDays.add(dateKey);
 
                 // Initialize performance for this record
-                let performance = 100;
+                const performance = calculateDailyPerformance(att);
 
                 if (att.status === 'PRESENT' || att.status === 'LATE') {
                     stats.presentDays.add(dateKey);
@@ -304,24 +305,17 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                     if (att.isLate) {
                         stats.lateCount++;
                         stats.totalLateMinutes += att.lateMinutes;
-                        performance -= att.lateMinutes;
                     }
 
                     if (att.isEarlyLeave) {
                         stats.earlyLeaveCount++;
                         stats.totalEarlyMinutes += att.earlyLeaveMinutes;
-                        performance -= att.earlyLeaveMinutes;
                     }
-                } else if (att.status === 'ABSENT') {
-                    performance = 0; // Deduct for absence without explanation
-                } else {
-                    // SICK, PERMIT, LEAVE, SHIFT_CHANGE
-                    performance = 100; // Approved leave doesn't lower performance
                 }
 
                 // If multiple shifts/records on same day, use the lowest score for that day
                 if (!stats.dailyPerformances.has(dateKey) || performance < stats.dailyPerformances.get(dateKey)!) {
-                    stats.dailyPerformances.set(dateKey, Math.max(0, performance));
+                    stats.dailyPerformances.set(dateKey, performance);
                 }
             });
 

@@ -119,8 +119,8 @@ export function getStaticSchedule(role: string, targetDate: Date): string {
     const dayOfWeek = zonedDate.getDay(); // 0 = Sunday, 1 = Monday, ... 6 = Saturday
 
     if (role === 'LINGKUNGAN') {
-        // MON (1) - FRI (5)
-        if (dayOfWeek >= 1 && dayOfWeek <= 5) return 'LNK';
+        // MON (1) - SAT (6) - Based on PERFORMANCE_CALCULATION_GUIDE.md
+        if (dayOfWeek >= 1 && dayOfWeek <= 6) return 'LNK';
         return 'OFF';
     }
 
