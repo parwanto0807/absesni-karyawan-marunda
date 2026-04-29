@@ -3,8 +3,9 @@
 
 import React from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
-import { Shield, Phone, ArrowRight, Home, CheckCircle2, Info, Calendar, Megaphone, Heart, Coffee, TreePine, Sparkles, Smartphone, X } from 'lucide-react';
+import { Shield, Phone, ArrowRight, Home, CheckCircle2, Info, Calendar, Megaphone, Heart, Coffee, TreePine, Sparkles, Smartphone, X, Wifi, Camera, CreditCard, Car, Users, Utensils, ShoppingBag, Gavel, Hammer, Cpu } from 'lucide-react';
 import Link from 'next/link';
+import { RESIDENT_PROJECTS } from '@/constants/projects';
 
 interface Activity {
     id: string;
@@ -40,12 +41,36 @@ const ICON_MAP: Record<string, React.ElementType> = {
     Home,
     Heart,
     Coffee,
-    Smartphone
+    Smartphone,
+    Wifi,
+    Camera,
+    CreditCard,
+    Car,
+    Users,
+    Utensils,
+    ShoppingBag,
+    Gavel,
+    Hammer,
+    Cpu
+};
+
+const PROJECT_ICON_MAP: Record<string, React.ElementType> = {
+    "IT Development": Cpu,
+    "Networking & Wi-Fi": Wifi,
+    "Security & CCTV": Camera,
+    "Portal Gate System": CreditCard,
+    "Rental Mobil (R4)": Car,
+    "HRD Solutions": Users,
+    "Dapur Ibu Marunda": Utensils,
+    "Kios Sayuran": ShoppingBag,
+    "Legal & Lawyer": Gavel,
+    "General Contractor": Hammer
 };
 
 const TABS = [
     { id: 'hero', label: 'Home' },
     { id: 'info-warga', label: 'Informasi' },
+    { id: 'layanan', label: 'Layanan' },
     { id: 'kegiatan', label: 'Kegiatan' },
     { id: 'keamanan', label: 'Keamanan' }
 ];
@@ -86,6 +111,7 @@ function TabNav({ activeSection, onTabClick }: { activeSection: string; onTabCli
 
 export default function LandingPage({ settings = {}, activities = [], services = [] }: LandingPageProps) {
     const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
+    const [selectedProject, setSelectedProject] = React.useState<any | null>(null);
     const [activeSection, setActiveSection] = React.useState('hero');
     const isAutoScrolling = React.useRef(false);
     const { scrollY } = useScroll();
@@ -146,7 +172,7 @@ export default function LandingPage({ settings = {}, activities = [], services =
         const handleScroll = () => {
             if (isAutoScrolling.current) return;
 
-            const sections = ['hero', 'info-warga', 'kegiatan', 'keamanan'];
+            const sections = ['hero', 'info-warga', 'layanan', 'kegiatan', 'keamanan'];
             const scrollPosition = window.scrollY + 100;
 
             // Force hero if at the very top
@@ -391,6 +417,115 @@ export default function LandingPage({ settings = {}, activities = [], services =
                         </p>
                     </div>
                 </motion.div>
+            </section>
+
+            {/* Project Warga Section */}
+            <section id="layanan" className="py-24 md:py-40 px-4 md:px-6 bg-slate-50 overflow-hidden">
+                <div className="max-w-7xl mx-auto space-y-16 md:space-y-24">
+                    <motion.div
+                        initial={{ opacity: 0, y: 30 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="text-center space-y-4 md:space-y-6"
+                    >
+                        <div className="inline-flex items-center space-x-2 px-4 py-2 rounded-full bg-indigo-100 text-indigo-700 border border-indigo-200 shadow-sm">
+                            <Sparkles size={14} className="text-indigo-600" />
+                            <span className="text-[9px] md:text-[10px] font-black uppercase tracking-widest leading-none">Pemberdayaan Ekonomi Lokal</span>
+                        </div>
+                        <h2 className="text-2xl md:text-5xl lg:text-6xl font-black text-slate-900 uppercase tracking-tighter leading-[0.9] italic">
+                            Portofolio & <br className="md:hidden" /> <span className="text-indigo-600">Layanan Warga</span> Cluster
+                        </h2>
+                        <p className="text-slate-500 font-bold uppercase tracking-[0.2em] text-[10px] md:text-sm max-w-2xl mx-auto">
+                            &quot;Dari Warga, Oleh Warga, Untuk Warga. Dukung potensi lokal di lingkungan kita.&quot;
+                        </p>
+                    </motion.div>
+
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-6 md:gap-8">
+                        {RESIDENT_PROJECTS.map((project, index) => {
+                            const Icon = PROJECT_ICON_MAP[project.title] || Info;
+                            return (
+                                <motion.div
+                                    key={index}
+                                    initial={{ opacity: 0, y: 20 }}
+                                    whileInView={{ opacity: 1, y: 0 }}
+                                    viewport={{ once: true }}
+                                    transition={{ delay: index * 0.05, duration: 0.5 }}
+                                    whileHover={{ y: -12, scale: 1.02 }}
+                                    onClick={() => setSelectedProject(project)}
+                                    className="group cursor-pointer relative bg-white p-6 md:p-7 rounded-[2rem] border border-slate-100 shadow-[0_10px_30px_-15px_rgba(0,0,0,0.05)] hover:shadow-[0_40px_80px_-20px_rgba(79,70,229,0.15)] transition-all duration-700 overflow-hidden flex flex-col h-full"
+                                >
+                                    {/* Premium Gradient Background Decor */}
+                                    <div className="absolute -right-10 -top-10 w-24 h-24 bg-indigo-600/5 rounded-full blur-3xl group-hover:bg-indigo-600/10 transition-colors duration-700" />
+                                    <div className="absolute -left-10 -bottom-10 w-24 h-24 bg-teal-600/5 rounded-full blur-3xl group-hover:bg-teal-600/10 transition-colors duration-700" />
+                                    
+                                    <div className="relative z-10 flex flex-col h-full space-y-6">
+                                        <div className="w-14 h-14 rounded-2xl bg-slate-50 text-indigo-600 flex items-center justify-center group-hover:bg-indigo-600 group-hover:text-white transition-all duration-700 shadow-[inset_0_2px_4px_rgba(0,0,0,0.02)] group-hover:shadow-lg group-hover:shadow-indigo-200">
+                                            <Icon size={24} />
+                                        </div>
+                                        
+                                        <div className="space-y-3 flex-grow">
+                                            <h3 className="text-xs md:text-sm font-black text-slate-900 uppercase tracking-tight leading-tight">
+                                                {project.title}
+                                            </h3>
+                                            <p className="text-[10px] md:text-[11px] text-slate-500 font-medium leading-relaxed">
+                                                {project.description}
+                                            </p>
+                                        </div>
+
+                                        <div className="pt-4 flex items-center justify-between border-t border-slate-50">
+                                            <div className="flex items-center space-x-2">
+                                                <div className="w-1.5 h-1.5 rounded-full bg-indigo-600 animate-pulse" />
+                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest group-hover:text-indigo-600 transition-colors">
+                                                    Klik Detail
+                                                </span>
+                                            </div>
+                                            <div className="w-10 h-10 rounded-full bg-slate-50 flex items-center justify-center text-slate-400 group-hover:bg-indigo-600 group-hover:text-white transition-all duration-500">
+                                                <ArrowRight size={16} />
+                                            </div>
+                                        </div>
+                                    </div>
+                                </motion.div>
+                            );
+                        })}
+                    </div>
+
+                    {/* Featured Visual Grid */}
+                    <motion.div
+                        initial={{ opacity: 0, y: 40 }}
+                        whileInView={{ opacity: 1, y: 0 }}
+                        viewport={{ once: true }}
+                        className="relative rounded-[3rem] md:rounded-[4rem] overflow-hidden border-4 md:border-8 border-white shadow-2xl bg-white"
+                    >
+                        <div className="grid md:grid-cols-2 items-center">
+                            <div className="p-8 md:p-16 space-y-6 md:space-y-8">
+                                <h3 className="text-2xl md:text-5xl font-black text-slate-900 uppercase tracking-tighter leading-tight italic">
+                                    Solusi <span className="text-indigo-600">Profesional</span> <br /> di Lingkungan Sendiri.
+                                </h3>
+                                <p className="text-sm md:text-lg text-slate-500 font-medium leading-relaxed">
+                                    Kami menghadirkan tenaga ahli yang juga tetangga Anda. Kualitas pekerjaan terjamin dengan komunikasi yang lebih dekat dan personal.
+                                </p>
+                                <div className="flex flex-wrap gap-3">
+                                    {['Kualitas Premium', 'Respon Cepat', 'Harga Warga'].map((tag, i) => (
+                                        <div key={i} className="px-4 py-2 bg-indigo-50 text-indigo-600 rounded-full text-[9px] md:text-[10px] font-black uppercase tracking-widest border border-indigo-100">
+                                            {tag}
+                                        </div>
+                                    ))}
+                                </div>
+                            </div>
+                            <div className="relative aspect-video md:aspect-square lg:aspect-video bg-slate-100 overflow-hidden">
+                                <img
+                                    src="/projects/services_grid.png"
+                                    alt="Layanan Warga Cluster"
+                                    className="w-full h-full object-cover scale-110 group-hover:scale-100 transition-transform duration-1000"
+                                    onError={(e) => {
+                                        (e.target as HTMLImageElement).src = '/no-image.png';
+                                    }}
+                                />
+                                <div className="absolute inset-0 bg-gradient-to-r from-white via-transparent to-transparent hidden md:block" />
+                            </div>
+                        </div>
+                    </motion.div>
+                </div>
             </section>
 
             {/* Activities Section */}
@@ -647,6 +782,116 @@ export default function LandingPage({ settings = {}, activities = [], services =
                                         </button>
                                     </div>
                                 </div>
+                            </div>
+                        </motion.div>
+                    </div>
+                )}
+            </AnimatePresence>
+
+            {/* Project Detail Dialog */}
+            <AnimatePresence>
+                {selectedProject && (
+                    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 md:p-10">
+                        <motion.div
+                            initial={{ opacity: 0 }}
+                            animate={{ opacity: 1 }}
+                            exit={{ opacity: 0 }}
+                            onClick={() => setSelectedProject(null)}
+                            className="absolute inset-0 bg-slate-950/60 backdrop-blur-xl"
+                        />
+                        <motion.div
+                            initial={{ opacity: 0, scale: 0.95, y: 40 }}
+                            animate={{ opacity: 1, scale: 1, y: 0 }}
+                            exit={{ opacity: 0, scale: 0.95, y: 40 }}
+                            transition={{ type: "spring", damping: 25, stiffness: 300 }}
+                            className="relative w-full max-w-4xl bg-white rounded-[2rem] md:rounded-[3rem] shadow-[0_50px_100px_-20px_rgba(0,0,0,0.5)] overflow-hidden border border-white/20 m-4"
+                        >
+                            <div className="grid lg:grid-cols-12 h-full">
+                                {/* Left Content: Info */}
+                                <div className="lg:col-span-7 p-6 md:p-10 lg:p-12 overflow-y-auto max-h-[80vh] md:max-h-[85vh] no-scrollbar space-y-6 md:space-y-10">
+                                    <div className="space-y-3">
+                                        <div className="flex items-center space-x-3">
+                                            <div className="w-10 h-10 rounded-xl bg-indigo-50 text-indigo-600 flex items-center justify-center shadow-sm">
+                                                {React.createElement(PROJECT_ICON_MAP[selectedProject.title] || Info, { size: 20 })}
+                                            </div>
+                                            <div className="h-px w-8 bg-slate-100" />
+                                            <span className="text-[9px] font-black uppercase tracking-[0.4em] text-slate-400">Official Service</span>
+                                        </div>
+                                        <h2 className="text-xl md:text-3xl lg:text-4xl font-black text-slate-900 uppercase tracking-tighter leading-tight italic">
+                                            {selectedProject.title}
+                                        </h2>
+                                        <div className="flex flex-wrap gap-2">
+                                            <span className="px-3 py-1 rounded-full bg-emerald-50 text-emerald-600 text-[8px] font-black uppercase tracking-widest border border-emerald-100">Verified Partner</span>
+                                            <span className="px-3 py-1 rounded-full bg-indigo-50 text-indigo-600 text-[8px] font-black uppercase tracking-widest border border-indigo-100">Premium Quality</span>
+                                        </div>
+                                    </div>
+
+                                    <div className="space-y-6">
+                                        <div className="space-y-3">
+                                            <span className="text-[9px] font-black text-slate-300 uppercase tracking-[0.3em]">Deskripsi Layanan</span>
+                                            <p className="text-sm md:text-base lg:text-lg text-slate-600 font-medium leading-relaxed italic">
+                                                &quot;{selectedProject.description}&quot;
+                                            </p>
+                                        </div>
+
+                                        <div className="grid grid-cols-2 gap-4">
+                                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                                                <div className="text-indigo-600"><CheckCircle2 size={16} /></div>
+                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">SLA Respon</span>
+                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">&lt; 30 Menit</span>
+                                            </div>
+                                            <div className="p-4 rounded-2xl bg-slate-50 border border-slate-100 space-y-1">
+                                                <div className="text-indigo-600"><Smartphone size={16} /></div>
+                                                <span className="block text-[9px] font-black text-slate-400 uppercase tracking-widest">Kontak Direct</span>
+                                                <span className="text-[10px] font-black text-slate-900 uppercase tracking-tighter">WhatsApp Group</span>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div className="pt-2">
+                                        <button 
+                                            onClick={() => setSelectedProject(null)}
+                                            className="w-full md:w-auto px-8 py-4 bg-slate-900 text-white rounded-xl font-black uppercase tracking-[0.2em] text-[9px] hover:bg-indigo-600 transition-all shadow-xl shadow-slate-200 active:scale-95"
+                                        >
+                                            Hubungi Pengurus
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {/* Right Content: Visual/Image */}
+                                <div className="hidden lg:block lg:col-span-5 bg-slate-50 relative overflow-hidden group">
+                                    <div className="absolute inset-0 bg-indigo-600/5 mix-blend-multiply" />
+                                    <img
+                                        src={selectedProject.image}
+                                        alt={selectedProject.title}
+                                        className="w-full h-full object-cover scale-110 group-hover:scale-105 transition-transform duration-[2s]"
+                                        onError={(e) => {
+                                            (e.target as HTMLImageElement).src = '/no-image.png';
+                                        }}
+                                    />
+                                    <div className="absolute inset-0 bg-gradient-to-t from-slate-950/80 via-transparent to-transparent flex flex-col justify-end p-10">
+                                        <span className="text-[9px] font-black text-white/60 uppercase tracking-[0.4em] mb-2">Recommendation Visual</span>
+                                        <p className="text-white text-base font-black uppercase tracking-tighter italic leading-tight">
+                                            {selectedProject.visual}
+                                        </p>
+                                    </div>
+
+                                    {/* Close Button Desktop */}
+                                    <button
+                                        onClick={() => setSelectedProject(null)}
+                                        className="absolute top-6 right-6 w-10 h-10 bg-slate-900/50 backdrop-blur-md border border-white/20 rounded-full flex items-center justify-center text-white hover:bg-white hover:text-slate-900 transition-all shadow-2xl active:scale-90"
+                                    >
+                                        <X size={20} />
+                                    </button>
+                                </div>
+
+                                {/* Mobile Close Button */}
+                                <button
+                                    onClick={() => setSelectedProject(null)}
+                                    className="lg:hidden absolute top-4 right-4 w-10 h-10 bg-white/80 backdrop-blur-md border border-slate-100 rounded-full flex items-center justify-center text-slate-900 shadow-lg"
+                                >
+                                    <X size={20} />
+                                </button>
                             </div>
                         </motion.div>
                     </div>
