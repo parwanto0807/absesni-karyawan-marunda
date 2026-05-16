@@ -5,7 +5,6 @@ import {
     Clock,
     ShieldCheck,
     Calendar,
-    FileText,
     UserPlus,
     Activity,
     ChevronRight,
@@ -27,7 +26,6 @@ import { calculateDailyPerformance, getPerformanceBarColor, calculateExpectedWor
 import { TIMEZONE, getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
 import { getShiftForDate, getStaticSchedule, getShiftTimings } from '@/lib/schedule-utils';
 import DigitalClock from '@/components/DigitalClock';
-import IncidentReportDialog from '@/components/IncidentReportDialog';
 import ReviewIncidents from '@/components/ReviewIncidents';
 import { AlertTriangle as AlertTriangleIcon } from 'lucide-react';
 import { IncidentReport } from '@/types/incident';

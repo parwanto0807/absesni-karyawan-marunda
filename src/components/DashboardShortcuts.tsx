@@ -15,7 +15,7 @@ import { toast } from 'sonner';
 import IncidentReportDialog from './IncidentReportDialog';
 
 interface ShortcutItem {
-    icon: any;
+    icon: React.ElementType;
     label: string;
     color: string;
     href?: string;
