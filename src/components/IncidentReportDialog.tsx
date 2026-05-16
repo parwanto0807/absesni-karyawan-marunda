@@ -1,4 +1,3 @@
-/* eslint-disable @next/next/no-img-element */
 'use client';
 
 import React, { useState, useRef, useEffect } from 'react';
@@ -180,7 +179,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                 video: { 
                     facingMode: 'environment',
                     zoom: true 
-                } as any, // Cast as any for zoom support
+                } as MediaTrackConstraints, 
                 audio: false
             });
             if (videoRef.current) {
@@ -191,7 +190,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                 trackRef.current = track;
 
                 // Check for zoom capabilities
-                const capabilities = track.getCapabilities() as any;
+                const capabilities = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number, max: number, step: number } };
                 if (capabilities.zoom) {
                     setZoomCaps({
                         min: capabilities.zoom.min,
@@ -211,7 +210,8 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
         setZoomValue(val);
         if (trackRef.current) {
             trackRef.current.applyConstraints({
-                advanced: [{ zoom: val } as any]
+                // @ts-expect-error - zoom is experimental
+                advanced: [{ zoom: val }]
             });
         }
     };

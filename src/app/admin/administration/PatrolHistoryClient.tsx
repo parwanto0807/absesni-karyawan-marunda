@@ -184,6 +184,7 @@ export default function PatrolHistoryClient() {
                         {/* Modal Header */}
                         <div className="relative h-48 bg-indigo-600 overflow-hidden">
                             {selectedLog.image ? (
+                                // eslint-disable-next-line @next/next/no-img-element
                                 <img src={selectedLog.image} alt="Bukti Patroli" className="w-full h-full object-cover opacity-60" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">

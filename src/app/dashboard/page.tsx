@@ -23,7 +23,7 @@ import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 import LatenessMonitoringChart from '@/components/LatenessMonitoringChart';
 import { ImageModal } from '@/components/ImageModal';
-import { calculateDailyPerformance, getPerformanceBarColor } from '@/lib/performance-utils';
+import { calculateDailyPerformance, getPerformanceBarColor, calculateExpectedWorkDays } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
 import { getShiftForDate, getStaticSchedule, getShiftTimings } from '@/lib/schedule-utils';
 import DigitalClock from '@/components/DigitalClock';
@@ -94,7 +94,7 @@ export default async function DashboardPage() {
             where: {
                 userId: session.userId,
                 clockIn: { gte: startOfMonth, lte: endOfMonth },
-                status: { in: ['PRESENT', 'LATE', 'SICK', 'PERMIT', 'LEAVE'] }
+                status: { in: ['PRESENT', 'LATE', 'SICK', 'PERMIT'] }
             },
             select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
         });

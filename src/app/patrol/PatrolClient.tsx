@@ -28,7 +28,6 @@ import {
     getActiveSession 
 } from '@/actions/patrol';
 import { cn } from '@/lib/utils';
-import { format } from 'date-fns';
 import { ZoomableImage } from '@/components/ImageModal';
 
 interface Checkpoint {
@@ -101,9 +100,9 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const fetchActiveSession = React.useCallback(async () => {
         const result = await getActiveSession();
         if (result.success && result.data) {
-            const session = result.data as any;
+            const session = result.data as unknown as PatrolSession & { user?: { name: string } };
             setActiveSession(session);
-            setCheckedPointIds(session.logs.map((l: any) => l.checkpointId));
+            setCheckedPointIds(session.logs.map((l: { checkpointId: string }) => l.checkpointId));
         }
     }, []);
 
@@ -239,7 +238,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                 video: { 
                     facingMode: 'environment',
                     zoom: true 
-                } as any, 
+                } as MediaTrackConstraints, 
                 audio: false 
             });
             if (videoRef.current) {
@@ -247,7 +246,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                 const track = stream.getVideoTracks()[0];
                 trackRef.current = track;
 
-                const capabilities = track.getCapabilities() as any;
+                const capabilities = track.getCapabilities() as MediaTrackCapabilities & { zoom?: { min: number, max: number, step: number } };
                 if (capabilities.zoom) {
                     setZoomCaps({
                         min: capabilities.zoom.min,
@@ -257,7 +256,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                     setZoomValue(capabilities.zoom.min);
                 }
             }
-        } catch (err) {
+        } catch (_err) {
             toast.error('Gagal membuka kamera');
             setIsCapturing(false);
         }
@@ -268,7 +267,8 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         setZoomValue(val);
         if (trackRef.current) {
             trackRef.current.applyConstraints({
-                advanced: [{ zoom: val } as any]
+                // @ts-expect-error - zoom is experimental and not in standard types
+                advanced: [{ zoom: val }]
             });
         }
     };
@@ -552,7 +552,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                             <div>
                                 <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Putaran Berjalan</h2>
                                 <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
-                                    Dimulai oleh: <span className="text-indigo-600">{(activeSession as any).user?.name || 'Sistem'}</span>
+                                    Dimulai oleh: <span className="text-indigo-600">{(activeSession as unknown as { user?: { name: string } }).user?.name || 'Sistem'}</span>
                                 </p>
                             </div>
                         </div>
