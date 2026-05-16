@@ -580,12 +580,15 @@ export default async function DashboardPage() {
             )}
 
             {/* --- MOBILE SHORTCUTS --- */}
-            <div className="grid grid-cols-5 gap-4 md:hidden">
+            <div className="grid grid-cols-3 gap-y-6 gap-x-4 md:hidden px-2">
                 {[
                     { icon: UserCheck, label: 'Absen', color: 'from-blue-500 to-blue-600', href: '/attendance', shadow: 'shadow-blue-200' },
                     { icon: Calendar, label: 'Izin', color: 'from-orange-500 to-orange-600', href: '/permits', shadow: 'shadow-orange-200' },
                     { icon: Clock, label: 'Jadwal', color: 'from-indigo-500 to-indigo-600', href: '/schedules', shadow: 'shadow-indigo-200' },
                     { icon: FileText, label: 'History', color: 'from-emerald-500 to-emerald-600', href: '/history', shadow: 'shadow-emerald-200' },
+                    ...( (session.role === 'SECURITY' || session.role === 'ADMIN') ? [
+                        { icon: ShieldCheck, label: 'Patroli', color: 'from-indigo-500 to-indigo-600', href: '/patrol', shadow: 'shadow-indigo-200' }
+                    ] : [])
                 ].map((item, i) => (
                     <Link key={i} href={item.href} className="flex flex-col items-center space-y-3 group">
                         <div className={cn(
