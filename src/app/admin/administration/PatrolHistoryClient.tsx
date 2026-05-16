@@ -3,8 +3,6 @@
 import React, { useState, useEffect } from 'react';
 import { 
     History, 
-    MapPin, 
-    Eye,
     Search,
     ChevronRight,
     X,
@@ -38,6 +36,7 @@ interface PatrolLog {
     image: string | null;
     latitude: number;
     longitude: number;
+    sessionId?: string | null;
     createdAt: Date;
 }
 

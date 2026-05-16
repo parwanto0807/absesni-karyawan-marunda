@@ -150,11 +150,11 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const handleStartSession = async () => {
         setIsSubmitting(true);
         const result = await startPatrolSession(userId);
-        if (result.success) {
-            setActiveSession(result.data);
+        if (result.success && result.data) {
+            setActiveSession(result.data as unknown as PatrolSession);
             toast.success('Putaran patroli dimulai');
         } else {
-            toast.error(result.message);
+            toast.error(result.message || 'Gagal memulai sesi');
         }
         setIsSubmitting(false);
     };
