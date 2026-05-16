@@ -1,7 +1,16 @@
 import Link from 'next/link';
 import { ArrowRight } from 'lucide-react';
 
-export default function PatroliButton() {
+export default function PatroliButton({ disabled = false }: { disabled?: boolean }) {
+    if (disabled) {
+        return (
+            <div className="mt-6 flex items-center justify-center space-x-2 w-full rounded-xl bg-slate-100 dark:bg-slate-800 py-3 text-[10px] font-black text-slate-400 uppercase tracking-[0.2em] border border-slate-200 dark:border-slate-700 cursor-not-allowed opacity-60">
+                <span>Laporan Patroli (Absen Dahulu)</span>
+                <ArrowRight size={12} />
+            </div>
+        );
+    }
+
     return (
         <Link href="/patrol" className="block w-full">
             <button

@@ -234,7 +234,7 @@ export async function getRecentPatrolLogs(limit: number = 10) {
         const logs = await prisma.patrolLog.findMany({
             include: {
                 user: { select: { name: true, role: true } },
-                checkpoint: { select: { name: true } }
+                checkpoint: { select: { name: true, location: true } }
             },
             orderBy: { createdAt: 'desc' },
             take: limit

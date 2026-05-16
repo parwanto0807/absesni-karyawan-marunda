@@ -29,6 +29,7 @@ interface IncidentReportDialogProps {
     onSuccess?: () => void;
     variant?: 'default' | 'shortcut';
     disabled?: boolean;
+    customTrigger?: React.ReactNode;
 }
 
 const CATEGORIES = [
@@ -40,7 +41,7 @@ const CATEGORIES = [
     'Lainnya'
 ];
 
-export default function IncidentReportDialog({ userId, onSuccess, variant = 'default', disabled = false }: IncidentReportDialogProps) {
+export default function IncidentReportDialog({ userId, onSuccess, variant = 'default', disabled = false, customTrigger }: IncidentReportDialogProps) {
     const [isOpen, setIsOpen] = useState(false);
     const [loading, setLoading] = useState(false);
     const [step, setStep] = useState(1); // 1: Info, 2: Camera, 3: Success
@@ -289,6 +290,14 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     };
 
     if (!isOpen) {
+        if (customTrigger) {
+            return (
+                <div onClick={handleOpen} className="cursor-pointer">
+                    {customTrigger}
+                </div>
+            );
+        }
+
         if (variant === 'shortcut') {
             return (
                 <button

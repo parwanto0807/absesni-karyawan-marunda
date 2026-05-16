@@ -31,6 +31,7 @@ interface PatrolLog {
     checkpointId: string;
     checkpoint: {
         name: string;
+        location: string | null;
     };
     status: string;
     notes: string | null;
@@ -138,9 +139,16 @@ export default function PatrolHistoryClient() {
                                             </div>
                                         </td>
                                         <td className="px-6 py-4">
-                                            <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight line-clamp-1">
-                                                {log.checkpoint.name}
-                                            </span>
+                                            <div className="flex flex-col">
+                                                <span className="text-[10px] font-black text-slate-700 dark:text-slate-200 uppercase tracking-tight line-clamp-1">
+                                                    {log.checkpoint.name}
+                                                </span>
+                                                {log.checkpoint.location && (
+                                                    <span className="text-[8px] font-bold text-slate-400 uppercase tracking-widest line-clamp-1">
+                                                        {log.checkpoint.location}
+                                                    </span>
+                                                )}
+                                            </div>
                                         </td>
                                         <td className="px-6 py-4">
                                             {log.sessionId ? (
@@ -194,6 +202,11 @@ export default function PatrolHistoryClient() {
                             <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent p-8 flex flex-col justify-end">
                                 <p className="text-[10px] font-black text-indigo-300 uppercase tracking-[0.2em] mb-1">Detail Laporan Patroli</p>
                                 <h3 className="text-2xl font-black text-white uppercase tracking-tight">{selectedLog.checkpoint.name}</h3>
+                                {selectedLog.checkpoint.location && (
+                                    <p className="text-xs font-bold text-indigo-100/70 uppercase tracking-widest mt-1">
+                                        {selectedLog.checkpoint.location}
+                                    </p>
+                                )}
                             </div>
                             <Button 
                                 variant="ghost" 

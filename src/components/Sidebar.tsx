@@ -29,6 +29,7 @@ interface SidebarUser {
     name: string;
     role: string;
     image: string | null;
+    isOnDuty?: boolean;
 }
 
 export default function Sidebar({ user }: { user: SidebarUser | null }) {
@@ -49,7 +50,7 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
     const menuItems = [
         { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
-        { icon: Navigation, label: 'Laporan Patroli', href: '/patrol', roles: ['ADMIN', 'SECURITY'] },
+        { icon: Navigation, label: 'Laporan Patroli', href: '/patrol', roles: ['SECURITY'], disabled: !user?.isOnDuty },
         { icon: History, label: 'Riwayat Patroli', href: '/admin/patrol-history', roles: ['ADMIN'] },
         { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },
@@ -65,7 +66,10 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
     const filteredMenu = menuItems.filter(item => {
         if (!user) return false;
         return item.roles.includes(user.role);
-    });
+    }).map(item => ({
+        ...item,
+        isDisabled: 'disabled' in item ? item.disabled : false
+    }));
 
     return (
         <>
@@ -109,14 +113,22 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
                                 const menuLink = (
                                     <Link
                                         key={item.href}
-                                        href={item.href}
-                                        onClick={() => setOpen(false)}
+                                        href={item.isDisabled ? '#' : item.href}
+                                        onClick={(e) => {
+                                            if (item.isDisabled) {
+                                                e.preventDefault();
+                                                toast.error('Silahkan Absen Masuk terlebih dahulu untuk memulai Patroli');
+                                                return;
+                                            }
+                                            setOpen(false);
+                                        }}
                                         className={cn(
                                             "flex items-center rounded-xl px-4 py-3 text-sm transition-all duration-200 group relative",
                                             isActive
                                                 ? "bg-indigo-50 text-indigo-700 dark:bg-indigo-900/20 dark:text-indigo-400"
                                                 : "text-slate-600 hover:bg-slate-50 dark:text-slate-400 dark:hover:bg-slate-800",
-                                            isCollapsed && "justify-center px-0"
+                                            isCollapsed && "justify-center px-0",
+                                            item.isDisabled && "opacity-50 cursor-not-allowed grayscale"
                                         )}
                                     >
                                         <item.icon

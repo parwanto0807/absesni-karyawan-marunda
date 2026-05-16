@@ -59,15 +59,27 @@ export default async function RootLayout({
 }>) {
   const session = await getSession();
   let currentUser: SessionPayload | null = session;
-  let sidebarUser: { id: string; name: string; role: string; image: string | null } | null = null;
+  let sidebarUser: { id: string; name: string; role: string; image: string | null; isOnDuty?: boolean } | null = null;
 
   if (session?.userId) {
     try {
-      const dbUser = await prisma.user.findUnique({
-        where: { id: session.userId },
-        select: { name: true, role: true, username: true, image: true, isPasswordDefault: true }
-      });
+      const activeWindow = new Date(new Date().getTime() - 24 * 60 * 60 * 1000);
+      const [dbUser, currentAttendance] = await Promise.all([
+        prisma.user.findUnique({
+          where: { id: session.userId },
+          select: { name: true, role: true, username: true, image: true, isPasswordDefault: true }
+        }),
+        prisma.attendance.findFirst({
+          where: {
+            userId: session.userId,
+            clockIn: { gte: activeWindow },
+            clockOut: null
+          }
+        })
+      ]);
+
       if (dbUser) {
+        const isOnDuty = !!currentAttendance;
         // safe spread since dbUser fields match SessionPayload structure (except image is string|null vs optional)
         currentUser = {
           userId: session.userId,
@@ -85,7 +97,8 @@ export default async function RootLayout({
           id: session.userId,
           name: dbUser.name,
           role: dbUser.role,
-          image: dbUser.image
+          image: dbUser.image,
+          isOnDuty: isOnDuty
         };
       }
     } catch (error) {

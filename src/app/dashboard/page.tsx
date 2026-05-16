@@ -36,6 +36,7 @@ import { getDashboardInfo } from '@/actions/info';
 import InfoCarousel from '@/components/InfoCarousel';
 import VoucherClaim from '@/components/VoucherClaim';
 import AnnouncementHighlight, { Announcement } from '@/components/AnnouncementHighlight';
+import DashboardShortcuts from '@/components/DashboardShortcuts';
 
 interface DashboardEmployee {
     id: string;
@@ -591,31 +592,14 @@ export default async function DashboardPage() {
             )}
 
             {/* --- MOBILE SHORTCUTS --- */}
-            <div className="grid grid-cols-3 gap-y-6 gap-x-4 md:hidden px-2">
-                {[
-                    { icon: UserCheck, label: 'Absen', color: 'from-blue-500 to-blue-600', href: '/attendance', shadow: 'shadow-blue-200' },
-                    { icon: Calendar, label: 'Izin', color: 'from-orange-500 to-orange-600', href: '/permits', shadow: 'shadow-orange-200' },
-                    { icon: Clock, label: 'Jadwal', color: 'from-indigo-500 to-indigo-600', href: '/schedules', shadow: 'shadow-indigo-200' },
-                    { icon: FileText, label: 'History', color: 'from-emerald-500 to-emerald-600', href: '/history', shadow: 'shadow-emerald-200' },
-                    ...( (session.role === 'SECURITY' || session.role === 'ADMIN') ? [
-                        { icon: ShieldCheck, label: 'Patroli', color: 'from-indigo-500 to-indigo-600', href: '/patrol', shadow: 'shadow-indigo-200' }
-                    ] : [])
-                ].map((item, i) => (
-                    <Link key={i} href={item.href} className="flex flex-col items-center space-y-3 group">
-                        <div className={cn(
-                            "w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-gradient-to-br shadow-lg transition-all active:scale-90 group-hover:translate-y-[-4px]",
-                            item.color,
-                            item.shadow,
-                            "dark:shadow-none"
-                        )}>
-                            <item.icon size={24} />
-                        </div>
-                        <span className="text-[8px] font-black uppercase tracking-widest text-slate-500 group-hover:text-indigo-600 transition-colors text-center">{item.label}</span>
-                    </Link>
-                ))}
-                {(isFieldRole || isPowerful) && (
-                    <IncidentReportDialog userId={session.userId} variant="shortcut" disabled={isFieldRole && !isOnDuty} />
-                )}
+            <div className="md:hidden">
+                <DashboardShortcuts 
+                    role={session.role} 
+                    isOnDuty={isOnDuty} 
+                    userId={session.userId}
+                    isPowerful={isPowerful}
+                    isFieldRole={isFieldRole}
+                />
             </div>
 
             {/* --- RECENT INCIDENTS CAROUSEL --- */}
@@ -694,14 +678,14 @@ export default async function DashboardPage() {
                     {['ADMIN', 'RT'].includes(session.role) && <LatenessMonitoringChart />}
 
                     {isPowerful && <PerformanceDashboard />}
-                    {['SECURITY', 'ADMIN'].includes(session.role) && (
+                    {session.role === 'SECURITY' && (
                         <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6 overflow-hidden relative">
                             <div className="absolute top-0 right-0 p-4 opacity-10">
                                 <ShieldCheck size={48} />
                             </div>
                             <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-2">Patroli</h3>
                             <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 tracking-tighter">Status kawasan 100% aman.</p>
-                            <PatroliButton />
+                            <PatroliButton disabled={!isOnDuty} />
                         </div>
                     )}
                 </div>
