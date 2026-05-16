@@ -37,7 +37,7 @@ export default function LayoutContent({ children, user }: { children: React.Reac
                     whileTap={{ scale: 0.9 }}
                     dragMomentum={false}
                     onTap={() => router.push('/dashboard')}
-                    className="md:hidden fixed bottom-6 right-6 z-[100] cursor-grab active:cursor-grabbing"
+                    className="md:hidden fixed bottom-6 right-6 z-[100] cursor-grab active:cursor-grabbing print:hidden"
                     initial={{ y: 100, opacity: 0 }}
                     animate={{ y: 0, opacity: 1 }}
                     exit={{ y: 100, opacity: 0 }}

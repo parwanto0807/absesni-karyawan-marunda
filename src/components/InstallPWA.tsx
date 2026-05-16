@@ -56,7 +56,7 @@ export default function InstallPWA() {
     }
 
     return (
-        <div className="fixed bottom-20 left-4 right-4 z-50 md:hidden animate-in slide-in-from-bottom-5 duration-700">
+        <div className="fixed bottom-20 left-4 right-4 z-50 md:hidden animate-in slide-in-from-bottom-5 duration-700 print:hidden">
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-indigo-600 to-indigo-700 p-0.5 shadow-2xl shadow-indigo-500/30">
                 {/* Glowing Effect Background */}
                 <div className="absolute inset-0 bg-gradient-to-r from-indigo-500 via-purple-500 to-indigo-500 opacity-70 animate-pulse" />

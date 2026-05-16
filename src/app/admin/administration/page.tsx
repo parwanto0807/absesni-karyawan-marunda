@@ -69,6 +69,12 @@ export default async function AdministrationPage({
                     >
                         🛡️ Titik Patroli
                     </a>
+                    <a
+                        href="/admin/patrol-spo"
+                        className="px-4 py-2.5 text-xs font-black uppercase tracking-widest whitespace-nowrap transition-colors border-b-2 border-transparent text-slate-400 hover:text-indigo-600 dark:hover:text-indigo-400"
+                    >
+                        📄 SPO Patroli (PDF)
+                    </a>
                 </div>
 
                 {/* Tab Content */}

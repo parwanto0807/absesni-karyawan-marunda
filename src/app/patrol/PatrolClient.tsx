@@ -438,6 +438,11 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                         <div className="flex-1">
                             <p className="text-[10px] font-black text-indigo-200 uppercase tracking-widest">Checking Point</p>
                             <h3 className="text-lg font-black uppercase tracking-tight">{selectedCp.name}</h3>
+                            {selectedCp.location && (
+                                <p className="text-[10px] font-bold text-indigo-100/80 italic mt-0.5">
+                                    {selectedCp.location}
+                                </p>
+                            )}
                         </div>
                         <Button variant="ghost" size="icon" onClick={resetState} className="text-white hover:bg-white/10"><X size={20} /></Button>
                     </div>
@@ -594,7 +599,12 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                                         </div>
                                         <div>
                                             <h4 className={cn("text-sm font-black uppercase tracking-tight", isChecked ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}>{cp.name}</h4>
-                                            <p className={cn("text-[9px] font-bold uppercase tracking-widest", isChecked ? "text-emerald-500/70" : "text-slate-400")}>
+                                            {cp.location && (
+                                                <p className="text-[9px] font-medium text-slate-500 dark:text-slate-400 mt-0.5 line-clamp-1">
+                                                    {cp.location}
+                                                </p>
+                                            )}
+                                            <p className={cn("text-[9px] font-bold uppercase tracking-widest mt-1", isChecked ? "text-emerald-500/70" : "text-slate-400")}>
                                                 {isChecked ? 'Sudah Selesai' : isNearby ? 'Siap Scan' : `${Math.round(dist)}m`}
                                             </p>
                                         </div>
