@@ -82,6 +82,44 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const watchId = useRef<number | null>(null);
 
+    const fetchCheckpoints = React.useCallback(async () => {
+        const result = await getCheckpoints();
+        if (result.success && result.data) {
+            setCheckpoints(result.data as Checkpoint[]);
+        }
+    }, []);
+
+    const fetchActiveSession = React.useCallback(async () => {
+        const result = await getActiveSession(userId);
+        if (result.success && result.data) {
+            const session = result.data as unknown as PatrolSession;
+            setActiveSession(session);
+            setCheckedPointIds(session.logs.map(l => l.checkpointId));
+        }
+    }, [userId]);
+
+    const startLocationWatch = React.useCallback(() => {
+        if (!navigator.geolocation) return;
+        watchId.current = navigator.geolocation.watchPosition(
+            (pos) => {
+                setCurrentPos({ lat: pos.coords.latitude, lon: pos.coords.longitude });
+            },
+            (_err) => console.error(_err),
+            { enableHighAccuracy: true }
+        );
+    }, []);
+
+    const loadOfflineQueue = React.useCallback(() => {
+        const saved = localStorage.getItem('patrol_offline_queue');
+        if (saved) {
+            try {
+                setOfflineQueue(JSON.parse(saved));
+            } catch (e) {
+                console.error('Error loading queue', e);
+            }
+        }
+    }, []);
+
     const init = React.useCallback(async () => {
         setIsLoading(true);
         await Promise.all([
@@ -91,7 +129,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         ]);
         loadOfflineQueue();
         setIsLoading(false);
-    }, [userId]);
+    }, [fetchCheckpoints, fetchActiveSession, startLocationWatch, loadOfflineQueue]);
 
     useEffect(() => {
         init();
@@ -109,43 +147,6 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
             }
         };
     }, [init]);
-
-    const fetchCheckpoints = async () => {
-        const result = await getCheckpoints();
-        if (result.success && result.data) {
-            setCheckpoints(result.data as Checkpoint[]);
-        }
-    };
-
-    const fetchActiveSession = async () => {
-        const result = await getActiveSession(userId);
-        if (result.success && result.data) {
-            setActiveSession(result.data as unknown as PatrolSession);
-            setCheckedPointIds((result.data as any).logs.map((l: any) => l.checkpointId));
-        }
-    };
-
-    const startLocationWatch = () => {
-        if (!navigator.geolocation) return;
-        watchId.current = navigator.geolocation.watchPosition(
-            (pos) => {
-                setCurrentPos({ lat: pos.coords.latitude, lon: pos.coords.longitude });
-            },
-            (err) => console.error(err),
-            { enableHighAccuracy: true }
-        );
-    };
-
-    const loadOfflineQueue = () => {
-        const saved = localStorage.getItem('patrol_offline_queue');
-        if (saved) {
-            try {
-                setOfflineQueue(JSON.parse(saved));
-            } catch (e) {
-                console.error('Error loading queue', e);
-            }
-        }
-    };
 
     const handleStartSession = async () => {
         setIsSubmitting(true);
@@ -177,7 +178,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         setIsSubmitting(false);
     };
 
-    const addToQueue = (data: any) => {
+    const addToQueue = (data: Omit<OfflineLog, 'createdAt'>) => {
         const newQueue = [...offlineQueue, { ...data, createdAt: new Date().toISOString() }];
         setOfflineQueue(newQueue);
         localStorage.setItem('patrol_offline_queue', JSON.stringify(newQueue));
@@ -353,7 +354,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                     </div>
 
                     <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-900 shadow-2xl border-4 border-white dark:border-slate-800">
-                        {image ? <img src={image} className="w-full h-full object-cover" /> : isCapturing ? <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4"><div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center"><Camera size={40} /></div><p className="text-xs font-black uppercase tracking-widest">Ambil Foto Area</p></div>}
+                        {image ? <img src={image} alt="Captured Area" className="w-full h-full object-cover" /> : isCapturing ? <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4"><div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center"><Camera size={40} /></div><p className="text-xs font-black uppercase tracking-widest">Ambil Foto Area</p></div>}
                         <div className="absolute bottom-6 left-0 right-0 flex justify-center">
                             {!image && !isCapturing && <Button onClick={startCamera} className="rounded-full h-16 w-16 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl"><Camera size={24} /></Button>}
                             {!image && isCapturing && <Button onClick={takePhoto} className="rounded-full h-20 w-20 bg-white text-indigo-600 border-8 border-indigo-600/20 shadow-2xl scale-110 active:scale-90 transition-all"><div className="w-full h-full rounded-full border-2 border-indigo-600" /></Button>}

@@ -54,7 +54,7 @@ export default function PatrolHistoryClient() {
         setIsLoading(true);
         const result = await getRecentPatrolLogs(100); // Get last 100 logs
         if (result.success && result.data) {
-            setLogs(result.data as any);
+            setLogs(result.data as PatrolLog[]);
         } else {
             toast.error(result.message || 'Gagal mengambil riwayat');
         }
@@ -183,7 +183,7 @@ export default function PatrolHistoryClient() {
                         {/* Modal Header */}
                         <div className="relative h-48 bg-indigo-600 overflow-hidden">
                             {selectedLog.image ? (
-                                <img src={selectedLog.image} className="w-full h-full object-cover opacity-60" />
+                                <img src={selectedLog.image} alt="Bukti Patroli" className="w-full h-full object-cover opacity-60" />
                             ) : (
                                 <div className="w-full h-full flex items-center justify-center">
                                     <Shield size={64} className="text-indigo-400/30" />

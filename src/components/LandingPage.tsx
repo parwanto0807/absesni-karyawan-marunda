@@ -5,7 +5,7 @@ import React from 'react';
 import { motion, AnimatePresence, useScroll, useTransform } from 'framer-motion';
 import { Shield, Phone, ArrowRight, Home, CheckCircle2, Info, Calendar, Megaphone, Heart, Coffee, TreePine, Sparkles, Smartphone, X, Wifi, Camera, CreditCard, Car, Users, Utensils, ShoppingBag, Gavel, Hammer, Cpu } from 'lucide-react';
 import Link from 'next/link';
-import { RESIDENT_PROJECTS } from '@/constants/projects';
+import { RESIDENT_PROJECTS, ResidentProject } from '@/constants/projects';
 
 interface Activity {
     id: string;
@@ -111,7 +111,7 @@ function TabNav({ activeSection, onTabClick }: { activeSection: string; onTabCli
 
 export default function LandingPage({ settings = {}, activities = [], services = [] }: LandingPageProps) {
     const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
-    const [selectedProject, setSelectedProject] = React.useState<{ title: string, description: string } | null>(null);
+    const [selectedProject, setSelectedProject] = React.useState<ResidentProject | null>(null);
     const [activeSection, setActiveSection] = React.useState('hero');
     const isAutoScrolling = React.useRef(false);
     const { scrollY } = useScroll();
