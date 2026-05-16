@@ -242,7 +242,7 @@ export default function PatrolHistoryClient() {
                                 <div className="space-y-1.5">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Catatan / Temuan</p>
                                     <p className="text-sm font-medium text-slate-700 dark:text-slate-200 leading-relaxed italic">
-                                        "{selectedLog.notes || 'Laporan rutin, kondisi terpantau aman.'}"
+                                        &quot;{selectedLog.notes || 'Laporan rutin, kondisi terpantau aman.'}&quot;
                                     </p>
                                 </div>
                             </div>
@@ -251,7 +251,7 @@ export default function PatrolHistoryClient() {
                                 <div className="space-y-3">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Foto Bukti Lapangan</p>
                                     <div className="rounded-3xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl">
-                                        <img src={selectedLog.image} alt="Bukti Patroli" className="w-full h-auto object-cover" />
+                                        <img src={selectedLog.image} alt="Detail Bukti Patroli" className="w-full h-auto object-cover" />
                                     </div>
                                 </div>
                             )}

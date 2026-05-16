@@ -6,14 +6,9 @@ import {
     MapPin, 
     Navigation, 
     CheckCircle2, 
-    AlertCircle, 
     RefreshCw, 
-    Image as ImageIcon,
     Send,
-    History,
     Shield,
-    WifiOff,
-    Check,
     X,
     Play,
     Flag,
@@ -40,6 +35,27 @@ interface Checkpoint {
     longitude: number;
 }
 
+interface PatrolSession {
+    id: string;
+    userId: string;
+    startTime: string;
+    endTime: string | null;
+    status: string;
+    logs: { checkpointId: string }[];
+}
+
+interface OfflineLog {
+    userId: string;
+    checkpointId: string;
+    sessionId?: string;
+    status: string;
+    notes?: string;
+    image: string;
+    latitude: number;
+    longitude: number;
+    createdAt: string;
+}
+
 interface PatrolClientProps {
     userId: string;
 }
@@ -48,7 +64,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const [checkpoints, setCheckpoints] = useState<Checkpoint[]>([]);
     const [isLoading, setIsLoading] = useState(true);
     const [currentPos, setCurrentPos] = useState<{ lat: number, lon: number } | null>(null);
-    const [activeSession, setActiveSession] = useState<any>(null);
+    const [activeSession, setActiveSession] = useState<PatrolSession | null>(null);
     const [checkedPointIds, setCheckedPointIds] = useState<string[]>([]);
     
     // Form states
@@ -59,12 +75,23 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const [status, setStatus] = useState('AMAN');
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    const [offlineQueue, setOfflineQueue] = useState<any[]>([]);
+    const [offlineQueue, setOfflineQueue] = useState<OfflineLog[]>([]);
     const [isOnline, setIsOnline] = useState(true);
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const watchId = useRef<number | null>(null);
+
+    const init = React.useCallback(async () => {
+        setIsLoading(true);
+        await Promise.all([
+            fetchCheckpoints(),
+            fetchActiveSession(),
+            startLocationWatch()
+        ]);
+        loadOfflineQueue();
+        setIsLoading(false);
+    }, [userId]);
 
     useEffect(() => {
         init();
@@ -81,18 +108,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                 navigator.geolocation.clearWatch(watchId.current);
             }
         };
-    }, []);
-
-    const init = async () => {
-        setIsLoading(true);
-        await Promise.all([
-            fetchCheckpoints(),
-            fetchActiveSession(),
-            startLocationWatch()
-        ]);
-        loadOfflineQueue();
-        setIsLoading(false);
-    };
+    }, [init]);
 
     const fetchCheckpoints = async () => {
         const result = await getCheckpoints();
@@ -104,8 +120,8 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const fetchActiveSession = async () => {
         const result = await getActiveSession(userId);
         if (result.success && result.data) {
-            setActiveSession(result.data);
-            setCheckedPointIds(result.data.logs.map((l: any) => l.checkpointId));
+            setActiveSession(result.data as unknown as PatrolSession);
+            setCheckedPointIds((result.data as any).logs.map((l: any) => l.checkpointId));
         }
     };
 
