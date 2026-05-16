@@ -2,7 +2,6 @@ import React from 'react';
 import { getSession } from '@/lib/auth';
 import { redirect } from 'next/navigation';
 import PatrolHistoryClient from '../administration/PatrolHistoryClient';
-import { History } from 'lucide-react';
 
 export default async function AdminPatrolHistoryPage() {
     const session = await getSession();

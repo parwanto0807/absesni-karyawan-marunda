@@ -111,7 +111,7 @@ function TabNav({ activeSection, onTabClick }: { activeSection: string; onTabCli
 
 export default function LandingPage({ settings = {}, activities = [], services = [] }: LandingPageProps) {
     const [selectedActivity, setSelectedActivity] = React.useState<Activity | null>(null);
-    const [selectedProject, setSelectedProject] = React.useState<any | null>(null);
+    const [selectedProject, setSelectedProject] = React.useState<{ title: string, description: string } | null>(null);
     const [activeSection, setActiveSection] = React.useState('hero');
     const isAutoScrolling = React.useRef(false);
     const { scrollY } = useScroll();

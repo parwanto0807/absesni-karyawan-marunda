@@ -177,16 +177,24 @@ export async function getActiveSession(userId: string) {
         });
 
         return { success: true, data: session };
-    } catch (error) {
+    } catch (_error) {
         return { success: false, message: 'Gagal mengambil sesi aktif' };
     }
 }
 
-export async function syncPatrolLogs(logs: any[]) {
+export async function syncPatrolLogs(logs: {
+    userId: string;
+    checkpointId: string;
+    status: string;
+    notes?: string;
+    image?: string;
+    latitude: number;
+    longitude: number;
+    createdAt?: string;
+}[]) {
     try {
         const results = [];
         for (const logData of logs) {
-            // Check if log already exists to prevent duplicates (using optional localId if provided)
             const log = await prisma.patrolLog.create({
                 data: {
                     userId: logData.userId,
@@ -201,7 +209,8 @@ export async function syncPatrolLogs(logs: any[]) {
             });
             results.push(log);
         }
-        revalidatePath('/dashboard');
+        revalidatePath('/admin/administration');
+        revalidatePath('/admin/patrol-history');
         return { success: true, count: results.length };
     } catch (error) {
         console.error('Sync Patrol Logs Error:', error);
