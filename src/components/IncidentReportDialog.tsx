@@ -14,11 +14,14 @@ import {
     AlertCircle,
     Mic,
     MicOff,
-    Image as ImageIcon
+    Image as ImageIcon,
+    ZoomIn,
+    ZoomOut
 } from 'lucide-react';
 import { toast } from 'sonner';
 import { createIncidentReport } from '@/actions/incident';
 import { cn } from '@/lib/utils';
+import { ZoomableImage } from './ImageModal';
 import type { SpeechRecognitionEvent } from '@/types/speech-recognition';
 
 
@@ -129,6 +132,10 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const trackRef = useRef<MediaStreamTrack | null>(null);
+
+    const [zoomValue, setZoomValue] = useState(1);
+    const [zoomCaps, setZoomCaps] = useState<{ min: number; max: number; step: number } | null>(null);
 
     // Get location automatically when dialog opens
     useEffect(() => {
@@ -170,15 +177,42 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     const startCamera = async () => {
         try {
             const stream = await navigator.mediaDevices.getUserMedia({
-                video: { facingMode: 'environment' }, // Back camera preferred for incidents
+                video: { 
+                    facingMode: 'environment',
+                    zoom: true 
+                } as any, // Cast as any for zoom support
                 audio: false
             });
             if (videoRef.current) {
                 videoRef.current.srcObject = stream;
                 setIsCameraActive(true);
+                
+                const track = stream.getVideoTracks()[0];
+                trackRef.current = track;
+
+                // Check for zoom capabilities
+                const capabilities = track.getCapabilities() as any;
+                if (capabilities.zoom) {
+                    setZoomCaps({
+                        min: capabilities.zoom.min,
+                        max: capabilities.zoom.max,
+                        step: capabilities.zoom.step || 0.1
+                    });
+                    setZoomValue(capabilities.zoom.min);
+                }
             }
         } catch (_err) {
             toast.error('Gagal mengakses kamera.');
+        }
+    };
+
+    const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseFloat(e.target.value);
+        setZoomValue(val);
+        if (trackRef.current) {
+            trackRef.current.applyConstraints({
+                advanced: [{ zoom: val } as any]
+            });
         }
     };
 
@@ -187,6 +221,8 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
             setIsCameraActive(false);
+            trackRef.current = null;
+            setZoomCaps(null);
         }
     };
 
@@ -413,21 +449,18 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
 
                                 {capturedImage && (
                                     <div className="relative w-full aspect-video rounded-2xl overflow-hidden bg-slate-900 group border border-slate-200 dark:border-slate-800 flex items-center justify-center">
-                                        <img
-                                            src={capturedImage}
-                                            className="max-w-full max-h-full object-contain"
-                                            alt="Bukti Kejadian"
-                                            onError={(e) => {
-                                                (e.target as HTMLImageElement).src = '/no-image.png';
-                                            }}
+                                        <ZoomableImage 
+                                            src={capturedImage} 
+                                            alt="Bukti Kejadian" 
+                                            className="max-h-full"
                                         />
                                         <button
                                             onClick={() => setCapturedImage(null)}
-                                            className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors backdrop-blur-sm"
+                                            className="absolute top-3 right-3 p-2 bg-black/50 text-white rounded-full hover:bg-rose-500 transition-colors backdrop-blur-sm z-10"
                                         >
                                             <X size={16} />
                                         </button>
-                                        <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/50 rounded-full backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-widest">
+                                        <div className="absolute bottom-3 left-3 px-3 py-1 bg-black/50 rounded-full backdrop-blur-sm text-[10px] font-bold text-white uppercase tracking-widest z-10">
                                             Bukti Terlampir
                                         </div>
                                     </div>
@@ -450,6 +483,25 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                             <div className="relative aspect-[4/3] rounded-3xl bg-black overflow-hidden bg-slate-900 group">
                                 <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
                                 <div className="absolute inset-0 border-4 border-white/20 rounded-3xl pointer-events-none" />
+
+                                {zoomCaps && (
+                                    <div className="absolute left-6 right-6 bottom-24 flex flex-col items-center gap-2 bg-black/40 backdrop-blur-md p-3 rounded-2xl animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="flex items-center justify-between w-full px-2">
+                                            <ZoomOut size={14} className="text-white/60" />
+                                            <span className="text-[9px] font-black text-white uppercase tracking-widest">{zoomValue.toFixed(1)}x</span>
+                                            <ZoomIn size={14} className="text-white/60" />
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={zoomCaps.min} 
+                                            max={zoomCaps.max} 
+                                            step={zoomCaps.step} 
+                                            value={zoomValue}
+                                            onChange={handleZoomChange}
+                                            className="w-full h-1 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                                        />
+                                    </div>
+                                )}
 
                                 <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4 px-6">
                                     <button

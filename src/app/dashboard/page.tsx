@@ -94,17 +94,28 @@ export default async function DashboardPage() {
             where: {
                 userId: session.userId,
                 clockIn: { gte: startOfMonth, lte: endOfMonth },
-                status: { in: ['PRESENT', 'LATE'] }
+                status: { in: ['PRESENT', 'LATE', 'SICK', 'PERMIT', 'LEAVE'] }
             },
             select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
         });
 
-        if (myAttendances.length > 0) {
+        // Use expected work days as denominator for absolute 100% accuracy
+        const expectedDays = calculateExpectedWorkDays(
+            session.role,
+            startOfMonth,
+            now < endOfMonth ? now : endOfMonth,
+            currentUserData?.rotationOffset
+        );
+
+        if (expectedDays > 0) {
             const totalScore = myAttendances.reduce((sum, att) => sum + calculateDailyPerformance(att), 0);
-            const averageScore = totalScore / myAttendances.length;
+            // Overall score relative to how many days they SHOULD have worked
+            const overallScore = totalScore / expectedDays;
+            
             myPerformance = {
-                score: Math.round(averageScore),
-                totalAttendance: myAttendances.length
+                // Use Math.floor to be strict: 99.9% is NOT 100%
+                score: Math.floor(overallScore),
+                totalAttendance: myAttendances.filter(a => ['PRESENT', 'LATE'].includes(a.status)).length
             };
         } else {
             myPerformance = { score: 0, totalAttendance: 0 };

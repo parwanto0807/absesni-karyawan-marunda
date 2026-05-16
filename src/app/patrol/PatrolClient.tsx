@@ -13,7 +13,9 @@ import {
     Play,
     Flag,
     Clock,
-    Upload
+    Upload,
+    ZoomIn,
+    ZoomOut
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -27,6 +29,7 @@ import {
 } from '@/actions/patrol';
 import { cn } from '@/lib/utils';
 import { format } from 'date-fns';
+import { ZoomableImage } from '@/components/ImageModal';
 
 interface Checkpoint {
     id: string;
@@ -82,7 +85,11 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
+    const trackRef = useRef<MediaStreamTrack | null>(null);
     const watchId = useRef<number | null>(null);
+    
+    const [zoomValue, setZoomValue] = useState(1);
+    const [zoomCaps, setZoomCaps] = useState<{ min: number; max: number; step: number } | null>(null);
 
     const fetchCheckpoints = React.useCallback(async () => {
         const result = await getCheckpoints();
@@ -92,13 +99,13 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     }, []);
 
     const fetchActiveSession = React.useCallback(async () => {
-        const result = await getActiveSession(userId);
+        const result = await getActiveSession();
         if (result.success && result.data) {
-            const session = result.data as unknown as PatrolSession;
+            const session = result.data as any;
             setActiveSession(session);
-            setCheckedPointIds(session.logs.map(l => l.checkpointId));
+            setCheckedPointIds(session.logs.map((l: any) => l.checkpointId));
         }
-    }, [userId]);
+    }, []);
 
     const startLocationWatch = React.useCallback(() => {
         if (!navigator.geolocation) return;
@@ -132,6 +139,19 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         loadOfflineQueue();
         setIsLoading(false);
     }, [fetchCheckpoints, fetchActiveSession, startLocationWatch, loadOfflineQueue]);
+
+    // Polling for session updates (sync between officers)
+    useEffect(() => {
+        let interval: NodeJS.Timeout;
+        if (activeSession && isOnline) {
+            interval = setInterval(() => {
+                fetchActiveSession();
+            }, 10000);
+        }
+        return () => {
+            if (interval) clearInterval(interval);
+        };
+    }, [activeSession, isOnline, fetchActiveSession]);
 
     useEffect(() => {
         init();
@@ -195,7 +215,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
             toast.success(`${result.count} laporan berhasil disinkronisasi`);
             setOfflineQueue([]);
             localStorage.removeItem('patrol_offline_queue');
-            fetchActiveSession(); // Update status
+            init(); 
         } else {
             toast.error('Gagal sinkronisasi');
         }
@@ -215,11 +235,41 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const startCamera = async () => {
         setIsCapturing(true);
         try {
-            const stream = await navigator.mediaDevices.getUserMedia({ video: { facingMode: 'environment' }, audio: false });
-            if (videoRef.current) videoRef.current.srcObject = stream;
+            const stream = await navigator.mediaDevices.getUserMedia({ 
+                video: { 
+                    facingMode: 'environment',
+                    zoom: true 
+                } as any, 
+                audio: false 
+            });
+            if (videoRef.current) {
+                videoRef.current.srcObject = stream;
+                const track = stream.getVideoTracks()[0];
+                trackRef.current = track;
+
+                const capabilities = track.getCapabilities() as any;
+                if (capabilities.zoom) {
+                    setZoomCaps({
+                        min: capabilities.zoom.min,
+                        max: capabilities.zoom.max,
+                        step: capabilities.zoom.step || 0.1
+                    });
+                    setZoomValue(capabilities.zoom.min);
+                }
+            }
         } catch (err) {
             toast.error('Gagal membuka kamera');
             setIsCapturing(false);
+        }
+    };
+
+    const handleZoomChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const val = parseFloat(e.target.value);
+        setZoomValue(val);
+        if (trackRef.current) {
+            trackRef.current.applyConstraints({
+                advanced: [{ zoom: val } as any]
+            });
         }
     };
 
@@ -227,7 +277,6 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         if (videoRef.current && canvasRef.current) {
             const context = canvasRef.current.getContext('2d');
             if (context) {
-                // Resize for efficiency
                 const maxWidth = 1080;
                 const videoWidth = videoRef.current.videoWidth || 1080;
                 const videoHeight = videoRef.current.videoHeight || 1080;
@@ -278,6 +327,8 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
             const stream = videoRef.current.srcObject as MediaStream;
             stream.getTracks().forEach(track => track.stop());
             videoRef.current.srcObject = null;
+            trackRef.current = null;
+            setZoomCaps(null);
         }
         setIsCapturing(false);
     };
@@ -392,7 +443,38 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                     </div>
 
                     <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-900 shadow-2xl border-4 border-white dark:border-slate-800">
-                        {image ? <img src={image} alt="Captured Area" className="w-full h-full object-cover" /> : isCapturing ? <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4"><div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center"><Camera size={40} /></div><p className="text-xs font-black uppercase tracking-widest">Ambil Foto Area</p></div>}
+                        {image ? (
+                            <ZoomableImage src={image} alt="Captured Area" className="w-full h-full object-cover" />
+                        ) : isCapturing ? (
+                            <>
+                                <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" />
+                                {zoomCaps && (
+                                    <div className="absolute left-6 right-6 bottom-32 flex flex-col items-center gap-2 bg-black/40 backdrop-blur-md p-3 rounded-2xl animate-in fade-in slide-in-from-bottom-4">
+                                        <div className="flex items-center justify-between w-full px-2">
+                                            <ZoomOut size={16} className="text-white/60" />
+                                            <span className="text-[10px] font-black text-white uppercase tracking-widest">{zoomValue.toFixed(1)}x</span>
+                                            <ZoomIn size={16} className="text-white/60" />
+                                        </div>
+                                        <input 
+                                            type="range" 
+                                            min={zoomCaps.min} 
+                                            max={zoomCaps.max} 
+                                            step={zoomCaps.step} 
+                                            value={zoomValue}
+                                            onChange={handleZoomChange}
+                                            className="w-full h-1.5 bg-white/20 rounded-lg appearance-none cursor-pointer accent-white"
+                                        />
+                                    </div>
+                                )}
+                            </>
+                        ) : (
+                            <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4">
+                                <div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center">
+                                    <Camera size={40} />
+                                </div>
+                                <p className="text-xs font-black uppercase tracking-widest">Ambil Foto Area</p>
+                            </div>
+                        )}
                         <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4">
                             {!image && !isCapturing && (
                                 <>
@@ -462,22 +544,24 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
             ) : (
                 /* List Checkpoints in Session */
                 <div className="space-y-6 animate-in slide-in-from-bottom duration-500">
-                    <div className="flex items-center justify-between p-5 bg-white dark:bg-slate-900 rounded-3xl border border-slate-100 dark:border-slate-800 shadow-sm">
+                    <div className="flex items-center justify-between">
                         <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 rounded-full bg-indigo-50 dark:bg-indigo-900/20 flex items-center justify-center text-indigo-600">
-                                <Clock size={20} />
+                            <div className="w-10 h-10 rounded-full bg-emerald-100 dark:bg-emerald-500/20 flex items-center justify-center">
+                                <Clock className="text-emerald-600" size={20} />
                             </div>
                             <div>
-                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Waktu Mulai</p>
-                                <p className="text-xs font-black text-slate-900 dark:text-white uppercase">
-                                    {format(new Date(activeSession.startTime), 'HH:mm:ss')}
+                                <h2 className="text-lg font-black text-slate-900 dark:text-white uppercase tracking-tight">Putaran Berjalan</h2>
+                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                    Dimulai oleh: <span className="text-indigo-600">{(activeSession as any).user?.name || 'Sistem'}</span>
                                 </p>
                             </div>
                         </div>
-                        <div className="text-right">
-                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Progress</p>
-                            <p className="text-xs font-black text-indigo-600">{checkedPointIds.length} / {checkpoints.length}</p>
-                        </div>
+                        <Button 
+                            onClick={handleEndSession}
+                            className="rounded-2xl bg-rose-600 hover:bg-rose-700 text-white font-black text-[10px] uppercase tracking-widest px-6 h-12 shadow-lg shadow-rose-200 dark:shadow-none"
+                        >
+                            Selesaikan
+                        </Button>
                     </div>
 
                     <div className="space-y-3">
@@ -495,7 +579,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                                     className={cn(
                                         "w-full flex items-center justify-between p-4 rounded-2xl border transition-all text-left",
                                         isChecked 
-                                            ? "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800 opacity-50" 
+                                            ? "bg-emerald-50/80 dark:bg-emerald-500/10 border-emerald-200 dark:border-emerald-800/50" 
                                             : isNearby 
                                                 ? "bg-white dark:bg-slate-900 border-indigo-200 dark:border-indigo-800 shadow-lg shadow-indigo-500/5" 
                                                 : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-800"
@@ -503,19 +587,25 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                                 >
                                     <div className="flex items-center gap-3">
                                         <div className={cn(
-                                            "w-10 h-10 rounded-xl flex items-center justify-center",
-                                            isChecked ? "bg-emerald-100 text-emerald-600" : isNearby ? "bg-indigo-100 text-indigo-600" : "bg-slate-200 text-slate-500"
+                                            "w-10 h-10 rounded-xl flex items-center justify-center transition-transform",
+                                            isChecked ? "bg-emerald-500 text-white scale-90" : isNearby ? "bg-indigo-100 text-indigo-600 scale-100" : "bg-slate-200 text-slate-500 scale-100"
                                         )}>
                                             {isChecked ? <CheckCircle2 size={20} /> : <MapPin size={20} />}
                                         </div>
                                         <div>
-                                            <h4 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-tight">{cp.name}</h4>
-                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                                {isChecked ? 'Sudah Dicek' : isNearby ? 'Anda Sudah di Lokasi' : `${Math.round(dist)}m dari Anda`}
+                                            <h4 className={cn("text-sm font-black uppercase tracking-tight", isChecked ? "text-emerald-700 dark:text-emerald-400" : "text-slate-900 dark:text-white")}>{cp.name}</h4>
+                                            <p className={cn("text-[9px] font-bold uppercase tracking-widest", isChecked ? "text-emerald-500/70" : "text-slate-400")}>
+                                                {isChecked ? 'Sudah Selesai' : isNearby ? 'Siap Scan' : `${Math.round(dist)}m`}
                                             </p>
                                         </div>
                                     </div>
-                                    {!isChecked && isNearby && <div className="bg-indigo-600 text-white p-1.5 rounded-full animate-bounce"><Navigation size={12} /></div>}
+                                    {isChecked ? (
+                                        <div className="flex flex-col items-end gap-1">
+                                            <span className="text-[8px] font-black text-emerald-600 bg-emerald-100 dark:bg-emerald-500/20 px-2 py-0.5 rounded-full border border-emerald-200 dark:border-emerald-800">SELESAI</span>
+                                        </div>
+                                    ) : (
+                                        isNearby && <div className="bg-indigo-600 text-white p-1.5 rounded-full animate-bounce"><Navigation size={12} /></div>
+                                    )}
                                 </button>
                             );
                         })}

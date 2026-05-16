@@ -117,16 +117,24 @@ export async function savePatrolLog(data: {
 
 export async function startPatrolSession(userId: string) {
     try {
-        // Check if there is an active session
+        // Check if there is ANY active session from ANY user
         const activeSession = await prisma.patrolSession.findFirst({
             where: {
-                userId,
                 status: 'IN_PROGRESS'
+            },
+            include: {
+                user: {
+                    select: { name: true }
+                }
             }
         });
 
         if (activeSession) {
-            return { success: true, data: activeSession, message: 'Sesi sudah berjalan' };
+            return { 
+                success: true, 
+                data: activeSession, 
+                message: `Sesi sedang dijalankan oleh ${activeSession.user.name}` 
+            };
         }
 
         const session = await prisma.patrolSession.create({
@@ -160,14 +168,17 @@ export async function endPatrolSession(sessionId: string) {
     }
 }
 
-export async function getActiveSession(userId: string) {
+export async function getActiveSession() {
     try {
+        // Get the active session regardless of who started it
         const session = await prisma.patrolSession.findFirst({
             where: {
-                userId,
                 status: 'IN_PROGRESS'
             },
             include: {
+                user: {
+                    select: { name: true }
+                },
                 logs: {
                     select: {
                         checkpointId: true

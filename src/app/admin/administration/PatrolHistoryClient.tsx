@@ -19,6 +19,7 @@ import { getRecentPatrolLogs } from '@/actions/patrol';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
+import { ZoomableImage } from '@/components/ImageModal';
 
 interface PatrolLog {
     id: string;
@@ -249,8 +250,8 @@ export default function PatrolHistoryClient() {
                             {selectedLog.image && (
                                 <div className="space-y-3">
                                     <p className="text-[10px] font-black text-slate-400 uppercase tracking-widest">Foto Bukti Lapangan</p>
-                                    <div className="rounded-3xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl">
-                                        <img src={selectedLog.image} alt="Detail Bukti Patroli" className="w-full h-auto object-cover" />
+                                    <div className="rounded-3xl overflow-hidden border-4 border-white dark:border-slate-800 shadow-xl bg-slate-100 dark:bg-slate-800">
+                                        <ZoomableImage src={selectedLog.image} alt="Detail Bukti Patroli" />
                                     </div>
                                 </div>
                             )}
