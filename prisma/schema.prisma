@@ -52,6 +52,8 @@ model User {
   incidentComments  IncidentComment[]
   voucherClaims     VoucherClaim[]
   overtimes         Overtime[]
+  patrolLogs        PatrolLog[]
+  patrolSessions    PatrolSession[]
 }
 
 model ActivityLog {
@@ -280,4 +282,51 @@ model Overtime {
 
   @@index([userId])
   @@index([date])
+}
+
+model PatrolCheckpoint {
+  id        String   @id @default(cuid())
+  name      String
+  location  String?
+  latitude  Float
+  longitude Float
+  isActive  Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+  logs      PatrolLog[]
+
+  @@index([createdAt])
+}
+
+model PatrolSession {
+  id        String      @id @default(cuid())
+  userId    String
+  user      User        @relation(fields: [userId], references: [id])
+  startTime DateTime    @default(now())
+  endTime   DateTime?
+  logs      PatrolLog[]
+  status    String      @default("IN_PROGRESS") // IN_PROGRESS, COMPLETED
+
+  @@index([userId])
+}
+
+model PatrolLog {
+  id           String            @id @default(cuid())
+  userId       String
+  user         User              @relation(fields: [userId], references: [id])
+  checkpointId String
+  checkpoint   PatrolCheckpoint  @relation(fields: [checkpointId], references: [id])
+  sessionId    String?
+  session      PatrolSession?    @relation(fields: [sessionId], references: [id])
+  status       String            @default("AMAN") // AMAN, TEMUAN
+  notes        String?           @db.Text
+  image        String?           @db.Text // Base64
+  latitude     Float
+  longitude    Float
+  createdAt    DateTime          @default(now())
+
+  @@index([userId])
+  @@index([checkpointId])
+  @@index([sessionId])
+  @@index([createdAt])
 }

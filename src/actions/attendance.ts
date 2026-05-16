@@ -606,7 +606,7 @@ export async function updateAttendance(id: string, clockIn: Date | null, clockOu
     }
 }
 
-export async function getMonthlyLateness(month: number, year: number) {
+export async function getMonthlyLateness(month: number, year: number, endMonth?: number, endYear?: number) {
     try {
         const session = await getSession();
         if (!session || session.role !== 'ADMIN') {
@@ -614,7 +614,13 @@ export async function getMonthlyLateness(month: number, year: number) {
         }
 
         const startDate = new Date(year, month - 1, 1);
-        const endDate = new Date(year, month, 0, 23, 59, 59, 999);
+        let endDate: Date;
+
+        if (endMonth && endYear) {
+            endDate = new Date(endYear, endMonth, 0, 23, 59, 59, 999);
+        } else {
+            endDate = new Date(year, month, 0, 23, 59, 59, 999);
+        }
 
         const latenessData = await prisma.attendance.findMany({
             where: {

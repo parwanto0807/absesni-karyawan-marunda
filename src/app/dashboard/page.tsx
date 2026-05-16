@@ -680,14 +680,16 @@ export default async function DashboardPage() {
                     {['ADMIN', 'RT'].includes(session.role) && <LatenessMonitoringChart />}
 
                     {isPowerful && <PerformanceDashboard />}
-                    <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6 overflow-hidden relative">
-                        <div className="absolute top-0 right-0 p-4 opacity-10">
-                            <ShieldCheck size={48} />
+                    {['SECURITY', 'ADMIN'].includes(session.role) && (
+                        <div className="bg-white dark:bg-slate-900 rounded-[2rem] border border-slate-200 dark:border-slate-800 shadow-sm p-6 overflow-hidden relative">
+                            <div className="absolute top-0 right-0 p-4 opacity-10">
+                                <ShieldCheck size={48} />
+                            </div>
+                            <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-2">Patroli</h3>
+                            <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 tracking-tighter">Status kawasan 100% aman.</p>
+                            <PatroliButton />
                         </div>
-                        <h3 className="text-sm font-black text-slate-900 dark:text-white uppercase tracking-widest mb-2">Patroli</h3>
-                        <p className="text-[10px] text-slate-500 font-bold uppercase mb-4 tracking-tighter">Status kawasan 100% aman.</p>
-                        <PatroliButton />
-                    </div>
+                    )}
                 </div>
 
                 {/* Left Side Bottom: Attendance History (Bottom on Mobile, Below Stats on Desktop) */}

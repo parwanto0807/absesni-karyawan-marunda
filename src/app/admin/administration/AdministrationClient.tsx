@@ -50,12 +50,16 @@ interface AdministrationClientProps {
     initialData: LatenessRecord[];
     currentMonth: number;
     currentYear: number;
+    endMonth: number;
+    endYear: number;
 }
 
 export default function AdministrationClient({
     initialData,
     currentMonth,
-    currentYear
+    currentYear,
+    endMonth,
+    endYear
 }: AdministrationClientProps) {
     const router = useRouter();
     const [searchQuery, setSearchQuery] = React.useState('');
@@ -79,8 +83,8 @@ export default function AdministrationClient({
     const currentYearNum = new Date().getFullYear();
     const years = Array.from({ length: 5 }, (_, i) => (currentYearNum - 2 + i).toString());
 
-    const handleFilterChange = (month: string, year: string) => {
-        router.push(`/admin/administration?month=${month}&year=${year}`);
+    const handleFilterChange = (startM: string, startY: string, endM: string, endY: string) => {
+        router.push(`/admin/administration?month=${startM}&year=${startY}&endMonth=${endM}&endYear=${endY}`);
     };
 
     // Grouping logic
@@ -235,7 +239,12 @@ export default function AdministrationClient({
 
             doc.text('Periode Laporan', 115, identityY + 6);
             doc.text(':', 145, identityY + 6);
-            doc.text(`${months.find(m => m.value === currentMonth.toString())?.label} ${currentYear}`, 150, identityY + 6);
+            const startLabel = `${months.find(m => m.value === currentMonth.toString())?.label} ${currentYear}`;
+            const endLabel = `${months.find(m => m.value === endMonth.toString())?.label} ${endYear}`;
+            const periodText = (currentMonth === endMonth && currentYear === endYear) 
+                ? startLabel 
+                : `${startLabel} - ${endLabel}`;
+            doc.text(periodText, 150, identityY + 6);
 
             // Section B: Lateness Table
             doc.setFontSize(10);
@@ -387,7 +396,11 @@ export default function AdministrationClient({
                 doc.text('Dokumen ini dihasilkan secara otomatis oleh Sistem Manajemen Cluster Taman Marunda', 20, 286);
             }
 
-            doc.save(`Laporan_Telat_${group.name.replace(/\s+/g, '_')}_${currentYear}${currentMonth.toString().padStart(2, '0')}.pdf`);
+            const dateStr = (currentMonth === endMonth && currentYear === endYear)
+                ? `${currentYear}${currentMonth.toString().padStart(2, '0')}`
+                : `${currentYear}${currentMonth.toString().padStart(2, '0')}_to_${endYear}${endMonth.toString().padStart(2, '0')}`;
+            
+            doc.save(`Laporan_Telat_${group.name.replace(/\s+/g, '_')}_${dateStr}.pdf`);
             toast.success('Laporan Profesional berhasil diunduh');
         } catch (error) {
             console.error('PDF Error:', error);
@@ -403,33 +416,55 @@ export default function AdministrationClient({
             <div className="bg-white dark:bg-slate-900 rounded-[1.5rem] border border-slate-200 dark:border-slate-800 shadow-sm p-4 md:p-6">
                 <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Bulan</label>
-                        <Select value={currentMonth.toString()} onValueChange={(v: string) => handleFilterChange(v, currentYear.toString())}>
-                            <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100">
-                                <Calendar size={14} className="mr-2 text-indigo-500" />
-                                <SelectValue placeholder="Pilih Bulan" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                                {months.map(m => (
-                                    <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Mulai Dari</label>
+                        <div className="flex gap-2">
+                            <Select value={currentMonth.toString()} onValueChange={(v: string) => handleFilterChange(v, currentYear.toString(), endMonth.toString(), endYear.toString())}>
+                                <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 flex-1">
+                                    <SelectValue placeholder="Bulan" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    {months.map(m => (
+                                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={currentYear.toString()} onValueChange={(v: string) => handleFilterChange(currentMonth.toString(), v, endMonth.toString(), endYear.toString())}>
+                                <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 w-[100px]">
+                                    <SelectValue placeholder="Tahun" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    {years.map(y => (
+                                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="space-y-1.5">
-                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Tahun</label>
-                        <Select value={currentYear.toString()} onValueChange={(v: string) => handleFilterChange(currentMonth.toString(), v)}>
-                            <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100">
-                                <Calendar size={14} className="mr-2 text-indigo-500" />
-                                <SelectValue placeholder="Pilih Tahun" />
-                            </SelectTrigger>
-                            <SelectContent className="rounded-xl">
-                                {years.map(y => (
-                                    <SelectItem key={y} value={y}>{y}</SelectItem>
-                                ))}
-                            </SelectContent>
-                        </Select>
+                        <label className="text-[10px] font-black uppercase tracking-widest text-slate-400 px-1">Sampai Dengan</label>
+                        <div className="flex gap-2">
+                            <Select value={endMonth.toString()} onValueChange={(v: string) => handleFilterChange(currentMonth.toString(), currentYear.toString(), v, endYear.toString())}>
+                                <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 flex-1">
+                                    <SelectValue placeholder="Bulan" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    {months.map(m => (
+                                        <SelectItem key={m.value} value={m.value}>{m.label}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                            <Select value={endYear.toString()} onValueChange={(v: string) => handleFilterChange(currentMonth.toString(), currentYear.toString(), endMonth.toString(), v)}>
+                                <SelectTrigger className="rounded-xl border-slate-200 dark:border-slate-800 bg-slate-50 dark:bg-slate-800/50 text-slate-900 dark:text-slate-100 w-[100px]">
+                                    <SelectValue placeholder="Tahun" />
+                                </SelectTrigger>
+                                <SelectContent className="rounded-xl">
+                                    {years.map(y => (
+                                        <SelectItem key={y} value={y}>{y}</SelectItem>
+                                    ))}
+                                </SelectContent>
+                            </Select>
+                        </div>
                     </div>
 
                     <div className="md:col-span-2 space-y-1.5">
