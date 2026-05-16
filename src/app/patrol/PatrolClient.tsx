@@ -12,7 +12,8 @@ import {
     X,
     Play,
     Flag,
-    Clock
+    Clock,
+    Upload
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { toast } from 'sonner';
@@ -80,6 +81,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
 
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
+    const fileInputRef = useRef<HTMLInputElement>(null);
     const watchId = useRef<number | null>(null);
 
     const fetchCheckpoints = React.useCallback(async () => {
@@ -225,14 +227,50 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         if (videoRef.current && canvasRef.current) {
             const context = canvasRef.current.getContext('2d');
             if (context) {
-                canvasRef.current.width = videoRef.current.videoWidth;
-                canvasRef.current.height = videoRef.current.videoHeight;
-                context.drawImage(videoRef.current, 0, 0);
-                const dataUrl = canvasRef.current.toDataURL('image/jpeg', 0.6);
+                // Resize for efficiency
+                const maxWidth = 1080;
+                const videoWidth = videoRef.current.videoWidth || 1080;
+                const videoHeight = videoRef.current.videoHeight || 1080;
+                const scale = Math.min(1, maxWidth / videoWidth);
+                canvasRef.current.width = videoWidth * scale;
+                canvasRef.current.height = videoHeight * scale;
+                
+                context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
+                const dataUrl = canvasRef.current.toDataURL('image/webp', 0.8);
                 stopCamera();
                 setImage(dataUrl);
             }
         }
+    };
+
+    const handleFileUpload = (e: React.ChangeEvent<HTMLInputElement>) => {
+        const file = e.target.files?.[0];
+        if (!file) return;
+
+        if (!file.type.startsWith('image/')) {
+            toast.error('File harus berupa gambar');
+            return;
+        }
+
+        const reader = new FileReader();
+        reader.onload = (event) => {
+            const img = new Image();
+            img.onload = () => {
+                const canvas = document.createElement('canvas');
+                const maxWidth = 1080;
+                const scale = Math.min(1, maxWidth / img.width);
+                canvas.width = img.width * scale;
+                canvas.height = img.height * scale;
+                
+                const ctx = canvas.getContext('2d');
+                ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
+                setImage(webpDataUrl);
+                if (fileInputRef.current) fileInputRef.current.value = '';
+            };
+            img.src = event.target?.result as string;
+        };
+        reader.readAsDataURL(file);
     };
 
     const stopCamera = () => {
@@ -355,8 +393,24 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
 
                     <div className="relative aspect-square rounded-3xl overflow-hidden bg-slate-900 shadow-2xl border-4 border-white dark:border-slate-800">
                         {image ? <img src={image} alt="Captured Area" className="w-full h-full object-cover" /> : isCapturing ? <video ref={videoRef} autoPlay playsInline className="w-full h-full object-cover" /> : <div className="w-full h-full flex flex-col items-center justify-center text-slate-500 gap-4"><div className="w-20 h-20 rounded-full bg-slate-800 flex items-center justify-center"><Camera size={40} /></div><p className="text-xs font-black uppercase tracking-widest">Ambil Foto Area</p></div>}
-                        <div className="absolute bottom-6 left-0 right-0 flex justify-center">
-                            {!image && !isCapturing && <Button onClick={startCamera} className="rounded-full h-16 w-16 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl"><Camera size={24} /></Button>}
+                        <div className="absolute bottom-6 left-0 right-0 flex justify-center gap-4">
+                            {!image && !isCapturing && (
+                                <>
+                                    <Button onClick={startCamera} className="rounded-full h-16 w-16 bg-indigo-600 hover:bg-indigo-700 text-white shadow-xl">
+                                        <Camera size={24} />
+                                    </Button>
+                                    <Button onClick={() => fileInputRef.current?.click()} className="rounded-full h-16 w-16 bg-slate-800 hover:bg-slate-700 text-white shadow-xl">
+                                        <Upload size={24} />
+                                    </Button>
+                                    <input 
+                                        type="file" 
+                                        ref={fileInputRef} 
+                                        className="hidden" 
+                                        accept="image/*" 
+                                        onChange={handleFileUpload} 
+                                    />
+                                </>
+                            )}
                             {!image && isCapturing && <Button onClick={takePhoto} className="rounded-full h-20 w-20 bg-white text-indigo-600 border-8 border-indigo-600/20 shadow-2xl scale-110 active:scale-90 transition-all"><div className="w-full h-full rounded-full border-2 border-indigo-600" /></Button>}
                             {image && <Button onClick={() => setImage(null)} className="rounded-full bg-white/20 backdrop-blur-md text-white border border-white/30 hover:bg-white/30 px-6 py-2 text-[10px] font-black uppercase tracking-widest">Ulangi Foto</Button>}
                         </div>

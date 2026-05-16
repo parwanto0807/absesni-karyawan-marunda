@@ -99,8 +99,21 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
         const file = e.target.files?.[0];
         if (file) {
             const reader = new FileReader();
-            reader.onloadend = () => {
-                setCapturedImage(reader.result as string);
+            reader.onload = (event) => {
+                const img = new Image();
+                img.onload = () => {
+                    const canvas = document.createElement('canvas');
+                    const maxWidth = 1080;
+                    const scale = Math.min(1, maxWidth / img.width);
+                    canvas.width = img.width * scale;
+                    canvas.height = img.height * scale;
+                    
+                    const ctx = canvas.getContext('2d');
+                    ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+                    const webpDataUrl = canvas.toDataURL('image/webp', 0.8);
+                    setCapturedImage(webpDataUrl);
+                };
+                img.src = event.target?.result as string;
             };
             reader.readAsDataURL(file);
         }
@@ -181,15 +194,19 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
         if (videoRef.current && canvasRef.current) {
             const context = canvasRef.current.getContext('2d');
             if (context) {
-                // Set canvas dimensions to match video
-                canvasRef.current.width = videoRef.current.videoWidth;
-                canvasRef.current.height = videoRef.current.videoHeight;
+                // Resize for efficiency
+                const maxWidth = 1080;
+                const videoWidth = videoRef.current.videoWidth || 1080;
+                const videoHeight = videoRef.current.videoHeight || 1080;
+                const scale = Math.min(1, maxWidth / videoWidth);
+                canvasRef.current.width = videoWidth * scale;
+                canvasRef.current.height = videoHeight * scale;
 
                 // Draw current video frame to canvas
                 context.drawImage(videoRef.current, 0, 0, canvasRef.current.width, canvasRef.current.height);
 
-                // Convert to base64
-                const data = canvasRef.current.toDataURL('image/jpeg', 0.8);
+                // Convert to WebP base64
+                const data = canvasRef.current.toDataURL('image/webp', 0.8);
                 setCapturedImage(data);
 
                 // Stop camera and return to form
