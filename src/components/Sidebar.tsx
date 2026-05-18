@@ -51,7 +51,7 @@ export default function Sidebar({ user }: { user: SidebarUser | null }) {
         { icon: LayoutDashboard, label: 'Dashboard', href: '/dashboard', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: UserCheck, label: 'Absensi Presensi', href: '/attendance', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Navigation, label: 'Laporan Patroli', href: '/patrol', roles: ['SECURITY'], disabled: !user?.isOnDuty },
-        { icon: History, label: 'Riwayat Patroli', href: '/admin/patrol-history', roles: ['ADMIN'] },
+        { icon: History, label: 'Riwayat Patroli', href: '/admin/patrol-history', roles: ['ADMIN', 'SECURITY'] },
         { icon: Clock, label: 'Riwayat Absensi', href: '/history', roles: ['ADMIN', 'PIC', 'RT', 'SECURITY', 'LINGKUNGAN', 'KEBERSIHAN', 'STAFF'] },
         { icon: Users, label: 'Data Karyawan', href: '/employees', roles: ['ADMIN', 'PIC', 'RT'] },
         { icon: Clock, label: 'Data Lembur', href: '/overtimes', roles: ['ADMIN'] },

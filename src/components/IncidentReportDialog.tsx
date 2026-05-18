@@ -308,7 +308,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
                     )}
                 >
                     <div className={cn(
-                        "w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-gradient-to-br shadow-lg transition-all",
+                        "w-12 h-12 rounded-2xl flex items-center justify-center text-white bg-linear-to-br shadow-lg transition-all",
                         disabled
                             ? "from-slate-400 to-slate-500 shadow-none cursor-not-allowed"
                             : "from-rose-500 to-rose-600 shadow-rose-200 dark:shadow-none active:scale-90 group-hover:translate-y-[-4px]"
@@ -336,7 +336,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
     }
 
     return (
-        <div className="fixed inset-0 z-[100] flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300">
+        <div className="fixed inset-0 z-100 flex items-center justify-center p-2 md:p-4 animate-in fade-in duration-300">
             {/* Backdrop click handler */}
             <div
                 className="absolute inset-0 bg-black/60 backdrop-blur-sm"
@@ -344,7 +344,7 @@ export default function IncidentReportDialog({ userId, onSuccess, variant = 'def
             />
             <div className="relative w-full max-w-lg bg-white dark:bg-slate-900 rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in slide-in-from-bottom-8 duration-500">
                 {/* Header */}
-                <div className="p-4 md:p-8 bg-gradient-to-r from-rose-600 to-rose-700 text-white flex items-center justify-center md:justify-between">
+                <div className="p-4 md:p-8 bg-linear-to-r from-rose-600 to-rose-700 text-white flex items-center justify-center md:justify-between">
                     <div className="flex items-center gap-3">
                         <AlertTriangle className="w-6 h-6" />
                         <div>

@@ -25,10 +25,35 @@ import {
     syncPatrolLogs, 
     startPatrolSession, 
     endPatrolSession, 
-    getActiveSession 
+    getActiveSession,
+    getMyPatrolLogs
 } from '@/actions/patrol';
 import { cn } from '@/lib/utils';
 import { ZoomableImage } from '@/components/ImageModal';
+import { format } from 'date-fns';
+import { id } from 'date-fns/locale';
+
+interface GroupedSession {
+    id: string;
+    isReal: boolean;
+    user: {
+        name: string;
+        role: string;
+    };
+    startTime: string;
+    endTime: string;
+    status: string;
+    logs: {
+        id: string;
+        checkpoint: { name: string; location: string | null };
+        status: string;
+        notes: string | null;
+        image: string | null;
+        latitude: number;
+        longitude: number;
+        createdAt: string;
+    }[];
+}
 
 interface Checkpoint {
     id: string;
@@ -81,6 +106,10 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     const [offlineQueue, setOfflineQueue] = useState<OfflineLog[]>([]);
     const [isOnline, setIsOnline] = useState(true);
 
+    // Personal Patrol History States
+    const [mySessions, setMySessions] = useState<GroupedSession[]>([]);
+    const [selectedSession, setSelectedSession] = useState<GroupedSession | null>(null);
+
     const videoRef = useRef<HTMLVideoElement>(null);
     const canvasRef = useRef<HTMLCanvasElement>(null);
     const fileInputRef = useRef<HTMLInputElement>(null);
@@ -89,6 +118,65 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
     
     const [zoomValue, setZoomValue] = useState(1);
     const [zoomCaps, setZoomCaps] = useState<{ min: number; max: number; step: number } | null>(null);
+
+    const fetchMySessions = React.useCallback(async () => {
+        if (!navigator.onLine) return;
+        const result = await getMyPatrolLogs(userId, 150);
+        if (result.success && result.data) {
+            const logsData = result.data;
+            const sessionsMap = new Map<string, GroupedSession>();
+
+            logsData.forEach((log: any) => {
+                const logDate = new Date(log.createdAt);
+                if (log.sessionId) {
+                    if (!sessionsMap.has(log.sessionId)) {
+                        sessionsMap.set(log.sessionId, {
+                            id: log.sessionId,
+                            isReal: true,
+                            user: log.user,
+                            startTime: log.createdAt,
+                            endTime: log.createdAt,
+                            status: 'AMAN',
+                            logs: []
+                        });
+                    }
+                    const sess = sessionsMap.get(log.sessionId)!;
+                    sess.logs.push(log);
+                    if (new Date(log.createdAt) < new Date(sess.startTime)) sess.startTime = log.createdAt;
+                    if (new Date(log.createdAt) > new Date(sess.endTime)) sess.endTime = log.createdAt;
+                    if (log.status === 'TEMUAN') sess.status = 'TEMUAN';
+                } else {
+                    const dateKey = format(logDate, 'yyyy-MM-dd');
+                    const virtualSessId = `virtual-${log.userId}-${dateKey}`;
+                    if (!sessionsMap.has(virtualSessId)) {
+                        sessionsMap.set(virtualSessId, {
+                            id: virtualSessId,
+                            isReal: false,
+                            user: log.user,
+                            startTime: log.createdAt,
+                            endTime: log.createdAt,
+                            status: 'AMAN',
+                            logs: []
+                        });
+                    }
+                    const sess = sessionsMap.get(virtualSessId)!;
+                    sess.logs.push(log);
+                    if (new Date(log.createdAt) < new Date(sess.startTime)) sess.startTime = log.createdAt;
+                    if (new Date(log.createdAt) > new Date(sess.endTime)) sess.endTime = log.createdAt;
+                    if (log.status === 'TEMUAN') sess.status = 'TEMUAN';
+                }
+            });
+
+            const grouped = Array.from(sessionsMap.values())
+                .map(sess => {
+                    sess.logs.sort((a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime());
+                    return sess;
+                })
+                .sort((a, b) => new Date(b.startTime).getTime() - new Date(a.startTime).getTime());
+
+            setMySessions(grouped);
+        }
+    }, [userId]);
 
     const fetchCheckpoints = React.useCallback(async () => {
         const result = await getCheckpoints();
@@ -133,11 +221,12 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         await Promise.all([
             fetchCheckpoints(),
             fetchActiveSession(),
+            fetchMySessions(),
             startLocationWatch()
         ]);
         loadOfflineQueue();
         setIsLoading(false);
-    }, [fetchCheckpoints, fetchActiveSession, startLocationWatch, loadOfflineQueue]);
+    }, [fetchCheckpoints, fetchActiveSession, fetchMySessions, startLocationWatch, loadOfflineQueue]);
 
     // Polling for session updates (sync between officers)
     useEffect(() => {
@@ -175,6 +264,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
         if (result.success && result.data) {
             setActiveSession(result.data as unknown as PatrolSession);
             toast.success('Putaran patroli dimulai');
+            fetchMySessions();
         } else {
             toast.error(result.message || 'Gagal memulai sesi');
         }
@@ -193,6 +283,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
             setActiveSession(null);
             setCheckedPointIds([]);
             toast.success('Putaran patroli selesai');
+            fetchMySessions();
         } else {
             toast.error(result.message);
         }
@@ -629,6 +720,131 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                     >
                         {isSubmitting ? <RefreshCw className="animate-spin" /> : <><Flag className="mr-2 h-5 w-5" /> Selesai Putaran</>}
                     </Button>
+                </div>
+            )}
+
+            {/* Riwayat Patroli Saya Section */}
+            {!selectedCp && isOnline && (
+                <div className="pt-6 border-t border-slate-200 dark:border-slate-800 space-y-4">
+                    <h3 className="text-xs font-black text-slate-400 uppercase tracking-widest px-1">
+                        Riwayat Putaran Anda
+                    </h3>
+                    {mySessions.length === 0 ? (
+                        <div className="p-6 rounded-2xl border border-dashed border-slate-200 dark:border-slate-800 bg-slate-50/50 dark:bg-slate-900/30 text-center space-y-1">
+                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider">Belum Ada Putaran</p>
+                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-tight text-slate-400">Putaran patroli yang Anda lakukan akan muncul di sini.</p>
+                        </div>
+                    ) : (
+                        <div className="space-y-3">
+                            {mySessions.map((sess) => (
+                                <div 
+                                    key={sess.id}
+                                    onClick={() => setSelectedSession(sess)}
+                                    className="w-full flex items-center justify-between p-4 rounded-2xl border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900 hover:bg-slate-50 dark:hover:bg-slate-850 cursor-pointer transition-all text-left animate-in fade-in slide-in-from-bottom-2 duration-300"
+                                >
+                                    <div className="space-y-1">
+                                        <div className="flex items-center gap-2">
+                                            <span className="text-[10px] font-black text-indigo-600 bg-indigo-50 dark:bg-indigo-950/40 px-2 py-0.5 rounded uppercase tracking-wider">
+                                                {sess.isReal ? `#${sess.id.substring(sess.id.length - 4)}` : 'Mandiri'}
+                                            </span>
+                                            <span className="text-[10px] font-black text-slate-900 dark:text-white uppercase tracking-tight">
+                                                {format(new Date(sess.startTime), 'dd MMM yyyy', { locale: id })}
+                                            </span>
+                                        </div>
+                                        <p className="text-[9px] font-bold text-slate-400 uppercase">
+                                            {format(new Date(sess.startTime), 'HH:mm', { locale: id })} - {sess.isReal && sess.endTime ? format(new Date(sess.endTime), 'HH:mm', { locale: id }) : !sess.isReal ? format(new Date(sess.endTime), 'HH:mm', { locale: id }) : 'Berjalan'}
+                                        </p>
+                                    </div>
+                                    <div className="flex flex-col items-end gap-1">
+                                        <span className="text-[10px] font-black text-slate-700 dark:text-slate-300">
+                                            {sess.logs.length} / {checkpoints.length} Titik
+                                        </span>
+                                        <span className={cn(
+                                            "px-2 py-0.5 rounded text-[8px] font-black uppercase tracking-widest",
+                                            !sess.isReal || sess.endTime ? (
+                                                sess.logs.some(l => l.status === 'TEMUAN') ? "bg-rose-500 text-white" : "bg-emerald-500 text-white"
+                                            ) : "bg-amber-500 text-white"
+                                        )}>
+                                            {!sess.isReal || sess.endTime ? (
+                                                sess.logs.some(l => l.status === 'TEMUAN') ? 'TEMUAN' : 'AMAN'
+                                            ) : 'AKTIF'}
+                                        </span>
+                                    </div>
+                                </div>
+                            ))}
+                        </div>
+                    )}
+                </div>
+            )}
+
+            {/* Personal Session Detail Modal */}
+            {selectedSession && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setSelectedSession(null)}>
+                    <div 
+                        className="bg-white dark:bg-slate-900 w-full max-w-md rounded-[2.5rem] shadow-2xl overflow-hidden animate-in zoom-in-95 duration-300 flex flex-col max-h-[85vh]"
+                        onClick={(e) => e.stopPropagation()}
+                    >
+                        {/* Modal Header */}
+                        <div className="p-6 bg-indigo-600 text-white shrink-0 relative">
+                            <div className="flex items-center justify-between">
+                                <h3 className="text-lg font-black uppercase tracking-tight flex items-center gap-2">
+                                    <Shield className="w-5 h-5" />
+                                    Putaran #{selectedSession.id.substring(selectedSession.id.length - 4)}
+                                </h3>
+                                <Button variant="ghost" size="icon" onClick={() => setSelectedSession(null)} className="rounded-full bg-white/10 hover:bg-white/20 text-white w-8 h-8 p-0"><X size={18} /></Button>
+                            </div>
+                            <div className="grid grid-cols-3 gap-2 mt-4 pt-4 border-t border-white/20 text-[10px]">
+                                <div>
+                                    <span className="text-[8px] text-indigo-200 block uppercase">Tanggal</span>
+                                    <span className="font-bold">{format(new Date(selectedSession.startTime), 'dd MMM yyyy', { locale: id })}</span>
+                                </div>
+                                <div>
+                                    <span className="text-[8px] text-indigo-200 block uppercase">Waktu</span>
+                                    <span className="font-bold">
+                                        {format(new Date(selectedSession.startTime), 'HH:mm', { locale: id })} - {selectedSession.endTime ? format(new Date(selectedSession.endTime), 'HH:mm', { locale: id }) : 'Berjalan'}
+                                    </span>
+                                </div>
+                                <div>
+                                    <span className="text-[8px] text-indigo-200 block uppercase">Status</span>
+                                    <span className="font-bold uppercase">{selectedSession.endTime ? 'Selesai' : 'Aktif'}</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        {/* Modal Body */}
+                        <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50 dark:bg-slate-950 hide-scrollbar">
+                            <div className="relative border-l border-slate-200 dark:border-slate-800 ml-2 pl-4 space-y-6">
+                                {selectedSession.logs.map((log, index) => (
+                                    <div key={log.id} className="relative">
+                                        {/* Dot */}
+                                        <div className={cn(
+                                            "absolute -left-[21px] top-1 w-2.5 h-2.5 rounded-full border border-white dark:border-slate-900",
+                                            log.status === 'AMAN' ? "bg-emerald-500" : "bg-rose-500"
+                                        )} />
+                                        <div className="bg-white dark:bg-slate-900 p-4 rounded-xl border border-slate-100 dark:border-slate-800 space-y-2">
+                                            <div className="flex items-center justify-between">
+                                                <h5 className="text-[11px] font-black text-slate-800 dark:text-white uppercase">{log.checkpoint.name}</h5>
+                                                <span className="text-[9px] font-bold text-slate-400">
+                                                    {format(new Date(log.createdAt), 'HH:mm', { locale: id })}
+                                                </span>
+                                            </div>
+                                            <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">&quot;{log.notes || 'Kondisi terpantau aman.'}&quot;</p>
+                                            {log.image && (
+                                                <div className="rounded-lg overflow-hidden border border-slate-100 dark:border-slate-850 mt-1 max-w-[200px]">
+                                                    <ZoomableImage src={log.image} alt={log.checkpoint.name} />
+                                                </div>
+                                            )}
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+
+                        {/* Modal Footer */}
+                        <div className="p-4 bg-slate-50 dark:bg-slate-800/50 shrink-0">
+                            <Button onClick={() => setSelectedSession(null)} className="w-full rounded-xl bg-indigo-600 hover:bg-indigo-700 text-white font-black uppercase text-[10px] tracking-widest py-5 h-auto">Tutup</Button>
+                        </div>
+                    </div>
                 </div>
             )}
         </div>

@@ -2,6 +2,7 @@
 
 import { prisma } from '@/lib/db';
 import { revalidatePath } from 'next/cache';
+import { Prisma } from '@prisma/client';
 
 export async function getCheckpoints() {
     try {
@@ -196,6 +197,7 @@ export async function getActiveSession() {
 export async function syncPatrolLogs(logs: {
     userId: string;
     checkpointId: string;
+    sessionId?: string;
     status: string;
     notes?: string;
     image?: string;
@@ -210,6 +212,7 @@ export async function syncPatrolLogs(logs: {
                 data: {
                     userId: logData.userId,
                     checkpointId: logData.checkpointId,
+                    sessionId: logData.sessionId,
                     status: logData.status,
                     notes: logData.notes,
                     image: logData.image,
@@ -243,5 +246,54 @@ export async function getRecentPatrolLogs(limit: number = 10) {
     } catch (error) {
         console.error('Get Recent Patrol Logs Error:', error);
         return { success: false, message: 'Gagal mengambil riwayat patroli.' };
+    }
+}
+
+export async function getMyPatrolSessions(userId: string, limit: number = 10) {
+    try {
+        const sessions = await prisma.patrolSession.findMany({
+            where: { userId },
+            include: {
+                user: { select: { name: true, role: true } },
+                logs: {
+                    include: {
+                        checkpoint: { select: { name: true, location: true } }
+                    },
+                    orderBy: { createdAt: 'asc' }
+                }
+            },
+            orderBy: { startTime: 'desc' },
+            take: limit
+        });
+        return { success: true, data: sessions };
+    } catch (error) {
+        console.error('Get My Patrol Sessions Error:', error);
+        return { success: false, message: 'Gagal mengambil riwayat putaran Anda.' };
+    }
+}
+
+export async function getMyPatrolLogs(userId: string, limit: number = 150, daysLimit?: number) {
+    try {
+        const whereClause: Prisma.PatrolLogWhereInput = { userId };
+        if (daysLimit) {
+            const cutOffDate = new Date();
+            cutOffDate.setDate(cutOffDate.getDate() - daysLimit);
+            cutOffDate.setHours(0, 0, 0, 0); // start of day daysLimit days ago
+            whereClause.createdAt = { gte: cutOffDate };
+        }
+
+        const logs = await prisma.patrolLog.findMany({
+            where: whereClause,
+            include: {
+                user: { select: { name: true, role: true } },
+                checkpoint: { select: { name: true, location: true } }
+            },
+            orderBy: { createdAt: 'desc' },
+            take: limit
+        });
+        return { success: true, data: logs };
+    } catch (error) {
+        console.error('Get My Patrol Logs Error:', error);
+        return { success: false, message: 'Gagal mengambil riwayat patroli Anda.' };
     }
 }

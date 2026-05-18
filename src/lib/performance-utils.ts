@@ -19,17 +19,22 @@ export function calculateDailyPerformance(attendance: { status: string, lateMinu
     }
 
     let score = 100;
-
-    // Penalties
-    if (attendance.lateMinutes) {
-        score -= attendance.lateMinutes; // 1% per minute
+ 
+    // Penalties:
+    // - Lateness: 0.5 points per minute, maximum reduction of 30 points (30%)
+    if (attendance.lateMinutes && attendance.lateMinutes > 0) {
+        const latePenalty = Math.min(30, attendance.lateMinutes * 0.5);
+        score -= latePenalty;
     }
-    if (attendance.earlyLeaveMinutes) {
-        score -= attendance.earlyLeaveMinutes; // 1% per minute
+    
+    // - Early Leave: 0.5 points per minute, maximum reduction of 30 points (30%)
+    if (attendance.earlyLeaveMinutes && attendance.earlyLeaveMinutes > 0) {
+        const earlyLeavePenalty = Math.min(30, attendance.earlyLeaveMinutes * 0.5);
+        score -= earlyLeavePenalty;
     }
-
-    // Ensure range 0-100
-    return Math.max(0, Math.min(100, Math.round(score)));
+ 
+    // Ensure range 0-100 and round to 2 decimal places
+    return Math.max(0, Math.min(100, Math.round(score * 100) / 100));
 }
 
 export function getPerformanceColor(score: number): string {

@@ -72,7 +72,7 @@ export function ImageModal({ src, alt }: ImageModalProps) {
                                 e.stopPropagation();
                                 setIsOpen(false);
                             }}
-                            className="fixed top-4 right-4 p-2 text-white hover:text-slate-300 transition-colors bg-black/40 rounded-full backdrop-blur-md z-[60]"
+                            className="fixed top-4 right-4 p-2 text-white hover:text-slate-300 transition-colors bg-black/40 rounded-full backdrop-blur-md z-60"
                         >
                             <X size={32} />
                         </button>
@@ -115,7 +115,7 @@ export function ImageModalMobile({ src, alt }: ImageModalProps) {
                                 e.stopPropagation();
                                 setIsOpen(false);
                             }}
-                            className="fixed top-4 right-4 p-2 text-white/80 hover:text-white bg-black/40 rounded-full backdrop-blur-md z-[60]"
+                            className="fixed top-4 right-4 p-2 text-white/80 hover:text-white bg-black/40 rounded-full backdrop-blur-md z-60"
                         >
                             <X size={24} />
                         </button>

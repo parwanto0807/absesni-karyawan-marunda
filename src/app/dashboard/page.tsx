@@ -1,4 +1,6 @@
 import React from 'react';
+export const dynamic = 'force-dynamic';
+export const revalidate = 0;
 import {
     Users,
     UserCheck,
@@ -22,7 +24,7 @@ import PatroliButton from '@/components/PatroliButton';
 import PerformanceDashboard from '@/components/PerformanceDashboard';
 import LatenessMonitoringChart from '@/components/LatenessMonitoringChart';
 import { ImageModal } from '@/components/ImageModal';
-import { calculateDailyPerformance, getPerformanceBarColor, calculateExpectedWorkDays } from '@/lib/performance-utils';
+import { calculateDailyPerformance, getPerformanceBarColor } from '@/lib/performance-utils';
 import { TIMEZONE, getStartOfDayJakarta, getEndOfDayJakarta } from '@/lib/date-utils';
 import { getShiftForDate, getStaticSchedule, getShiftTimings } from '@/lib/schedule-utils';
 import DigitalClock from '@/components/DigitalClock';
@@ -75,46 +77,134 @@ export default async function DashboardPage() {
         return mins > 0 ? `${hours} Jam ${mins} Menit` : `${hours} Jam`;
     };
 
-    // Calculate performance for field personnel - OPTIMIZED
+    // Calculate performance for field personnel - OPTIMIZED to match PDF exactly
     let myPerformance: { score: number; totalAttendance: number } | null = null;
     let currentUserData = null;
+
+    const thirtyDaysAgo = getStartOfDayJakarta();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const startDate = getStartOfDayJakarta(thirtyDaysAgo);
+    const endDate = getEndOfDayJakarta(new Date());
 
     if (isFieldRole) {
         currentUserData = await prisma.user.findUnique({
             where: { id: session.userId },
-            select: { employeeId: true, rotationOffset: true }
+            select: {
+                employeeId: true,
+                rotationOffset: true,
+                attendances: {
+                    where: {
+                        clockIn: {
+                            gte: startDate,
+                            lte: endDate
+                        }
+                    }
+                },
+                schedules: {
+                    where: {
+                        date: {
+                            gte: startDate,
+                            lte: endDate
+                        }
+                    }
+                },
+                permits: {
+                    where: {
+                        finalStatus: 'APPROVED',
+                        startDate: { lte: endDate },
+                        endDate: { gte: startDate }
+                    }
+                }
+            }
         });
 
-        const now = new Date();
-        const startOfMonth = getStartOfDayJakarta(new Date(now.getFullYear(), now.getMonth(), 1));
-        const endOfMonth = getEndOfDayJakarta(new Date(now.getFullYear(), now.getMonth() + 1, 0));
+        if (currentUserData) {
+            const dateRange: Date[] = [];
+            let current = new Date(startDate);
+            while (current <= endDate) {
+                dateRange.push(new Date(current));
+                current = new Date(current.setDate(current.getDate() + 1));
+            }
 
-        const myAttendances = await prisma.attendance.findMany({
-            where: {
-                userId: session.userId,
-                clockIn: { gte: startOfMonth, lte: endOfMonth },
-                status: { in: ['PRESENT', 'LATE', 'SICK', 'PERMIT'] }
-            },
-            select: { lateMinutes: true, earlyLeaveMinutes: true, status: true }
-        });
+            const workDays = new Set<string>();
+            const presentDays = new Set<string>();
+            const dailyPerformances = new Map<string, number>();
 
-        // Use expected work days as denominator for absolute 100% accuracy
-        const expectedDays = calculateExpectedWorkDays(
-            session.role,
-            startOfMonth,
-            now < endOfMonth ? now : endOfMonth,
-            currentUserData?.rotationOffset
-        );
+            // 1. Process actual attendances
+            currentUserData.attendances.forEach(att => {
+                const dateKey = new Date(att.clockIn).toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
+                workDays.add(dateKey);
 
-        if (expectedDays > 0) {
-            const totalScore = myAttendances.reduce((sum, att) => sum + calculateDailyPerformance(att), 0);
-            // Overall score relative to how many days they SHOULD have worked
-            const overallScore = totalScore / expectedDays;
-            
+                if (att.status === 'PRESENT' || att.status === 'LATE') {
+                    presentDays.add(dateKey);
+                }
+
+                const performance = calculateDailyPerformance(att);
+                if (!dailyPerformances.has(dateKey) || performance < dailyPerformances.get(dateKey)!) {
+                    dailyPerformances.set(dateKey, performance);
+                }
+            });
+
+            // 2. Generate virtual records for absences/permits
+            const todayStart = getStartOfDayJakarta(new Date());
+
+            dateRange.forEach(date => {
+                const dayStart = getStartOfDayJakarta(date);
+                const dateKey = date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
+
+                const hasAttendance = currentUserData!.attendances.some((att: any) => {
+                    const attDayStart = getStartOfDayJakarta(new Date(att.clockIn)).getTime();
+                    return attDayStart === dayStart.getTime();
+                });
+
+                if (!hasAttendance) {
+                    let shiftCode = 'OFF';
+                    const manual = currentUserData!.schedules.find((s: any) => getStartOfDayJakarta(s.date).getTime() === dayStart.getTime());
+
+                    if (manual) {
+                        shiftCode = manual.shiftCode;
+                    } else if (session.role === 'LINGKUNGAN' || session.role === 'KEBERSIHAN') {
+                        shiftCode = getStaticSchedule(session.role, date);
+                    } else {
+                        shiftCode = getShiftForDate(currentUserData!.rotationOffset || 0, date);
+                    }
+
+                    if (shiftCode !== 'OFF') {
+                        const timings = getShiftTimings(shiftCode, date);
+                        if (timings) {
+                            const permit = currentUserData!.permits.find((p: any) =>
+                                getStartOfDayJakarta(p.startDate).getTime() <= dayStart.getTime() &&
+                                getEndOfDayJakarta(p.endDate).getTime() >= dayStart.getTime()
+                            );
+
+                            const isPastDate = dayStart.getTime() < todayStart.getTime();
+                            const isToday = dayStart.getTime() === todayStart.getTime();
+                            const waitTimePassed = isToday && new Date().getTime() > (timings.start.getTime() + 2 * 60 * 60 * 1000);
+
+                            if (isPastDate || waitTimePassed || permit) {
+                                workDays.add(dateKey);
+
+                                let virtualStatus = 'ABSENT';
+                                if (permit) {
+                                    virtualStatus = permit.type === 'SAKIT' ? 'SICK' : (permit.type === 'PERUBAHAN_SHIFT' ? 'SHIFT_CHANGE' : 'PERMIT');
+                                }
+
+                                const performance = calculateDailyPerformance({ status: virtualStatus });
+                                if (!dailyPerformances.has(dateKey) || performance < dailyPerformances.get(dateKey)!) {
+                                    dailyPerformances.set(dateKey, performance);
+                                }
+                            }
+                        }
+                    }
+                }
+            });
+
+            const totalScore = Array.from(dailyPerformances.values()).reduce((sum, val) => sum + val, 0);
+            const averageScore = workDays.size > 0 ? (totalScore / workDays.size) : 0;
+
             myPerformance = {
-                // Use Math.floor to be strict: 99.9% is NOT 100%
-                score: Math.floor(overallScore),
-                totalAttendance: myAttendances.filter(a => ['PRESENT', 'LATE'].includes(a.status)).length
+                score: Math.floor(averageScore), // Use Math.floor to be strict: 99.9% is NOT 100%
+                totalAttendance: presentDays.size
             };
         } else {
             myPerformance = { score: 0, totalAttendance: 0 };
