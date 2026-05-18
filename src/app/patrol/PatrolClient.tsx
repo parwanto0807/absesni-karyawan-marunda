@@ -33,6 +33,23 @@ import { ZoomableImage } from '@/components/ImageModal';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
+interface PatrolLogWithUser {
+    id: string;
+    sessionId: string | null;
+    checkpoint: { name: string; location: string | null };
+    status: string;
+    notes: string | null;
+    image: string | null;
+    latitude: number;
+    longitude: number;
+    createdAt: Date;
+    userId: string;
+    user: {
+        name: string;
+        role: string;
+    };
+}
+
 interface GroupedSession {
     id: string;
     isReal: boolean;
@@ -40,8 +57,8 @@ interface GroupedSession {
         name: string;
         role: string;
     };
-    startTime: string;
-    endTime: string;
+    startTime: string | Date;
+    endTime: string | Date;
     status: string;
     logs: {
         id: string;
@@ -51,7 +68,7 @@ interface GroupedSession {
         image: string | null;
         latitude: number;
         longitude: number;
-        createdAt: string;
+        createdAt: string | Date;
     }[];
 }
 
@@ -126,7 +143,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
             const logsData = result.data;
             const sessionsMap = new Map<string, GroupedSession>();
 
-            logsData.forEach((log: any) => {
+            logsData.forEach((log: PatrolLogWithUser) => {
                 const logDate = new Date(log.createdAt);
                 if (log.sessionId) {
                     if (!sessionsMap.has(log.sessionId)) {
@@ -814,7 +831,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                         {/* Modal Body */}
                         <div className="p-6 overflow-y-auto flex-1 space-y-4 bg-slate-50 dark:bg-slate-950 hide-scrollbar">
                             <div className="relative border-l border-slate-200 dark:border-slate-800 ml-2 pl-4 space-y-6">
-                                {selectedSession.logs.map((log, index) => (
+                                {selectedSession.logs.map((log) => (
                                     <div key={log.id} className="relative">
                                         {/* Dot */}
                                         <div className={cn(

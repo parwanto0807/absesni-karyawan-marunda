@@ -152,14 +152,14 @@ export default async function DashboardPage() {
                 const dayStart = getStartOfDayJakarta(date);
                 const dateKey = date.toLocaleDateString('id-ID', { timeZone: 'Asia/Jakarta' });
 
-                const hasAttendance = currentUserData!.attendances.some((att: any) => {
+                const hasAttendance = currentUserData!.attendances.some((att: { clockIn: Date }) => {
                     const attDayStart = getStartOfDayJakarta(new Date(att.clockIn)).getTime();
                     return attDayStart === dayStart.getTime();
                 });
 
                 if (!hasAttendance) {
                     let shiftCode = 'OFF';
-                    const manual = currentUserData!.schedules.find((s: any) => getStartOfDayJakarta(s.date).getTime() === dayStart.getTime());
+                    const manual = currentUserData!.schedules.find((s: { date: Date; shiftCode: string }) => getStartOfDayJakarta(s.date).getTime() === dayStart.getTime());
 
                     if (manual) {
                         shiftCode = manual.shiftCode;
@@ -172,7 +172,7 @@ export default async function DashboardPage() {
                     if (shiftCode !== 'OFF') {
                         const timings = getShiftTimings(shiftCode, date);
                         if (timings) {
-                            const permit = currentUserData!.permits.find((p: any) =>
+                            const permit = currentUserData!.permits.find((p: { startDate: Date; endDate: Date; type: string }) =>
                                 getStartOfDayJakarta(p.startDate).getTime() <= dayStart.getTime() &&
                                 getEndOfDayJakarta(p.endDate).getTime() >= dayStart.getTime()
                             );

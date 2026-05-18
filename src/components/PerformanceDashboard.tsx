@@ -7,12 +7,6 @@ import { getShiftForDate, getStaticSchedule, getShiftTimings } from '@/lib/sched
 import { getStartOfDayJakarta, getEndOfDayJakarta, getJakartaTime } from '@/lib/date-utils';
 import UserAvatar from '@/components/UserAvatar';
 
-interface AttendanceRecord {
-    lateMinutes: number | null;
-    earlyLeaveMinutes: number | null;
-    status: string;
-    clockIn: Date;
-}
 
 interface EmployeeRecord {
     id: string;
