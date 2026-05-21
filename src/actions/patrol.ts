@@ -239,7 +239,7 @@ export async function getPatrolLogImage(logId: string) {
             select: { image: true }
         });
         return { success: true, data: log?.image || null };
-    } catch (error) {
+    } catch (_error) {
         return { success: false, message: 'Gagal memuat gambar' };
     }
 }

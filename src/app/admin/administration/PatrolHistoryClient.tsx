@@ -94,8 +94,9 @@ export default function PatrolHistoryClient({ currentUserRole = 'ADMIN', current
         
         if (result.success && result.data) {
             setLogs(result.data as PatrolLog[]);
-            if ((result as any).pagination) {
-                setTotalPages((result as any).pagination.totalPages);
+            const res = result as { pagination?: { totalPages: number } };
+            if (res.pagination) {
+                setTotalPages(res.pagination.totalPages);
             }
         } else {
             toast.error(result.message || 'Gagal mengambil riwayat');
