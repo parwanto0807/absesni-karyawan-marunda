@@ -40,7 +40,7 @@ interface PatrolLogWithUser {
     checkpoint: { name: string; location: string | null };
     status: string;
     notes: string | null;
-    image: string | null;
+    image?: string | null;
     latitude: number;
     longitude: number;
     createdAt: Date;
@@ -66,7 +66,7 @@ interface GroupedSession {
         checkpoint: { name: string; location: string | null };
         status: string;
         notes: string | null;
-        image: string | null;
+        image?: string | null;
         latitude: number;
         longitude: number;
         createdAt: string | Date;
