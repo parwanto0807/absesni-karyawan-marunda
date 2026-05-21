@@ -20,7 +20,7 @@ import { getRecentPatrolLogs, getMyPatrolLogs, getCheckpoints } from '@/actions/
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 import { cn } from '@/lib/utils';
-import { ZoomableImage } from '@/components/ImageModal';
+import { LazyPatrolImage } from '@/components/LazyPatrolImage';
 
 interface PatrolLog {
     id: string;
@@ -69,6 +69,10 @@ export default function PatrolHistoryClient({ currentUserRole = 'ADMIN', current
     const [totalCheckpointsCount, setTotalCheckpointsCount] = useState<number>(0);
     const [activeTab, setActiveTab] = useState<'timeline' | 'map'>('timeline');
 
+    const [page, setPage] = useState(1);
+    const [totalPages, setTotalPages] = useState(1);
+    const limit = 100;
+
     useEffect(() => {
         if (selectedSession) {
             setActiveTab('timeline');
@@ -85,16 +89,19 @@ export default function PatrolHistoryClient({ currentUserRole = 'ADMIN', current
         }
 
         const result = currentUserRole === 'SECURITY' 
-            ? await getMyPatrolLogs(currentUserId, 300, 2)
-            : await getRecentPatrolLogs(300);
+            ? await getMyPatrolLogs(currentUserId, limit, 2, page)
+            : await getRecentPatrolLogs(limit, page);
         
         if (result.success && result.data) {
             setLogs(result.data as PatrolLog[]);
+            if ((result as any).pagination) {
+                setTotalPages((result as any).pagination.totalPages);
+            }
         } else {
             toast.error(result.message || 'Gagal mengambil riwayat');
         }
         setIsLoading(false);
-    }, [currentUserRole, currentUserId]);
+    }, [currentUserRole, currentUserId, page]);
 
     useEffect(() => {
         fetchLogs();
@@ -431,6 +438,57 @@ export default function PatrolHistoryClient({ currentUserRole = 'ADMIN', current
                 )}
             </div>
 
+            {/* Pagination Controls */}
+            {totalPages > 1 && (
+                <div className="flex items-center justify-between bg-white dark:bg-slate-900 px-4 py-3 border border-slate-200 dark:border-slate-800 rounded-2xl sm:px-6">
+                    <div className="flex flex-1 justify-between sm:hidden gap-2">
+                        <Button
+                            onClick={() => setPage(p => Math.max(1, p - 1))}
+                            disabled={page === 1 || isLoading}
+                            variant="outline"
+                            className="w-full rounded-xl text-xs font-bold"
+                        >
+                            Sebelumnya
+                        </Button>
+                        <Button
+                            onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                            disabled={page === totalPages || isLoading}
+                            variant="outline"
+                            className="w-full rounded-xl text-xs font-bold"
+                        >
+                            Selanjutnya
+                        </Button>
+                    </div>
+                    <div className="hidden sm:flex sm:flex-1 sm:items-center sm:justify-between">
+                        <div>
+                            <p className="text-xs font-bold text-slate-500 dark:text-slate-400 uppercase tracking-widest">
+                                Halaman <span className="text-slate-900 dark:text-white">{page}</span> dari <span className="text-slate-900 dark:text-white">{totalPages}</span>
+                            </p>
+                        </div>
+                        <div>
+                            <nav className="isolate inline-flex -space-x-px rounded-xl shadow-sm" aria-label="Pagination">
+                                <Button
+                                    onClick={() => setPage(p => Math.max(1, p - 1))}
+                                    disabled={page === 1 || isLoading}
+                                    variant="outline"
+                                    className="rounded-l-xl rounded-r-none text-xs font-bold h-9 border-slate-200 dark:border-slate-700"
+                                >
+                                    Sebelumnya
+                                </Button>
+                                <Button
+                                    onClick={() => setPage(p => Math.min(totalPages, p + 1))}
+                                    disabled={page === totalPages || isLoading}
+                                    variant="outline"
+                                    className="rounded-r-xl rounded-l-none text-xs font-bold h-9 border-slate-200 dark:border-slate-700"
+                                >
+                                    Selanjutnya
+                                </Button>
+                            </nav>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Session Detail Modal */}
             {selectedSession && (
                 <div className="fixed inset-0 z-[100] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-in fade-in duration-200" onClick={() => setSelectedSession(null)}>
@@ -548,13 +606,16 @@ export default function PatrolHistoryClient({ currentUserRole = 'ADMIN', current
                                                         <span className="text-[9px] font-bold text-indigo-600 dark:text-indigo-400 uppercase tracking-widest">
                                                             Titik #{index + 1}
                                                         </span>
-                                                        <h5 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight">
+                                                        <h5 className="text-sm font-black text-slate-800 dark:text-white uppercase tracking-tight mb-1">
                                                             {log.checkpoint.name}
                                                         </h5>
                                                         {log.checkpoint.location && (
-                                                            <p className="text-[9px] font-bold text-slate-400 uppercase tracking-widest">
-                                                                {log.checkpoint.location}
-                                                            </p>
+                                                            <div className="flex items-start gap-1.5 mt-1">
+                                                                <span className="text-[9px] font-black text-slate-400 uppercase tracking-widest shrink-0 mt-0.5">Ket:</span>
+                                                                <p className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">
+                                                                    {log.checkpoint.location}
+                                                                </p>
+                                                            </div>
                                                         )}
                                                     </div>
                                                     <div className="flex items-center gap-2 self-start sm:self-center">
@@ -582,14 +643,7 @@ export default function PatrolHistoryClient({ currentUserRole = 'ADMIN', current
                                                 </div>
 
                                                 {/* Log Image */}
-                                                {log.image && (
-                                                    <div className="space-y-1.5">
-                                                        <span className="text-[8px] font-black text-slate-400 uppercase tracking-widest block">Foto Bukti Lapangan</span>
-                                                        <div className="rounded-xl overflow-hidden border-2 border-white dark:border-slate-800 shadow-md max-w-sm">
-                                                            <ZoomableImage src={log.image} alt={`Bukti ${log.checkpoint.name}`} />
-                                                        </div>
-                                                    </div>
-                                                )}
+                                                <LazyPatrolImage logId={log.id} checkpointName={log.checkpoint.name} />
 
                                                 {/* GPS details */}
                                                 {currentUserRole !== 'SECURITY' && (

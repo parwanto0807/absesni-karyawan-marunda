@@ -232,17 +232,51 @@ export async function syncPatrolLogs(logs: {
     }
 }
 
-export async function getRecentPatrolLogs(limit: number = 10) {
+export async function getPatrolLogImage(logId: string) {
     try {
-        const logs = await prisma.patrolLog.findMany({
-            include: {
-                user: { select: { name: true, role: true } },
-                checkpoint: { select: { name: true, location: true } }
-            },
-            orderBy: { createdAt: 'desc' },
-            take: limit
+        const log = await prisma.patrolLog.findUnique({
+            where: { id: logId },
+            select: { image: true }
         });
-        return { success: true, data: logs };
+        return { success: true, data: log?.image || null };
+    } catch (error) {
+        return { success: false, message: 'Gagal memuat gambar' };
+    }
+}
+
+export async function getRecentPatrolLogs(limit: number = 100, page: number = 1) {
+    try {
+        const skip = (page - 1) * limit;
+        const [logs, total] = await Promise.all([
+            prisma.patrolLog.findMany({
+                select: {
+                    id: true,
+                    userId: true,
+                    checkpointId: true,
+                    sessionId: true,
+                    status: true,
+                    notes: true,
+                    latitude: true,
+                    longitude: true,
+                    createdAt: true,
+                    user: { select: { name: true, role: true } },
+                    checkpoint: { select: { name: true, location: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: limit,
+                skip
+            }),
+            prisma.patrolLog.count()
+        ]);
+        return { 
+            success: true, 
+            data: logs,
+            pagination: {
+                total,
+                page,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
     } catch (error) {
         console.error('Get Recent Patrol Logs Error:', error);
         return { success: false, message: 'Gagal mengambil riwayat patroli.' };
@@ -256,7 +290,16 @@ export async function getMyPatrolSessions(userId: string, limit: number = 10) {
             include: {
                 user: { select: { name: true, role: true } },
                 logs: {
-                    include: {
+                    select: {
+                        id: true,
+                        userId: true,
+                        checkpointId: true,
+                        sessionId: true,
+                        status: true,
+                        notes: true,
+                        latitude: true,
+                        longitude: true,
+                        createdAt: true,
                         checkpoint: { select: { name: true, location: true } }
                     },
                     orderBy: { createdAt: 'asc' }
@@ -272,7 +315,7 @@ export async function getMyPatrolSessions(userId: string, limit: number = 10) {
     }
 }
 
-export async function getMyPatrolLogs(userId: string, limit: number = 150, daysLimit?: number) {
+export async function getMyPatrolLogs(userId: string, limit: number = 100, daysLimit?: number, page: number = 1) {
     try {
         const whereClause: Prisma.PatrolLogWhereInput = { userId };
         if (daysLimit) {
@@ -282,16 +325,39 @@ export async function getMyPatrolLogs(userId: string, limit: number = 150, daysL
             whereClause.createdAt = { gte: cutOffDate };
         }
 
-        const logs = await prisma.patrolLog.findMany({
-            where: whereClause,
-            include: {
-                user: { select: { name: true, role: true } },
-                checkpoint: { select: { name: true, location: true } }
-            },
-            orderBy: { createdAt: 'desc' },
-            take: limit
-        });
-        return { success: true, data: logs };
+        const skip = (page - 1) * limit;
+        const [logs, total] = await Promise.all([
+            prisma.patrolLog.findMany({
+                where: whereClause,
+                select: {
+                    id: true,
+                    userId: true,
+                    checkpointId: true,
+                    sessionId: true,
+                    status: true,
+                    notes: true,
+                    latitude: true,
+                    longitude: true,
+                    createdAt: true,
+                    user: { select: { name: true, role: true } },
+                    checkpoint: { select: { name: true, location: true } }
+                },
+                orderBy: { createdAt: 'desc' },
+                take: limit,
+                skip
+            }),
+            prisma.patrolLog.count({ where: whereClause })
+        ]);
+
+        return { 
+            success: true, 
+            data: logs,
+            pagination: {
+                total,
+                page,
+                totalPages: Math.ceil(total / limit)
+            }
+        };
     } catch (error) {
         console.error('Get My Patrol Logs Error:', error);
         return { success: false, message: 'Gagal mengambil riwayat patroli Anda.' };

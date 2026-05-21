@@ -30,6 +30,7 @@ import {
 } from '@/actions/patrol';
 import { cn } from '@/lib/utils';
 import { ZoomableImage } from '@/components/ImageModal';
+import { LazyPatrolImage } from '@/components/LazyPatrolImage';
 import { format } from 'date-fns';
 import { id } from 'date-fns/locale';
 
@@ -846,11 +847,7 @@ export default function PatrolClient({ userId }: PatrolClientProps) {
                                                 </span>
                                             </div>
                                             <p className="text-[10px] text-slate-500 dark:text-slate-400 italic">&quot;{log.notes || 'Kondisi terpantau aman.'}&quot;</p>
-                                            {log.image && (
-                                                <div className="rounded-lg overflow-hidden border border-slate-100 dark:border-slate-850 mt-1 max-w-[200px]">
-                                                    <ZoomableImage src={log.image} alt={log.checkpoint.name} />
-                                                </div>
-                                            )}
+                                            <LazyPatrolImage logId={log.id} checkpointName={log.checkpoint.name} />
                                         </div>
                                     </div>
                                 ))}
