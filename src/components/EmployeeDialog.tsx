@@ -19,12 +19,14 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const [preview, setPreview] = useState<string | null>(employee?.image || null);
     const [imageBase64, setImageBase64] = useState<string | null>(employee?.image || null);
     const [selectedRole, setSelectedRole] = useState<string>(employee?.role || 'STAFF');
+    const [isActive, setIsActive] = useState<boolean>(employee?.isActive !== false);
 
     useEffect(() => {
         if (employee) {
             setSelectedRole(employee.role);
             setPreview(employee.image || null);
             setImageBase64(employee.image || null);
+            setIsActive(employee.isActive !== false);
         }
     }, [employee]);
 
@@ -239,6 +241,38 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                                 </div>
                                 <span className="text-xs font-bold text-slate-700 dark:text-slate-300">Bisa Approve Ijin Karyawan</span>
                             </label>
+                        </div>
+
+                        {/* Status Aktif */}
+                        <div className="space-y-1">
+                            <label className="text-[9px] font-black uppercase tracking-widest text-slate-400 ml-1">Status Karyawan</label>
+                            <div className="flex rounded-xl overflow-hidden border-2 border-slate-100 dark:border-slate-800 h-10">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsActive(true)}
+                                    className={cn(
+                                        "flex-1 text-[10px] font-black uppercase tracking-wider transition-all",
+                                        isActive
+                                            ? "bg-emerald-500 text-white"
+                                            : "bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    )}
+                                >
+                                    Aktif
+                                </button>
+                                <button
+                                    type="button"
+                                    onClick={() => setIsActive(false)}
+                                    className={cn(
+                                        "flex-1 text-[10px] font-black uppercase tracking-wider transition-all",
+                                        !isActive
+                                            ? "bg-rose-500 text-white"
+                                            : "bg-slate-50 dark:bg-slate-800 text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-700"
+                                    )}
+                                >
+                                    Non-Aktif
+                                </button>
+                            </div>
+                            <input type="hidden" name="isActive" value={isActive ? 'true' : 'false'} />
                         </div>
 
                         {/* Password - Hidden during Edit for security */}

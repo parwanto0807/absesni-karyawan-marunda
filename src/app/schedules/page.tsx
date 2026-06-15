@@ -44,17 +44,17 @@ export default async function SchedulesPage({
 
     // Ambil user per divisi
     const securityUsers = await prisma.user.findMany({
-        where: { role: 'SECURITY' },
+        where: { role: 'SECURITY', isActive: true },
         orderBy: { name: 'asc' }
     }) as ScheduleUser[];
 
     const lingkunganUsers = await prisma.user.findMany({
-        where: { role: 'LINGKUNGAN' },
+        where: { role: 'LINGKUNGAN', isActive: true },
         orderBy: { name: 'asc' }
     }) as ScheduleUser[];
 
     const kebersihanUsers = await prisma.user.findMany({
-        where: { role: 'KEBERSIHAN' },
+        where: { role: 'KEBERSIHAN', isActive: true },
         orderBy: { name: 'asc' }
     }) as ScheduleUser[];
 

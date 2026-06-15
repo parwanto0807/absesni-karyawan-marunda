@@ -10,6 +10,7 @@ export interface User {
     employeeId: string;
     rotationOffset: number;
     canApprovePermits?: boolean;
+    isActive?: boolean;
     lastLogin?: string | Date;
     updatedAt?: string | Date;
 }

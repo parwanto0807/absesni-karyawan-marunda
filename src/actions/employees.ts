@@ -15,6 +15,7 @@ export async function createUser(formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
     const canApprovePermits = formData.get('canApprovePermits') === 'true';
+    const isActive = formData.get('isActive') !== 'false';
 
     try {
         // Validate image - must be string and start with data:image or be null
@@ -34,6 +35,7 @@ export async function createUser(formData: FormData) {
                 image: validImage,
                 rotationOffset,
                 canApprovePermits,
+                isActive,
             },
         });
         revalidatePath('/employees');
@@ -57,6 +59,7 @@ export async function updateUser(id: string, formData: FormData) {
     const imageBase64 = formData.get('image') as string; // Base64 string
     const rotationOffset = parseInt(formData.get('rotationOffset') as string || '0');
     const canApprovePermits = formData.get('canApprovePermits') === 'true';
+    const isActive = formData.get('isActive') !== 'false';
 
     try {
         const data: {
@@ -66,6 +69,7 @@ export async function updateUser(id: string, formData: FormData) {
             employeeId: string;
             rotationOffset: number;
             canApprovePermits: boolean;
+            isActive: boolean;
             image?: string;
             password?: string;
             isPasswordDefault?: boolean;
@@ -76,6 +80,7 @@ export async function updateUser(id: string, formData: FormData) {
             employeeId,
             rotationOffset,
             canApprovePermits,
+            isActive,
         };
 
         // Handle image upload if base64 is provided and valid

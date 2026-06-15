@@ -23,6 +23,15 @@ export async function createPermit(formData: FormData) {
         const file = formData.get('image') as File;
         let imageUrl: string | null = null;
 
+        // Block inactive users
+        const userCheck = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isActive: true }
+        });
+        if (!userCheck || userCheck.isActive === false) {
+            return { success: false, message: 'Akun Anda tidak aktif. Hubungi Admin.' };
+        }
+
         if (file && file.size > 0) {
             // ✅ Save to local file system instead of Base64
             const bytes = await file.arrayBuffer();
@@ -82,7 +91,7 @@ export async function createPermit(formData: FormData) {
         });
 
         // 🎉 Notify Admins
-        const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'PIC', 'RT'] } } });
+        const admins = await prisma.user.findMany({ where: { role: { in: ['ADMIN', 'PIC', 'RT'] }, isActive: true } });
         for (const admin of admins) {
             await createNotification({
                 userId: admin.id,
@@ -141,7 +150,7 @@ export async function approvePermit(permitId: string, role: string, status: 'APP
             return { success: false, message: 'Anda sudah pernah memproses izin ini.' };
         }
 
-        const totalApprovers = await prisma.user.count({ where: { canApprovePermits: true } });
+        const totalApprovers = await prisma.user.count({ where: { canApprovePermits: true, isActive: true } });
 
         const newApprovedByIds = [...permit.approvedByIds];
         const newRejectedByIds = [...permit.rejectedByIds];

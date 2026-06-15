@@ -53,6 +53,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     let filterUsers;
     if (session.role === 'ADMIN' || session.role === 'PIC' || session.role === 'RT') {
         filterUsers = await prisma.user.findMany({
+            where: { isActive: true },
             select: { id: true, name: true },
             orderBy: { name: 'asc' }
         });
@@ -90,6 +91,7 @@ export default async function HistoryPage({ searchParams }: { searchParams: Prom
     const usersForAbsence = await prisma.user.findMany({
         where: {
             role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
+            isActive: true,
             ...(targetUserId ? { id: targetUserId } : {})
         },
         include: {

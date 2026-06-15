@@ -22,6 +22,7 @@ export default async function EmployeesPage() {
         image: emp.image || undefined,
         rotationOffset: emp.rotationOffset,
         canApprovePermits: emp.canApprovePermits,
+        isActive: emp.isActive,
         lastLogin: emp.lastLogin || undefined,
         updatedAt: emp.updatedAt,
     }));

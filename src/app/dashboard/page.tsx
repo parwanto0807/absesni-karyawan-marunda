@@ -402,7 +402,7 @@ export default async function DashboardPage() {
 
     const stats = {
         totalEmployees: await prisma.user.count({
-            where: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] } }
+            where: { role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] }, isActive: true }
         }),
         presentToday: securityEmployees.filter(e => e.status === 'ONLINE').length,
         pendingPermits: await prisma.permit.count({ where: { finalStatus: 'PENDING' } }),

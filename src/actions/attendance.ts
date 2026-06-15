@@ -45,6 +45,15 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
 
         // No more waiting period for shift transitions
 
+        // Block inactive users from clocking in
+        const userCheck = await prisma.user.findUnique({
+            where: { id: userId },
+            select: { isActive: true }
+        });
+        if (!userCheck || userCheck.isActive === false) {
+            return { success: false, message: 'Akun Anda tidak aktif. Hubungi Admin.' };
+        }
+
         // Calculate Shift and Lateness
         const user = await prisma.user.findUnique({
             where: { id: userId },
@@ -169,7 +178,7 @@ export async function clockIn(userId: string, location: { lat: number, lng: numb
         // 🔔 Notify Admins & PICs
         if (user) {
             const admins = await prisma.user.findMany({
-                where: { role: { in: ['ADMIN', 'PIC', 'RT'] } }
+                where: { role: { in: ['ADMIN', 'PIC', 'RT'] }, isActive: true }
             });
             for (const admin of admins) {
                 if (admin.id === userId) continue; // Don't notify self if admin is clocking in
@@ -280,7 +289,7 @@ export async function clockOut(attendanceId: string, imageOutPath?: string) {
 
             // 🔔 Notify Admins & PICs
             const admins = await prisma.user.findMany({
-                where: { role: { in: ['ADMIN', 'PIC', 'RT'] } }
+                where: { role: { in: ['ADMIN', 'PIC', 'RT'] }, isActive: true }
             });
             for (const admin of admins) {
                 if (admin.id === user.id) continue;

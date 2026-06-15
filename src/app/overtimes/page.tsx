@@ -14,7 +14,8 @@ export default async function OvertimesPage() {
     const overtimes = await getOvertimes();
     const users = await prisma.user.findMany({
         where: {
-            role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] }
+            role: { in: ['SECURITY', 'LINGKUNGAN', 'KEBERSIHAN'] },
+            isActive: true
         },
         select: {
             id: true,

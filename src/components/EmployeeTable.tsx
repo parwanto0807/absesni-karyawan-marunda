@@ -83,6 +83,7 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">ID Karyawan</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Tugas/Role</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Approve Ijin</th>
+                            <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Status</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px]">Akses Terakhir</th>
                             <th className="px-6 py-4 font-semibold uppercase tracking-wider text-[10px] text-right">Aksi</th>
                         </tr>
@@ -149,6 +150,19 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                             <div className="h-2 w-2 rounded-full bg-slate-300 dark:bg-slate-600" />
                                             <span className="text-[10px] font-bold uppercase tracking-wider">Tidak</span>
                                         </div>
+                                    )}
+                                </td>
+                                <td className="px-6 py-4">
+                                    {emp.isActive !== false ? (
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                                            Aktif
+                                        </span>
+                                    ) : (
+                                        <span className="inline-flex items-center gap-1.5 rounded-lg px-3 py-1 text-[10px] font-black uppercase tracking-wider bg-rose-50 text-rose-600 dark:bg-rose-400/10 dark:text-rose-400">
+                                            <div className="h-1.5 w-1.5 rounded-full bg-rose-400" />
+                                            Non-Aktif
+                                        </span>
                                     )}
                                 </td>
                                 <td className="px-6 py-4">
@@ -267,6 +281,18 @@ export default function EmployeeTable({ employees }: EmployeeTableProps) {
                                         Approve Ijin
                                     </span>
                                 )}
+                                <span className={cn(
+                                    "inline-flex items-center rounded-md px-2 py-1 text-[9px] font-black uppercase tracking-wider ml-1.5",
+                                    emp.isActive !== false
+                                        ? "bg-emerald-50 text-emerald-700 dark:bg-emerald-400/10 dark:text-emerald-400"
+                                        : "bg-rose-50 text-rose-600 dark:bg-rose-400/10 dark:text-rose-400"
+                                )}>
+                                    <div className={cn(
+                                        "h-1.5 w-1.5 rounded-full mr-1.5",
+                                        emp.isActive !== false ? "bg-emerald-500 animate-pulse" : "bg-rose-400"
+                                    )} />
+                                    {emp.isActive !== false ? 'Aktif' : 'Non-Aktif'}
+                                </span>
                                 {emp.username !== 'adminit' && (
                                     <div className="mt-2 flex items-center text-[10px] text-slate-400">
                                         <Clock size={10} className="mr-1" />

@@ -33,7 +33,7 @@ export async function createBroadcastNotification(data: {
     link?: string;
 }) {
     try {
-        const users = await prisma.user.findMany({ select: { id: true } });
+        const users = await prisma.user.findMany({ where: { isActive: true }, select: { id: true } });
         const notifications = users.map(user => ({
             userId: user.id,
             title: data.title,
