@@ -146,7 +146,7 @@ export default async function PerformanceDashboard() {
             role: emp.role,
             employeeId: emp.employeeId,
             rotationOffset: emp.rotationOffset,
-            averageScore: Math.round(averageScore * 100) / 100, // Keep 2 decimals for precision
+            averageScore: Math.floor(averageScore * 100) / 100, // Truncate (floor) to 2 decimals so any penalty is preserved
             totalAttendance: presentDays.size
         };
     }).sort((a: LeaderboardItem, b: LeaderboardItem) => (b.averageScore - a.averageScore) || (b.totalAttendance - a.totalAttendance));

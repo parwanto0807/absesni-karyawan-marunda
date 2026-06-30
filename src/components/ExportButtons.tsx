@@ -352,7 +352,7 @@ export default function ExportButtons({ attendances, filterInfo }: ExportButtons
                     const totalPerf = Array.from(stats.dailyPerformances.values()).reduce((a, b) => a + b, 0);
                     const avgPerfVal = stats.workDays.size > 0 ? (totalPerf / stats.workDays.size) : 0;
 
-                    const formattedAvg = avgPerfVal.toFixed(1);
+                    const formattedAvg = (Math.floor(avgPerfVal * 10) / 10).toFixed(1);
                     const avgPerformance = `${formattedAvg}%`;
 
                     const attendanceRate = stats.workDays.size > 0

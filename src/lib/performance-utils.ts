@@ -33,8 +33,8 @@ export function calculateDailyPerformance(attendance: { status: string, lateMinu
         score -= earlyLeavePenalty;
     }
  
-    // Ensure range 0-100 and round to 2 decimal places
-    return Math.max(0, Math.min(100, Math.round(score * 100) / 100));
+    // Ensure range 0-100, truncate (floor) to 2 decimal places so any penalty is never rounded away
+    return Math.max(0, Math.min(100, Math.floor(score * 100) / 100));
 }
 
 export function getPerformanceColor(score: number): string {
