@@ -8,24 +8,19 @@ Dokumen ini menjelaskan bagaimana sistem menghitung hari kerja, tingkat kehadira
 
 ## 1. Perhitungan Hari Kerja Berdasarkan Role
 
-### 🌳 LINGKUNGAN & KEBERSIHAN
+### 🌳 LINGKUNGAN
 
 **Jadwal Kerja:**
-- Bekerja: Senin - Sabtu (6 hari/minggu)
+- Bekerja: Senin - Jumat (07:00 - 17:00)
+- Libur: Sabtu & Minggu
+
+---
+
+### 🧹 KEBERSIHAN
+
+**Jadwal Kerja:**
+- Bekerja: Senin - Sabtu (07:00 - 16:00)
 - Libur: Minggu
-
-**Perhitungan Hari Kerja:**
-```
-Hari Kerja = Total Hari dalam Periode - Jumlah Hari Minggu
-```
-
-**Contoh:**
-```
-Periode: 1-31 Januari 2026
-- Total hari: 31 hari
-- Hari Minggu: 4 hari (5, 12, 19, 26 Januari)
-- Hari Kerja: 31 - 4 = 27 hari
-```
 
 ---
 

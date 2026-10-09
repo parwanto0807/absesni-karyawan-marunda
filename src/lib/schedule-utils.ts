@@ -55,7 +55,7 @@ export const SHIFT_DETAILS = {
     // Static Roles
     "LNK": {
         label: "REGULER",
-        time: "08:00 - 17:00",
+        time: "07:00 - 17:00",
         color: "bg-amber-50 dark:bg-amber-500/10 text-amber-600 dark:text-amber-400 border-amber-400 dark:border-amber-500/20"
     },
     "KBR": {
@@ -65,7 +65,62 @@ export const SHIFT_DETAILS = {
     }
 };
 
-export function getShiftTimings(shiftCode: string, targetDate: Date): { start: Date; end: Date } | null {
+export function parseRoleScheduleSettings(settingsMap?: Record<string, string>) {
+    const lingkunganWorkDays = settingsMap?.['SCHEDULE_LINGKUNGAN_WORK_DAYS']
+        ? settingsMap['SCHEDULE_LINGKUNGAN_WORK_DAYS'].split(',').map(Number).filter(n => !isNaN(n))
+        : [1, 2, 3, 4, 5];
+
+    const lingkunganStart = settingsMap?.['SCHEDULE_LINGKUNGAN_START'] || '07:00';
+    const lingkunganEnd = settingsMap?.['SCHEDULE_LINGKUNGAN_END'] || '17:00';
+
+    const kebersihanWorkDays = settingsMap?.['SCHEDULE_KEBERSIHAN_WORK_DAYS']
+        ? settingsMap['SCHEDULE_KEBERSIHAN_WORK_DAYS'].split(',').map(Number).filter(n => !isNaN(n))
+        : [1, 2, 3, 4, 5, 6];
+
+    const kebersihanStart = settingsMap?.['SCHEDULE_KEBERSIHAN_START'] || '07:00';
+    const kebersihanEnd = settingsMap?.['SCHEDULE_KEBERSIHAN_END'] || '16:00';
+
+    return {
+        LINGKUNGAN: {
+            startTime: lingkunganStart,
+            endTime: lingkunganEnd,
+            workDays: lingkunganWorkDays
+        },
+        KEBERSIHAN: {
+            startTime: kebersihanStart,
+            endTime: kebersihanEnd,
+            workDays: kebersihanWorkDays
+        }
+    };
+}
+
+export function getDynamicShiftDetails(shiftCode: string, settingsMap?: Record<string, string>) {
+    const base = SHIFT_DETAILS[shiftCode as keyof typeof SHIFT_DETAILS] || {
+        label: "OFF",
+        time: "-",
+        color: "bg-slate-50 dark:bg-slate-900/50 text-slate-400 dark:text-slate-500 border-slate-200 dark:border-slate-800/50"
+    };
+
+    if (!settingsMap) return base;
+
+    const configs = parseRoleScheduleSettings(settingsMap);
+    if (shiftCode === 'LNK') {
+        return {
+            ...base,
+            time: `${configs.LINGKUNGAN.startTime} - ${configs.LINGKUNGAN.endTime}`
+        };
+    }
+    if (shiftCode === 'KBR') {
+        return {
+            ...base,
+            time: `${configs.KEBERSIHAN.startTime} - ${configs.KEBERSIHAN.endTime}`
+        };
+    }
+
+    return base;
+}
+
+export function getShiftTimings(shiftCode: string, targetDate: Date, settingsMap?: Record<string, string>): { start: Date; end: Date } | null {
     if (shiftCode === 'OFF') return null;
 
     // Use Jakarta time to set the hours correctly
@@ -75,6 +130,8 @@ export function getShiftTimings(shiftCode: string, targetDate: Date): { start: D
     // Reset seconds/ms
     startJakarta.setSeconds(0, 0);
     endJakarta.setSeconds(0, 0);
+
+    const configs = parseRoleScheduleSettings(settingsMap);
 
     switch (shiftCode) {
         // ROTATING SHIFTS
@@ -94,14 +151,20 @@ export function getShiftTimings(shiftCode: string, targetDate: Date): { start: D
             break;
 
         // STATIC ROLES
-        case 'LNK': // 08:00 - 17:00
-            startJakarta.setHours(8, 0);
-            endJakarta.setHours(17, 0);
+        case 'LNK': {
+            const [sHour, sMin] = configs.LINGKUNGAN.startTime.split(':').map(Number);
+            const [eHour, eMin] = configs.LINGKUNGAN.endTime.split(':').map(Number);
+            startJakarta.setHours(isNaN(sHour) ? 7 : sHour, isNaN(sMin) ? 0 : sMin);
+            endJakarta.setHours(isNaN(eHour) ? 17 : eHour, isNaN(eMin) ? 0 : eMin);
             break;
-        case 'KBR': // 07:00 - 16:00
-            startJakarta.setHours(7, 0);
-            endJakarta.setHours(16, 0);
+        }
+        case 'KBR': {
+            const [sHour, sMin] = configs.KEBERSIHAN.startTime.split(':').map(Number);
+            const [eHour, eMin] = configs.KEBERSIHAN.endTime.split(':').map(Number);
+            startJakarta.setHours(isNaN(sHour) ? 7 : sHour, isNaN(sMin) ? 0 : sMin);
+            endJakarta.setHours(isNaN(eHour) ? 16 : eHour, isNaN(eMin) ? 0 : eMin);
             break;
+        }
 
         default:
             return null;
@@ -114,19 +177,19 @@ export function getShiftTimings(shiftCode: string, targetDate: Date): { start: D
     };
 }
 
-export function getStaticSchedule(role: string, targetDate: Date): string {
+export function getStaticSchedule(role: string, targetDate: Date, settingsMap?: Record<string, string>): string {
     const zonedDate = toZonedTime(targetDate, TIMEZONE);
     const dayOfWeek = zonedDate.getDay(); // 0 = Sunday, 1 = Monday, ... 6 = Saturday
 
+    const configs = parseRoleScheduleSettings(settingsMap);
+
     if (role === 'LINGKUNGAN') {
-        // MON (1) - SAT (6) - Based on PERFORMANCE_CALCULATION_GUIDE.md
-        if (dayOfWeek >= 1 && dayOfWeek <= 6) return 'LNK';
+        if (configs.LINGKUNGAN.workDays.includes(dayOfWeek)) return 'LNK';
         return 'OFF';
     }
 
     if (role === 'KEBERSIHAN') {
-        // MON (1) - SAT (6)
-        if (dayOfWeek >= 1 && dayOfWeek <= 6) return 'KBR';
+        if (configs.KEBERSIHAN.workDays.includes(dayOfWeek)) return 'KBR';
         return 'OFF';
     }
 

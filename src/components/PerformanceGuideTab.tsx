@@ -15,9 +15,13 @@ export default function PerformanceGuideTab() {
                         <p className="text-sm text-slate-700 dark:text-slate-300 mb-4">
                             Sistem ini menghitung hari kerja, tingkat kehadiran, dan performance karyawan berdasarkan role dan shift pattern masing-masing.
                         </p>
-                        <div className="grid md:grid-cols-3 gap-3">
+                        <div className="grid md:grid-cols-4 gap-3">
                             <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900">
-                                <p className="text-xs font-bold text-indigo-600 dark:text-indigo-400 mb-1">LINGKUNGAN & KEBERSIHAN</p>
+                                <p className="text-xs font-bold text-amber-600 dark:text-amber-400 mb-1">LINGKUNGAN</p>
+                                <p className="text-[11px] text-slate-600 dark:text-slate-400">Senin-Jumat (5 hari/minggu)</p>
+                            </div>
+                            <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900">
+                                <p className="text-xs font-bold text-teal-600 dark:text-teal-400 mb-1">KEBERSIHAN</p>
                                 <p className="text-[11px] text-slate-600 dark:text-slate-400">Senin-Sabtu (6 hari/minggu)</p>
                             </div>
                             <div className="p-3 rounded-lg bg-white dark:bg-slate-800 border border-indigo-100 dark:border-indigo-900">
@@ -48,20 +52,31 @@ export default function PerformanceGuideTab() {
                     </div>
 
                     <div className="space-y-4">
-                        {/* LINGKUNGAN & KEBERSIHAN */}
+                        {/* LINGKUNGAN */}
+                        <div className="p-4 rounded-xl bg-amber-50 dark:bg-amber-900/10 border border-amber-200 dark:border-amber-800">
+                            <div className="flex items-center justify-between mb-2">
+                                <h3 className="font-bold text-sm text-amber-900 dark:text-amber-100">LINGKUNGAN</h3>
+                                <span className="px-2 py-1 rounded-md bg-amber-600 text-white text-[10px] font-bold">5 Hari/Minggu</span>
+                            </div>
+                            <p className="text-xs text-amber-700 dark:text-amber-300 mb-2">
+                                <strong>Jadwal:</strong> Senin - Jumat (07:00 - 17:00) | <strong>Libur:</strong> Sabtu & Minggu
+                            </p>
+                            <div className="p-2 rounded bg-white dark:bg-slate-800 text-xs font-mono">
+                                Hari Kerja = Total Hari - (Sabtu + Minggu)
+                            </div>
+                        </div>
+
+                        {/* KEBERSIHAN */}
                         <div className="p-4 rounded-xl bg-teal-50 dark:bg-teal-900/10 border border-teal-200 dark:border-teal-800">
                             <div className="flex items-center justify-between mb-2">
-                                <h3 className="font-bold text-sm text-teal-900 dark:text-teal-100">LINGKUNGAN & KEBERSIHAN</h3>
+                                <h3 className="font-bold text-sm text-teal-900 dark:text-teal-100">KEBERSIHAN</h3>
                                 <span className="px-2 py-1 rounded-md bg-teal-600 text-white text-[10px] font-bold">6 Hari/Minggu</span>
                             </div>
                             <p className="text-xs text-teal-700 dark:text-teal-300 mb-2">
-                                <strong>Jadwal:</strong> Senin - Sabtu | <strong>Libur:</strong> Minggu
+                                <strong>Jadwal:</strong> Senin - Sabtu (07:00 - 16:00) | <strong>Libur:</strong> Minggu
                             </p>
                             <div className="p-2 rounded bg-white dark:bg-slate-800 text-xs font-mono">
                                 Hari Kerja = Total Hari - Jumlah Minggu
-                            </div>
-                            <div className="mt-2 p-2 rounded bg-teal-100 dark:bg-teal-900/20 text-xs">
-                                <strong>Contoh:</strong> Januari (31 hari - 4 Minggu) = <strong className="text-teal-600">27 hari kerja</strong>
                             </div>
                         </div>
 

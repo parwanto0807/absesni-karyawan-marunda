@@ -6,12 +6,15 @@ import { X, Loader2, Shield, User as UserIcon, Lock, Fingerprint, Briefcase, Lea
 import { cn } from '@/lib/utils';
 import { User } from '@/types/attendance';
 import { createUser, updateUser } from '@/actions/employees';
+import { getSettings } from '@/actions/settings';
 
 interface EmployeeDialogProps {
     isOpen: boolean;
     onClose: () => void;
     employee?: User | null; // If provided, we are in "Update" mode
 }
+
+const DAYS_LABEL: Record<number, string> = { 1: 'Senin', 2: 'Selasa', 3: 'Rabu', 4: 'Kamis', 5: 'Jumat', 6: 'Sabtu', 0: 'Minggu' };
 
 export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDialogProps) {
     const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +23,7 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
     const [imageBase64, setImageBase64] = useState<string | null>(employee?.image || null);
     const [selectedRole, setSelectedRole] = useState<string>(employee?.role || 'STAFF');
     const [isActive, setIsActive] = useState<boolean>(employee?.isActive !== false);
+    const [scheduleSettings, setScheduleSettings] = useState<Record<string, string>>({});
 
     useEffect(() => {
         if (employee) {
@@ -29,6 +33,12 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
             setIsActive(employee.isActive !== false);
         }
     }, [employee]);
+
+    useEffect(() => {
+        if (isOpen) {
+            getSettings().then(res => setScheduleSettings(res)).catch(() => {});
+        }
+    }, [isOpen]);
 
     if (!isOpen) return null;
 
@@ -357,31 +367,53 @@ export default function EmployeeDialog({ isOpen, onClose, employee }: EmployeeDi
                             </div>
                         )}
 
-                        {selectedRole === 'LINGKUNGAN' && (
-                            <div className="md:col-span-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <Leaf size={18} className="text-emerald-600 shrink-0 mt-0.5" />
-                                <div>
-                                    <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Jadwal Reguler</h4>
-                                    <p className="text-[11px] font-medium text-emerald-600/80 dark:text-emerald-500 mt-0.5">
-                                        Senin - Jumat (08:00 - 17:00)<br />
-                                        Sabtu - Minggu (Libur)
-                                    </p>
-                                </div>
-                            </div>
-                        )}
+                        {selectedRole === 'LINGKUNGAN' && (() => {
+                            const start = scheduleSettings.SCHEDULE_LINGKUNGAN_START || '07:00';
+                            const end = scheduleSettings.SCHEDULE_LINGKUNGAN_END || '17:00';
+                            const workDays = scheduleSettings.SCHEDULE_LINGKUNGAN_WORK_DAYS
+                                ? scheduleSettings.SCHEDULE_LINGKUNGAN_WORK_DAYS.split(',').map(Number)
+                                : [1, 2, 3, 4, 5];
+                            const activeDaysStr = workDays.map(d => DAYS_LABEL[d]).filter(Boolean).join(', ');
+                            const offDays = [1, 2, 3, 4, 5, 6, 0].filter(d => !workDays.includes(d));
+                            const offDaysStr = offDays.length > 0 ? offDays.map(d => DAYS_LABEL[d]).join(', ') + ' (Libur)' : 'Tidak Ada Libur';
 
-                        {selectedRole === 'KEBERSIHAN' && (
-                            <div className="md:col-span-2 p-4 rounded-xl bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-100 dark:border-teal-800/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
-                                <Sparkles size={18} className="text-teal-600 shrink-0 mt-0.5" />
-                                <div>
-                                    <h4 className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-wide">Jadwal Kebersihan</h4>
-                                    <p className="text-[11px] font-medium text-teal-600/80 dark:text-teal-500 mt-0.5">
-                                        Senin - Sabtu (07:00 - 16:00)<br />
-                                        Minggu (Libur)
-                                    </p>
+                            return (
+                                <div className="md:col-span-2 p-4 rounded-xl bg-emerald-50 dark:bg-emerald-900/20 border-2 border-emerald-100 dark:border-emerald-800/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <Leaf size={18} className="text-emerald-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="text-xs font-black text-emerald-700 dark:text-emerald-400 uppercase tracking-wide">Jadwal Reguler Lingkungan</h4>
+                                        <p className="text-[11px] font-medium text-emerald-600/80 dark:text-emerald-500 mt-0.5">
+                                            {activeDaysStr} ({start} - {end})<br />
+                                            {offDaysStr}
+                                        </p>
+                                    </div>
                                 </div>
-                            </div>
-                        )}
+                            );
+                        })()}
+
+                        {selectedRole === 'KEBERSIHAN' && (() => {
+                            const start = scheduleSettings.SCHEDULE_KEBERSIHAN_START || '07:00';
+                            const end = scheduleSettings.SCHEDULE_KEBERSIHAN_END || '16:00';
+                            const workDays = scheduleSettings.SCHEDULE_KEBERSIHAN_WORK_DAYS
+                                ? scheduleSettings.SCHEDULE_KEBERSIHAN_WORK_DAYS.split(',').map(Number)
+                                : [1, 2, 3, 4, 5, 6];
+                            const activeDaysStr = workDays.map(d => DAYS_LABEL[d]).filter(Boolean).join(', ');
+                            const offDays = [1, 2, 3, 4, 5, 6, 0].filter(d => !workDays.includes(d));
+                            const offDaysStr = offDays.length > 0 ? offDays.map(d => DAYS_LABEL[d]).join(', ') + ' (Libur)' : 'Tidak Ada Libur';
+
+                            return (
+                                <div className="md:col-span-2 p-4 rounded-xl bg-teal-50 dark:bg-teal-900/20 border-2 border-teal-100 dark:border-teal-800/50 flex items-start gap-3 animate-in fade-in slide-in-from-top-2 duration-300">
+                                    <Sparkles size={18} className="text-teal-600 shrink-0 mt-0.5" />
+                                    <div>
+                                        <h4 className="text-xs font-black text-teal-700 dark:text-teal-400 uppercase tracking-wide">Jadwal Kebersihan</h4>
+                                        <p className="text-[11px] font-medium text-teal-600/80 dark:text-teal-500 mt-0.5">
+                                            {activeDaysStr} ({start} - {end})<br />
+                                            {offDaysStr}
+                                        </p>
+                                    </div>
+                                </div>
+                            );
+                        })()}
                     </div>
 
                     <div className="flex space-x-3 pt-2 shrink-0">

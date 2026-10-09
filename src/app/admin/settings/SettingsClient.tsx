@@ -1,9 +1,10 @@
 'use client';
 
 import React, { useState, useEffect } from 'react';
-import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2, Calendar, ClipboardList, History as HistoryIcon, Navigation, ShieldCheck, MessageSquare, Zap, Database, Lock } from 'lucide-react';
+import { Settings, BookOpen, MapPin, Save, ExternalLink, Loader2, Calendar, ClipboardList, History as HistoryIcon, Navigation, ShieldCheck, MessageSquare, Zap, Database, Lock, Clock } from 'lucide-react';
 import { toast } from 'sonner';
 import PerformanceGuideTab from '@/components/PerformanceGuideTab';
+import ScheduleSettingsTab from '@/components/ScheduleSettingsTab';
 import HolidaySettingsTab from '@/components/HolidaySettingsTab';
 import DutySettingsTab from '@/components/DutySettingsTab';
 import ActivityLogTab from '@/components/ActivityLogTab';
@@ -18,7 +19,7 @@ import { getSettings, updateSettings } from '@/actions/settings';
 import { isUserAuthorizedForTracking } from '@/actions/tracking';
 
 export default function SettingsClient({ username }: { username: string }) {
-    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'holidays' | 'duty' | 'logs' | 'tracking' | 'tracking_auth' | 'whatsapp' | 'pusher' | 'database' | 'landing' | 'security'>('location');
+    const [activeTab, setActiveTab] = useState<'location' | 'performance' | 'schedule' | 'holidays' | 'duty' | 'logs' | 'tracking' | 'tracking_auth' | 'whatsapp' | 'pusher' | 'database' | 'landing' | 'security'>('location');
     const [isAuthorized, setIsAuthorized] = useState(false);
     const [loading, setLoading] = useState(false);
     const [initialLoading, setInitialLoading] = useState(true);
@@ -105,7 +106,7 @@ export default function SettingsClient({ username }: { username: string }) {
                     Pengaturan <span className="text-indigo-600">Admin</span>
                 </h1>
                 <p className="text-xs md:text-sm text-slate-500 dark:text-slate-400 font-medium">
-                    Kelola lokasi absensi dan panduan performance
+                    Kelola lokasi absensi, jadwal kerja, dan panduan performance
                 </p>
             </div>
 
@@ -125,6 +126,23 @@ export default function SettingsClient({ username }: { username: string }) {
                         <span className="md:hidden text-[10px] uppercase">{activeTab === 'location' && 'Lokasi'}</span>
                     </div>
                     {activeTab === 'location' && (
+                        <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
+                    )}
+                </button>
+                <button
+                    onClick={() => setActiveTab('schedule')}
+                    title="Jadwal Kerja Reguler"
+                    className={`px-4 md:px-6 py-3 font-bold text-xs md:text-sm transition-all relative whitespace-nowrap ${activeTab === 'schedule'
+                        ? 'text-indigo-600 dark:text-indigo-400'
+                        : 'text-slate-500 hover:text-slate-700 dark:text-slate-400 dark:hover:text-slate-300'
+                        }`}
+                >
+                    <div className="flex items-center gap-1.5 md:gap-2">
+                        <Clock size={18} className="w-4.5 h-4.5 md:w-[18px] md:h-[18px]" />
+                        <span className="hidden md:inline">Jadwal Kerja</span>
+                        <span className="md:hidden text-[10px] uppercase">{activeTab === 'schedule' && 'Jadwal'}</span>
+                    </div>
+                    {activeTab === 'schedule' && (
                         <div className="absolute bottom-0 left-0 right-0 h-0.5 bg-indigo-600 dark:bg-indigo-400" />
                     )}
                 </button>
@@ -522,6 +540,9 @@ export default function SettingsClient({ username }: { username: string }) {
                         </div>
                     </div>
                 </div>
+            ) : activeTab === 'schedule' ? (
+                // Schedule Settings Tab
+                <ScheduleSettingsTab />
             ) : activeTab === 'performance' ? (
                 // Performance Guide Tab
                 <PerformanceGuideTab />
